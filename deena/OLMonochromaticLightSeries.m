@@ -2,7 +2,7 @@ function OLMonochromaticLightSeries(varargin)
 % Presents a series of monochromatic lights on OneLight box
 %
 % Syntax:
-%   OLMonochromaticLightSeries
+%t   OLMonochromaticLightSeries
 %
 % Description:
 %    Sends commands to the OneLight box to present a series of
@@ -37,7 +37,7 @@ cal = OLGetCalibrationStructure;
 wls = 490:10:690;
 fullWidthHalfMax = 20;
 lambda = 0.001;
-delaySecs = 2; % time in seconds that each wavelength is displayed
+delaySecs = 0.3; % time in seconds that each wavelength is displayed
 wlsPos = 1; % Initial position in wavelength array
 
 % Initialize arrays for storing data
@@ -55,7 +55,7 @@ for i = 1:numWls
     targetSpds(:,i) = OLMakeMonochromaticSpd(cal, wls(i), fullWidthHalfMax)/3; % where does 3 come from?
     primaries(:,i) = OLSpdToPrimary(cal, targetSpds(:,i), 'lambda', lambda);
     settings(:,i) = OLPrimaryToSettings(cal, primaries(:,i)); % gamma correction
-    [start,stop] = OLSettingsToStartsStops(cal, settings(:,wlsPos));
+    [start,stop] = OLSettingsToStartsStops(cal, settings(:,i));
     startStops(i,1,:) = start;
     startStops(i,2,:) = stop;
 end
@@ -83,11 +83,13 @@ ListenChar(2);
 FlushEvents;
 fprintf('Starting display loop \n'); 
 
+% Open OneLight
+ol = OneLight;
+
 % Loop through lights until the user presses a key
 while(~CharAvail)
-    %     Display chosen wavelength on OneLight
-%     ol = OneLight;
-%     ol.setMirrors(startStops(wlsPos,1,:), startStops(wlsPos,2,:));
+    % Display chosen wavelength on OneLight
+    ol.setMirrors(squeeze(startStops(wlsPos,1,:))', squeeze(startStops(wlsPos,2,:))');
     
     fprintf('Waiting %g seconds for wavelength %g \n',delaySecs,wls(wlsPos));
     mglWaitSecs(delaySecs); % time delay
