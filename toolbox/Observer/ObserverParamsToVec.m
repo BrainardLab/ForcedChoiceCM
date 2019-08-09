@@ -31,6 +31,7 @@ function x = ObserverParamsToVec(params)
 %
 % See also:
 %   ObserverVecToParams, ComputeCIEConeFundamentals
+%
 
 % History:
 %   08/09/19  dhb  Wrote it, because I have to do one fun thing this summer.

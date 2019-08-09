@@ -2,7 +2,7 @@ function [prob1,T] = ComputeChoiceLikelihood(params,S,fieldSizeDegrees,ageInYear
 % Compute probability that stim1 will be chosen as closer to reference than stim2
 %
 % Syntax:
-%   [prob1,T] = ComputeChoiceLikelihood(params,S,fieldSizeDegrees,ageInYears,pupilDiameterMM,reference,comparison1,comparison2)
+%   [prob1,T] = ComputeChoiceLikelihood(params,S,fieldSizeDegrees,ageInYears,pupilDiameterMM,[reference,comparison1,comparison2])
 %
 % Description:
 %   This routine simulates a three interval experiment.  The subject's task
@@ -13,6 +13,9 @@ function [prob1,T] = ComputeChoiceLikelihood(params,S,fieldSizeDegrees,ageInYear
 %
 %   The structure params specifies the cone spectral sensitivities of the
 %   observer, as well as a noise model.
+%
+%   If the three spectra are not passed, prob1 is returned as empty and you
+%   just get back the cone fundamentals.
 %
 % Inputs:
 %    params                    - Parameter structure describing the observer.
@@ -33,11 +36,13 @@ function [prob1,T] = ComputeChoiceLikelihood(params,S,fieldSizeDegrees,ageInYear
 %
 % See also:
 %   ObserverParamsToVec, ObserverVecToParams, ComputeCIEConeFundamentals
+%
 
 % History:
 %   08/09/19  dhb  Wrote it.
 
-% Check inputs and parse
+% Initialize
+prob1 = [];
 
 % Get cone spectral sensitivities
 T_quantal = ...
@@ -49,10 +54,20 @@ for ii = 1:3
     T(ii,:) = T(ii,:)/max(T(ii,:));
 end
 
+% Support optional calling without spectra
+if (isempty(reference))
+    return;
+end
+
 % Compute cone responses
+referenceLMS = T*reference;
+comparison1LMS = T*comparison1;
+comparison2LMS = T*comparison2;
 
 % Convert to cone contrast space
+comparison1Contrast = (comparison1LMS-referenceLMS)./referenceLMS;
+comparison2Contrast = (comparison2LMS-referenceLMS)./referenceLMS;
 
 % Compute likelihood based on distance
-prob1 = [];
+
 end
