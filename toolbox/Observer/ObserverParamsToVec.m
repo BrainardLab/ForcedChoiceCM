@@ -2,7 +2,7 @@ function x = ObserverParamsToVec(params)
 % Convert structure of observer parameters to vector form
 %
 % Synopsis:
-%   params = ObserverVecToParams(x)
+%   x = ObserverVecToParams(params)
 %
 % Description:
 %   Our goal is to used forced choice color similarity judgments to

@@ -55,19 +55,22 @@ for ii = 1:3
 end
 
 % Support optional calling without spectra
-if (isempty(reference))
+if (~exist('reference','var') | isempty(reference))
     return;
 end
+
 
 % Compute cone responses
 referenceLMS = T*reference;
 comparison1LMS = T*comparison1;
 comparison2LMS = T*comparison2;
 
-% Convert to cone contrast space
-comparison1Contrast = (comparison1LMS-referenceLMS)./referenceLMS;
-comparison2Contrast = (comparison2LMS-referenceLMS)./referenceLMS;
+% Compute differences
+comparison1Diff = ComputeMatchDiff(params.colorDiffParams,referenceLMS,comparison1LMS);
+comparison2Diff = ComputeMatchDiff(params.colorDiffParams,referenceLMS,comparison2LMS);
+diffDiff = comparison2Diff - comparison1Diff;
 
-% Compute likelihood based on distance
+% Compute likelihood based on differences
+prob1 = normcdf(diffDiff,0,params.colorDiffParams.noiseSd);
 
 end

@@ -2,7 +2,7 @@ function params = ObserverVecToParams(x)
 % Convert vector of observer parameters to a structure
 %
 % Synopsis:
-%   params = ObserverVecToParams(x)
+%   params = ObserverVecToParams([x])
 %
 % Description:
 %   Our goal is to used forced choice color similarity judgments to
@@ -20,8 +20,10 @@ function params = ObserverVecToParams(x)
 %       params.indDiffParams.lambdaMaxShift(2) = x(7);
 %       params.indDiffParams.lambdaMaxShift(3) = x(8);
 %
+%
 % Inputs:
-%   x                       - Parameters as vector.
+%   x                       - Parameters as vector.  If not passed, it is
+%                             set to all zeros.
 %
 % Outputs:
 %   params                  - Parameter structure.
@@ -46,6 +48,12 @@ function params = ObserverVecToParams(x)
         error('Routines do not properly self invert');
     end
 %}
+
+% This routine might get called a lot, so don't use the
+% wonderful but lugubrious input parser.
+if (nargin == 0 | isempty(x))
+    x = zeros(8,1);
+end
 
 params.indDiffParams.dlens = x(1);
 params.indDiffParams.dmac = x(2);

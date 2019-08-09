@@ -5,11 +5,28 @@ function colorDiff = ComputeMatchDiff(colorDiffParams,referenceLMS,comparisonLMS
 %
 % Description:
 %     Compute a single number color difference between two vectors
-%     specified in cone coordinates.
+%     specified in cone coordinates. 
+%
+%     When the type field is 'opponentColor', converts comparison to
+%     contrast with respect to reference, then transforms to a lum, rg, by
+%     opponent representation and computes vector length.  The differences
+%     in each opponent mechanism are scaled by the weight parameters before
+%     vector length is taken.
 %
 % Inputs:
+%     colorDiffParams       - Structure of parameters describing color
+%                             difference model, with fields:
+%                               type: String with model type.  Only current
+%                                 option is 'opponentContrast', but you never
+%                                 know what the future will bring.
+%                               LMRatio: LM cone ratio, determines opponent
+%                                 luminance sensitivity.
+%                               lumWeight: Weight on luminance mechanism.
+%                               rgWeight: Weight on rg mechanism.
+%                               byWeight: Weight on by mechanism.
 %
 % Outputs:
+%   colorDiff                - Single number color difference measure.
 %
 % Optional key/value pairs:
 %   None:
