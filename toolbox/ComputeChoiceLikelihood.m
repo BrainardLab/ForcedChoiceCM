@@ -59,7 +59,6 @@ if (~exist('reference','var') | isempty(reference))
     return;
 end
 
-
 % Compute cone responses
 referenceLMS = T*reference;
 comparison1LMS = T*comparison1;
