@@ -38,12 +38,7 @@ primaryBasis = [unitPrimarySpectrum1 unitPrimarySpectrum2 unitPrimarySpectrum3];
 observerParams1.coneParams = DefaultConeParams('cie_asano');
 
 % Set color difference model parameters
-observerParams1.colorDiffParams.type = 'opponentContrast';
-observerParams1.colorDiffParams.LMRatio = 2;
-observerParams1.colorDiffParams.lumWeight = 4;
-observerParams1.colorDiffParams.rgWeight = 2;
-observerParams1.colorDiffParams.byWeight = 0.5;
-observerParams1.colorDiffParams.noiseSd = 0.02;
+observerParams1.colorDiffParams = DefaultColorDiffParams('opponentContrast');
 
 %% Get cone funadmentals
 T = ComputeObserverFundamentals(observerParams1.coneParams,S);
