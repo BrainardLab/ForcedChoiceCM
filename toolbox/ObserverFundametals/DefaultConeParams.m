@@ -15,6 +15,7 @@ function coneParams = DefaultConeParams(type)
 %                                     'cie_asano': The CIE fundamentals
 %                                      with Asano et al. individual
 %                                      differene paramters.
+%
 % Outputs:
 %     coneParams                    - Structure with field for each parameter.
 %
