@@ -17,7 +17,7 @@ clear; close all;
 S = [400 1 301];
 wls = SToWls(S);
 
-% Apparatus parameters.  These match the Nagel in wavelengths.
+% Apparatus parameters.  
 testWavelength = 520;
 primaryWavelength1 = 430;
 primaryWavelength2 = 545;
@@ -34,13 +34,8 @@ unitPrimarySpectrum2 = zeros(size(wls)); unitPrimarySpectrum2(primaryIndex2) = 1
 unitPrimarySpectrum3 = zeros(size(wls)); unitPrimarySpectrum3(primaryIndex3) = 1;
 primaryBasis = [unitPrimarySpectrum1 unitPrimarySpectrum2 unitPrimarySpectrum3];
 
-% Baseline cone fundamental information
-fieldSizeDegrees = 10;
-ageInYears = 32;
-pupilDiameterMM = 3;
-
 % Individual observer cone fundamentals parameters
-observerParams1 = ObserverVecToParams;
+observerParams1.coneParams = DefaultConeParams('cie_asano');
 
 % Set color difference model parameters
 observerParams1.colorDiffParams.type = 'opponentContrast';
@@ -50,16 +45,10 @@ observerParams1.colorDiffParams.rgWeight = 2;
 observerParams1.colorDiffParams.byWeight = 0.5;
 observerParams1.colorDiffParams.noiseSd = 0.02;
 
-%% Get cone fundamentals, just to make sure they look sensible
-[~,T] = ComputeChoiceLikelihood(observerParams1,S,fieldSizeDegrees,ageInYears,pupilDiameterMM);
-coneFunadmentalFig = figure; clf; hold on;
-plot(SToWls(S),T(1,:)','r','LineWidth',2);
-plot(SToWls(S),T(2,:)','g','LineWidth',2);
-plot(SToWls(S),T(3,:)','b','LineWidth',2);
-xlabel('Wavelength (nm)');
-ylabel('Fundamental');
+%% Get cone funadmentals
+T = ComputeObserverFundamentals(observerParams1.coneParams,S);
 
-%% Find exact metarmer, so that we are working in a reasonable range
+%% Find exact metamer, so that we are working in a reasonable range
 M_PrimaryToLMS = T*primaryBasis;
 M_LMSToPrimary = inv(M_PrimaryToLMS);
 testLMS = T*unitTestSpectrum;
@@ -83,7 +72,7 @@ nSteps = 100;
 for ii = 0:nSteps-1
     comparison2PrimaryWeights = metamerPrimaryWeights + [ii*deltaPrimary 0 0]';
     comparison2 = primaryBasis*comparison2PrimaryWeights;
-    probs1(ii+1) = ComputeChoiceLikelihood(observerParams1,S,fieldSizeDegrees,ageInYears,pupilDiameterMM,...
+    probs1(ii+1) = ComputeChoiceLikelihood(observerParams1,S,...
         reference,comparison1,comparison2);
 end
 likelihoodFigure2 = figure; clf; hold on
@@ -102,7 +91,7 @@ nSteps = 100;
 for ii = 0:nSteps-1
     comparison2PrimaryWeights = metamerPrimaryWeights + [ii*deltaPrimary 0 0]';
     comparison2 = primaryBasis*comparison2PrimaryWeights;
-    probs1(ii+1) = ComputeChoiceLikelihood(observerParams1,S,fieldSizeDegrees,ageInYears,pupilDiameterMM,...
+    probs1(ii+1) = ComputeChoiceLikelihood(observerParams1,S,...
         reference,comparison1,comparison2);
 end
 likelihoodFigure2 = figure; clf; hold on
@@ -114,9 +103,9 @@ ylabel('Probability 1 Chosen');
 % and there is.  It is a bit harder for me to intuit what the effect 
 % should be, so we'll just be happy that there is some effect.
 observerParams2 = observerParams1;
-observerParams2.indDiffParams.lambdaMaxShift(1) = 5;
-observerParams2.indDiffParams.lambdaMaxShift(2) = -5;
-observerParams2.indDiffParams.lambdaMaxShift(3) = -10;
+observerParams2.coneParams.indDiffParams.lambdaMaxShift(1) = 5;
+observerParams2.coneParams.indDiffParams.lambdaMaxShift(2) = -5;
+observerParams2.coneParams.indDiffParams.lambdaMaxShift(3) = -10;
 reference = unitTestSpectrum;
 primaryDeltaFactor = 1/200;
 deltaPrimary = primaryDeltaFactor*metamerPrimaryWeights(1);
@@ -125,7 +114,7 @@ nSteps = 100;
 for ii = 0:nSteps-1
     comparison2PrimaryWeights = metamerPrimaryWeights + [ii*deltaPrimary 0 0]';
     comparison2 = primaryBasis*comparison2PrimaryWeights;
-    probs1(ii+1) = ComputeChoiceLikelihood(observerParams2,S,fieldSizeDegrees,ageInYears,pupilDiameterMM,...
+    probs1(ii+1) = ComputeChoiceLikelihood(observerParams2,S,...
         reference,comparison1,comparison2);
 end
 figure(likelihoodFigure2);

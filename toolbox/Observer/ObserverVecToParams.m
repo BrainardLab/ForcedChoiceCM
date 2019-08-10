@@ -1,8 +1,8 @@
-function params = ObserverVecToParams(x)
+function params = ObserverVecToParams(x,params)
 % Convert vector of observer parameters to a structure
 %
 % Synopsis:
-%   params = ObserverVecToParams([x])
+%   params = ObserverVecToParams(x,params)
 %
 % Description:
 %   Our goal is to used forced choice color similarity judgments to
@@ -10,20 +10,20 @@ function params = ObserverVecToParams(x)
 %   as a vector, and sometimes in a structure.  This routine goes from
 %   the vector to the structure.
 %
-%   This illustrates the transformation.
-%       params.indDiffParams.dlens = x(1);
-%       params.indDiffParams.dmac = x(2);
-%       params.indDiffParams.dphotopigment(1) = x(3);
-%       params.indDiffParams.dphotopigment(2) = x(4);
-%       params.indDiffParams.dphotopigment(3) = x(5);
-%       params.indDiffParams.lambdaMaxShift(1) = x(6);
-%       params.indDiffParams.lambdaMaxShift(2) = x(7);
-%       params.indDiffParams.lambdaMaxShift(3) = x(8);
-%
+%   This illustrates the transformation. Other fields of passed params
+%   structure are left unchanged.
+%       params.coneParams.indDiffParams.dlens = x(1);
+%       params.coneParams.indDiffParams.dmac = x(2);
+%       params.coneParams.indDiffParams.dphotopigment(1) = x(3);
+%       params.coneParams.indDiffParams.dphotopigment(2) = x(4);
+%       params.coneParams.indDiffParams.dphotopigment(3) = x(5);
+%       params.coneParams.indDiffParams.lambdaMaxShift(1) = x(6);
+%       params.coneParams.indDiffParams.lambdaMaxShift(2) = x(7);
+%       params.coneParams.indDiffParams.lambdaMaxShift(3) = x(8);
 %
 % Inputs:
-%   x                       - Parameters as vector.  If not passed, it is
-%                             set to all zeros.
+%   x                       - Parameters as vector.
+%   params                  - Base parameter structure.
 %
 % Outputs:
 %   params                  - Parameter structure.
@@ -40,27 +40,22 @@ function params = ObserverVecToParams(x)
 
 % Examples:
 %{
+    params.coneParams = DefaultConeParams('cie_asano');
     x = (1:8)';
-    params = ObserverVecToParams(x);
-    params.indDiffParams
+    params = ObserverVecToParams(x,params);
+    params.coneParams.indDiffParams
     x1 = ObserverParamsToVec(params)
     if (any(x - x1) ~= 0)
         error('Routines do not properly self invert');
     end
 %}
 
-% This routine might get called a lot, so don't use the
-% wonderful but lugubrious input parser.
-if (nargin == 0 | isempty(x))
-    x = zeros(8,1);
-end
-
-params.indDiffParams.dlens = x(1);
-params.indDiffParams.dmac = x(2);
-params.indDiffParams.dphotopigment(1) = x(3);
-params.indDiffParams.dphotopigment(2) = x(4);
-params.indDiffParams.dphotopigment(3) = x(5);
-params.indDiffParams.lambdaMaxShift(1) = x(6);
-params.indDiffParams.lambdaMaxShift(2) = x(7);
-params.indDiffParams.lambdaMaxShift(3) = x(8);
-params.indDiffParams.shiftType = 'linear';
+params.coneParams.indDiffParams.dlens = x(1);
+params.coneParams.indDiffParams.dmac = x(2);
+params.coneParams.indDiffParams.dphotopigment(1) = x(3);
+params.coneParams.indDiffParams.dphotopigment(2) = x(4);
+params.coneParams.indDiffParams.dphotopigment(3) = x(5);
+params.coneParams.indDiffParams.lambdaMaxShift(1) = x(6);
+params.coneParams.indDiffParams.lambdaMaxShift(2) = x(7);
+params.coneParams.indDiffParams.lambdaMaxShift(3) = x(8);
+params.coneParams.indDiffParams.shiftType = 'linear';

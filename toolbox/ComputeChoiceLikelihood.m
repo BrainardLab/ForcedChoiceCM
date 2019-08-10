@@ -1,8 +1,8 @@
-function [prob1,T] = ComputeChoiceLikelihood(params,S,fieldSizeDegrees,ageInYears,pupilDiameterMM,reference,comparison1,comparison2)
+function [prob1,T] = ComputeChoiceLikelihood(params,S,reference,comparison1,comparison2)
 % Compute probability that stim1 will be chosen as closer to reference than stim2
 %
 % Syntax:
-%   [prob1,T] = ComputeChoiceLikelihood(params,S,fieldSizeDegrees,ageInYears,pupilDiameterMM,[reference,comparison1,comparison2])
+%   [prob1,T] = ComputeChoiceLikelihood(params,S,reference,comparison1,comparison2)
 %
 % Description:
 %   This routine simulates a three interval experiment.  The subject's task
@@ -11,11 +11,8 @@ function [prob1,T] = ComputeChoiceLikelihood(params,S,fieldSizeDegrees,ageInYear
 %   All stimuli are specified as spectral power distributions on wavelength
 %   sampling given by S.
 %
-%   The structure params specifies the cone spectral sensitivities of the
-%   observer, as well as a noise model.
-%
-%   If the three spectra are not passed, prob1 is returned as empty and you
-%   just get back the cone fundamentals.
+%   The structure params has parameters specifying the pbserver properties,
+%   such as cone spectral sensitivities and color difference model.
 %
 % Inputs:
 %    params                    - Parameter structure describing the observer.
@@ -41,23 +38,8 @@ function [prob1,T] = ComputeChoiceLikelihood(params,S,fieldSizeDegrees,ageInYear
 % History:
 %   08/09/19  dhb  Wrote it.
 
-% Initialize
-prob1 = [];
-
-% Get cone spectral sensitivities
-T_quantal = ...
-    ComputeCIEConeFundamentals(S,fieldSizeDegrees,ageInYears,pupilDiameterMM, ...
-    [],[],[], ...
-    [],[],[],params.indDiffParams);
-T = EnergyToQuanta(S,T_quantal')';
-for ii = 1:3
-    T(ii,:) = T(ii,:)/max(T(ii,:));
-end
-
-% Support optional calling without spectra
-if (~exist('reference','var') | isempty(reference))
-    return;
-end
+% Cone fundamentals
+T = ComputeObserverFundamentals(params.coneParams,S);
 
 % Compute cone responses
 referenceLMS = T*reference;
