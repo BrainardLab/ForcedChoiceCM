@@ -1,8 +1,8 @@
-function [prob1,T] = ComputeChoiceLikelihood(params,S,reference,comparison1,comparison2)
+function [prob1,T] = ComputeChoiceLikelihood(params,S,adaptation,reference,comparison1,comparison2)
 % Compute probability that stim1 will be chosen as closer to reference than stim2
 %
 % Syntax:
-%   [prob1,T] = ComputeChoiceLikelihood(params,S,reference,comparison1,comparison2)
+%   [prob1,T] = ComputeChoiceLikelihood(params,S,adaptation,reference,comparison1,comparison2)
 %
 % Description:
 %   This routine simulates a three interval experiment.  The subject's task
@@ -11,7 +11,7 @@ function [prob1,T] = ComputeChoiceLikelihood(params,S,reference,comparison1,comp
 %   All stimuli are specified as spectral power distributions on wavelength
 %   sampling given by S.
 %
-%   The structure params has parameters specifying the pbserver properties,
+%   The structure params has parameters specifying the observer properties,
 %   such as cone spectral sensitivities and color difference model.
 %
 % Inputs:
@@ -20,6 +20,7 @@ function [prob1,T] = ComputeChoiceLikelihood(params,S,reference,comparison1,comp
 %    fieldSizeDegrees          - Field size in degrees.
 %    ageInYears                - Observer age in years
 %    pupilDiameterMM           - Pupil size in mm.
+%    adaptation                - Adaptation spectrum spectral power distribution.
 %    reference                 - Reference stimulus spectral power distribution.
 %    comparison1               - First comparison spectral power distribution.
 %    comparison2               - Second comparison spectral power distribution.
@@ -42,13 +43,14 @@ function [prob1,T] = ComputeChoiceLikelihood(params,S,reference,comparison1,comp
 T = ComputeObserverFundamentals(params.coneParams,S);
 
 % Compute cone responses
+adaptationLMS = T*adaptation;
 referenceLMS = T*reference;
 comparison1LMS = T*comparison1;
 comparison2LMS = T*comparison2;
 
 % Compute differences
-comparison1Diff = ComputeMatchDiff(params.colorDiffParams,referenceLMS,comparison1LMS);
-comparison2Diff = ComputeMatchDiff(params.colorDiffParams,referenceLMS,comparison2LMS);
+comparison1Diff = ComputeMatchDiff(params.colorDiffParams,adaptationLMS,referenceLMS,comparison1LMS);
+comparison2Diff = ComputeMatchDiff(params.colorDiffParams,adaptationLMS,referenceLMS,comparison2LMS);
 diffDiff = comparison2Diff - comparison1Diff;
 
 % Compute likelihood based on differences

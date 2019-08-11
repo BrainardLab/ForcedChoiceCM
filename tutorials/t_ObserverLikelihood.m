@@ -41,6 +41,7 @@ end
 % We keep the first comparison a match and look at the probability it
 % is chosen as we march the other other by incrementing one of the
 % primary values.  Expect probs1 to start at 0.5 and increase to 1.
+adaptation = apparatusParams.unitTestSpectrum;
 reference = apparatusParams.unitTestSpectrum;
 primaryDeltaFactor = 1/200;
 deltaPrimary = primaryDeltaFactor*metamerPrimaryWeights(1);
@@ -50,7 +51,7 @@ for ii = 0:nSteps-1
     comparison2PrimaryWeights = metamerPrimaryWeights + [ii*deltaPrimary 0 0]';
     comparison2 = apparatusParams.primaryBasis*comparison2PrimaryWeights;
     probs1(ii+1) = ComputeChoiceLikelihood(observerParams1,apparatusParams.S,...
-        reference,comparison1,comparison2);
+        adaptation,reference,comparison1,comparison2);
 end
 likelihoodFigure2 = figure; clf; hold on
 plot(1:nSteps,probs1,'ro','MarkerSize',12','MarkerFaceColor','r');
@@ -69,7 +70,7 @@ for ii = 0:nSteps-1
     comparison2PrimaryWeights = metamerPrimaryWeights + [ii*deltaPrimary 0 0]';
     comparison2 = apparatusParams.primaryBasis*comparison2PrimaryWeights;
     probs1(ii+1) = ComputeChoiceLikelihood(observerParams1,apparatusParams.S,...
-        reference,comparison1,comparison2);
+        adaptation,reference,comparison1,comparison2);
 end
 likelihoodFigure2 = figure; clf; hold on
 plot(1:nSteps,probs1,'ro','MarkerSize',12','MarkerFaceColor','r');
@@ -92,7 +93,7 @@ for ii = 0:nSteps-1
     comparison2PrimaryWeights = metamerPrimaryWeights + [ii*deltaPrimary 0 0]';
     comparison2 = apparatusParams.primaryBasis*comparison2PrimaryWeights;
     probs1(ii+1) = ComputeChoiceLikelihood(observerParams2,apparatusParams.S,...
-        reference,comparison1,comparison2);
+        adaptation,reference,comparison1,comparison2);
 end
 figure(likelihoodFigure2);
 plot(1:nSteps,probs1,'bo','MarkerSize',12','MarkerFaceColor','b');
