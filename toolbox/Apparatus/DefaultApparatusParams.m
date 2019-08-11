@@ -32,15 +32,18 @@ function apparatusParams = DefaultApparatusParams(type)
     apparatusParam
 %}
 
-switch (type)
+%% Set type
+apparatusParams.type = type;
+
+%% Dp the right thing according to type
+switch (apparatusParams.type)
     case 'monochromatic'
-        
+                
         % Wavelength sampling
         apparatusParams.S = [400 1 301];
         apparatusParams.wls = SToWls(apparatusParams.S);
         
         % Apparatus parameters
-        colorDiffParams.type = 'monochromatic';
         apparatusParams.testWavelength = 520;
         apparatusParams.primaryWavelength1 = 430;
         apparatusParams.primaryWavelength2 = 545;

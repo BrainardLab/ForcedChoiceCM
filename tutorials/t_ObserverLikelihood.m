@@ -26,29 +26,21 @@ observerParams1.colorDiffParams = DefaultColorDiffParams('opponentContrast');
 T = ComputeObserverFundamentals(observerParams1.coneParams,apparatusParams.S);
 
 %% Find exact metamer, so that we are working in a reasonable range
-M_PrimaryToLMS = T*apparatusParams.primaryBasis;
-M_LMSToPrimary = inv(M_PrimaryToLMS);
-testLMS = T*apparatusParams.unitTestSpectrum;
-metamerPrimaryWeights = M_LMSToPrimary*testLMS;
-metamerSpectrum = apparatusParams.primaryBasis*metamerPrimaryWeights;
-metamerLMS = T*metamerSpectrum;
-if (max(abs(metamerLMS-testLMS)./testLMS) > 1e-6)
-    error('Failed to compute good metamer');
-end
+adaptation = apparatusParams.unitTestSpectrum;
+reference = apparatusParams.unitTestSpectrum;
+[metamerPrimary,metamerSpectrum,metamerLMS] = FindMetamer(apparatusParams,T,reference);
 
 %% Let's compute some likelihoods
 %
 % We keep the first comparison a match and look at the probability it
 % is chosen as we march the other other by incrementing one of the
 % primary values.  Expect probs1 to start at 0.5 and increase to 1.
-adaptation = apparatusParams.unitTestSpectrum;
-reference = apparatusParams.unitTestSpectrum;
 primaryDeltaFactor = 1/200;
-deltaPrimary = primaryDeltaFactor*metamerPrimaryWeights(1);
-comparison1 = apparatusParams.primaryBasis*metamerPrimaryWeights;
+deltaPrimary = primaryDeltaFactor*metamerPrimary(1);
+comparison1 = apparatusParams.primaryBasis*metamerPrimary;
 nSteps = 100;
 for ii = 0:nSteps-1
-    comparison2PrimaryWeights = metamerPrimaryWeights + [ii*deltaPrimary 0 0]';
+    comparison2PrimaryWeights = metamerPrimary + [ii*deltaPrimary 0 0]';
     comparison2 = apparatusParams.primaryBasis*comparison2PrimaryWeights;
     probs1(ii+1) = ComputeChoiceLikelihood(observerParams1,apparatusParams.S,...
         adaptation,reference,comparison1,comparison2);
@@ -58,16 +50,15 @@ plot(1:nSteps,probs1,'ro','MarkerSize',12','MarkerFaceColor','r');
 xlabel('Step Size');
 ylabel('Probability 1 Chosen');
 
-% We keep push the first comparison away from the test, and march the
+% We keep push the first comparison away from the reference, and march the
 % second from the test through the first and beyond. Expect probs1 to
 % start at 0 and increase to 1, with 50% point halfway.
-reference = apparatusParams.unitTestSpectrum;
 primaryDeltaFactor = 1/200;
-deltaPrimary = primaryDeltaFactor*metamerPrimaryWeights(1);
-comparison1 = apparatusParams.primaryBasis*(metamerPrimaryWeights + [nSteps/2*deltaPrimary 0 0]');
+deltaPrimary = primaryDeltaFactor*metamerPrimary(1);
+comparison1 = apparatusParams.primaryBasis*(metamerPrimary + [nSteps/2*deltaPrimary 0 0]');
 nSteps = 100;
 for ii = 0:nSteps-1
-    comparison2PrimaryWeights = metamerPrimaryWeights + [ii*deltaPrimary 0 0]';
+    comparison2PrimaryWeights = metamerPrimary + [ii*deltaPrimary 0 0]';
     comparison2 = apparatusParams.primaryBasis*comparison2PrimaryWeights;
     probs1(ii+1) = ComputeChoiceLikelihood(observerParams1,apparatusParams.S,...
         adaptation,reference,comparison1,comparison2);
@@ -84,13 +75,12 @@ observerParams2 = observerParams1;
 observerParams2.coneParams.indDiffParams.lambdaMaxShift(1) = 5;
 observerParams2.coneParams.indDiffParams.lambdaMaxShift(2) = -5;
 observerParams2.coneParams.indDiffParams.lambdaMaxShift(3) = -10;
-reference = apparatusParams.unitTestSpectrum;
 primaryDeltaFactor = 1/200;
-deltaPrimary = primaryDeltaFactor*metamerPrimaryWeights(1);
-comparison1 = apparatusParams.primaryBasis*(metamerPrimaryWeights + [nSteps/2*deltaPrimary 0 0]');
+deltaPrimary = primaryDeltaFactor*metamerPrimary(1);
+comparison1 = apparatusParams.primaryBasis*(metamerPrimary + [nSteps/2*deltaPrimary 0 0]');
 nSteps = 100;
 for ii = 0:nSteps-1
-    comparison2PrimaryWeights = metamerPrimaryWeights + [ii*deltaPrimary 0 0]';
+    comparison2PrimaryWeights = metamerPrimary + [ii*deltaPrimary 0 0]';
     comparison2 = apparatusParams.primaryBasis*comparison2PrimaryWeights;
     probs1(ii+1) = ComputeChoiceLikelihood(observerParams2,apparatusParams.S,...
         adaptation,reference,comparison1,comparison2);
