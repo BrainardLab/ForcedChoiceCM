@@ -9,7 +9,7 @@ function t_QuestPlusSimulation
 %
 
 % History:
-%   07/03/17  dhb  Created.
+%   08/12/19  dhb  Created.
 
 %% Close out stray figures
 close all;
