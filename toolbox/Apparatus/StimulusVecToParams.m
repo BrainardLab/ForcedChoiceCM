@@ -1,41 +1,31 @@
-function params = ObserverVecToParams(type,x,params)
-% Convert vector of observer parameters to a structure
+function [testParams,comparison1Opponent,comparison2Opponent] = StimulusVecToParams(type,x,stimulusParams)
+% Convert vector of stimulus parameters to an understandable representation
 %
 % Synopsis:
-%   params = ObserverVecToParams(type,x,params)
+%   [testParams,comparison1Opponent,comparison2Opponent] = StimulusVecToParams(type,x,stimulusParams)
 %
 % Description:
 %   Our goal is to used forced choice color similarity judgments to
 %   determine observer parameters.  Sometimes we want those parameters
-%   as a vector, and sometimes in a structure.  This routine goes from
-%   the vector to the structure.
-%
-%   This illustrates the transformation. Other fields of passed params
-%   structure are left unchanged.
-%       params.coneParams.indDiffParams.dlens = x(1);
-%       params.coneParams.indDiffParams.dmac = x(2);
-%       params.coneParams.indDiffParams.dphotopigment(1) = x(3);
-%       params.coneParams.indDiffParams.dphotopigment(2) = x(4);
-%       params.coneParams.indDiffParams.dphotopigment(3) = x(5);
-%       params.coneParams.indDiffParams.lambdaMaxShift(1) = x(6);
-%       params.coneParams.indDiffParams.lambdaMaxShift(2) = x(7);
-%       params.coneParams.indDiffParams.lambdaMaxShift(3) = x(8);
-%       params.colorDiffParams.noiseSd = x(9);
+%   as a vector, and sometimes in a more human readable format.  This
+%   routine produces the human readable format.
 %
 % Inputs:
 %   type                    - Type of vector to set up.
-%                             'basic': Asano cones plus difference noise.
+%                             'basic':
 %   x                       - Parameters as vector.
-%   params                  - Base parameter structure.
+%   params                  - Base stimulus parameter structure.
 %
 % Outputs:
-%   params                  - Parameter structure.
+%   testParams              - Test parameter structure
+%   comparison1Opponent     - First comparison opponent contrast
+%   comparison2Opponent     - Second comparison opponent contrast
 %
 % Optional key value pairs:
 %   None.
 %
 % See also:
-%   ObserverParamsToVec, ComputeCIEConeFundamentals
+%   StimulusParamsToVec
 %
 
 % History:
@@ -43,28 +33,17 @@ function params = ObserverVecToParams(type,x,params)
 
 % Examples:
 %{
-    params.coneParams = DefaultConeParams('cie_asano');
-    x = (1:9);
-    params = ObserverVecToParams('basic',x,params);
-    params.coneParams.indDiffParams
-    x1 = ObserverParamsToVec('basic',params)
-    if (any(x - x1) ~= 0)
-        error('Routines do not properly self invert');
-    end
+
 %}
 
 switch (type)
     case 'basic'
-        params.coneParams.indDiffParams.dlens = x(1);
-        params.coneParams.indDiffParams.dmac = x(2);
-        params.coneParams.indDiffParams.dphotopigment(1) = x(3);
-        params.coneParams.indDiffParams.dphotopigment(2) = x(4);
-        params.coneParams.indDiffParams.dphotopigment(3) = x(5);
-        params.coneParams.indDiffParams.lambdaMaxShift(1) = x(6);
-        params.coneParams.indDiffParams.lambdaMaxShift(2) = x(7);
-        params.coneParams.indDiffParams.lambdaMaxShift(3) = x(8);
-        params.colorDiffParams.noiseSd = x(9);
-        params.coneParams.indDiffParams.shiftType = 'linear';
+        testParams = stimulusParams.testParams;
+        testParams.testWavelength = x(1);
+        testParams = SetTestParams(testParams);
+        
+        comparison1Opponent = x(2:4)';
+        comparison2Opponent = x(5:7)';
         
     otherwise
         error('Unknown parameter vector type requested');

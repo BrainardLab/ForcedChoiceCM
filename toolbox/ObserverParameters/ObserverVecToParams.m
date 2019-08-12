@@ -57,12 +57,8 @@ switch (type)
     case 'basic'
         params.coneParams.indDiffParams.dlens = x(1);
         params.coneParams.indDiffParams.dmac = x(2);
-        params.coneParams.indDiffParams.dphotopigment(1) = x(3);
-        params.coneParams.indDiffParams.dphotopigment(2) = x(4);
-        params.coneParams.indDiffParams.dphotopigment(3) = x(5);
-        params.coneParams.indDiffParams.lambdaMaxShift(1) = x(6);
-        params.coneParams.indDiffParams.lambdaMaxShift(2) = x(7);
-        params.coneParams.indDiffParams.lambdaMaxShift(3) = x(8);
+        params.coneParams.indDiffParams.dphotopigment = x(3:5)';
+        params.coneParams.indDiffParams.lambdaMaxShift = x(6:8)';
         params.colorDiffParams.noiseSd = x(9);
         params.coneParams.indDiffParams.shiftType = 'linear';
         
