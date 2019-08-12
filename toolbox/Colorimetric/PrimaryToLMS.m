@@ -28,8 +28,9 @@ function [spectrumLMS,spectrum] = PrimaryToLMS(apparatusParams,T,spectrumPrimary
 
 % Examples:
 %{
+    S = [400 1 301];
     spectrumPrimary = [0.5 0.7 0.5]';
-    apparatusParams = DefaultApparatusParams('monochromatic');
+    apparatusParams = DefaultMatchApparatusParams('monochromatic',S);
     coneParams = DefaultConeParams('cie_asano');
     T = ComputeObserverFundamentals(coneParams,apparatusParams.S);
     [spectrumLMS,spectrum1] = PrimaryToLMS(apparatusParams,T,spectrumPrimary);
