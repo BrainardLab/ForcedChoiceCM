@@ -32,37 +32,40 @@ psiParamsStructRef = psiParamsStruct;
 adaptationSpd = stimParamsStruct.matchApparatusParams.primaryBasis*[0.25 0.25 0.25]';
 
 %% Define psychometric function in terms of lookup table
-stimVectorType = 'basic';
-psiVectorType = 'basic';
+stimVecType = 'basic';
+psiVecType = 'basic';
 
 %% Set up simulated observer parameters
 simulatedPsiParamsStruct = psiParamsStruct;
 simulatedPsiParamsStruct.coneParams.indDiffParams.dlens = 0;
 simulatedPsiParamsStruct.coneParams.indDiffParams.dmac = 0;
 simulatedPsiParamsStruct.coneParams.indDiffParams.dphotopigment = [0 0 0]';
-simulatedPsiParamsStruct.coneParams.indDiffParams.lambdaMaxShift = [-3 0 0]';
+simulatedPsiParamsStruct.coneParams.indDiffParams.lambdaMaxShift = [-3 2 0]';
 simulatedPsiParamsStruct.colorDiffParams.noiseSd = 0.02;
-simulatedPsiParamsVec = ObserverParamsToVec(psiVectorType,simulatedPsiParamsStruct);
+simulatedPsiParamsVec = ObserverParamsToVec(psiVecType,simulatedPsiParamsStruct);
 
 %% Psychometric and simulated observer functions
-qpPFFun = @(stimParamsVec,psiParamsVec) qpPFFCCM(stimParamsVec,psiParamsVec,S,stimVectorType,stimParamsStruct,psiVectorType,psiParamsStruct,psiParamsStructRef,adaptationSpd);
+qpPFFun = @(stimParamsVec,psiParamsVec) qpPFFCCM(stimParamsVec,psiParamsVec,S,stimVecType,stimParamsStruct,psiVecType,psiParamsStruct,psiParamsStructRef,adaptationSpd);
 simulatedObserverFun = @(stimParamsVec) qpSimulatedObserver(stimParamsVec,qpPFFun,simulatedPsiParamsVec);
 
 % Initialize quest data
 fprintf('Initializing quest structure ...');
+start = GetSecs;
 questData = qpInitialize(...
     'nOutcomes', 2, ...
     'qpPF',qpPFFun, ...
-    'stimParamsDomainList',{[440 550 660], -0.04:0.04:0.04, 0, 0, 0, -0.04:0.04:0.04, 0}, ...
-    'psiParamsDomainList',{0, 0, 0, 0, 0, -4:4, 0, 0, 0.02} ...
+    'stimParamsDomainList',{[440:20:680], -0.04:0.02:0.04, -0.04:0.02:0.04, -0.04:0.02:0.04, -0.04:0.02:0.04, -0.04:0.02:0.04, -0.04:0.02:0.04}, ...
+    'psiParamsDomainList',{0, 0, 0, 0, 0, -4:4, -4:4, -1:1, 0.02}, ...
+    'filterStimParamsDomainFun',@(stimParamsVec) qpFCCMStimDomainCheck(stimParamsVec,stimVecType,stimParamsStruct) ...
     );
-% 'filterPsiParamsDomainFun',@(psiParams) qpQuestPlusColorMaterialCubicModelParamsCheck(psiParams,maxStimValue,maxPosition,minSpacing) ...
-fprintf(' done\n');      
+stop = GetSecs;
+fprintf(' done in %0.1f seconds\n',stop-start);      
 
 %% qpRun estimating the parameters
 fprintf('*** Simluated run, estimate parametric cone fundamentals:\n');
 rng('default'); rng(3008,'twister');
 nTrials = 256;
+start = GetSecs;
 for tt = 1:nTrials
     % Get stimulus for this trial
     stim = qpQuery(questData);
@@ -77,7 +80,8 @@ for tt = 1:nTrials
         fprintf('\tTrial %d of %d\n',tt,nTrials);
     end
 end
-fprintf('Done with trial simulation\n');
+stop = GetSecs;
+fprintf('Done with trial simulation, %0.3f calculation time per trial\n',(stop-start)/nTrials);
 
 %% Process simulated data
 psiParamsIndex = qpListMaxArg(questData.posterior);
