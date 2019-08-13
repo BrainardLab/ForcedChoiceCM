@@ -34,7 +34,6 @@ adaptationSpd = stimParamsStruct.matchApparatusParams.primaryBasis*[0.25 0.25 0.
 %% Define psychometric function in terms of lookup table
 stimVectorType = 'basic';
 psiVectorType = 'basic';
-qpPFFun = @(stimParamsVec,psiParamsVec) qpPFFCCM(stimParamsVec,psiParamsVec,S,stimVectorType,stimParamsStruct,psiVectorType,psiParamsStruct,psiParamsStructRef,adaptationSpd);
 
 %% Set up simulated observer parameters
 simulatedPsiParamsStruct = psiParamsStruct;
@@ -45,16 +44,42 @@ simulatedPsiParamsStruct.coneParams.indDiffParams.lambdaMaxShift = [-3 0 0]';
 simulatedPsiParamsStruct.colorDiffParams.noiseSd = 0.02;
 simulatedPsiParamsVec = ObserverParamsToVec(psiVectorType,simulatedPsiParamsStruct);
 
-%% qpRun estimating the parameters
-fprintf('*** qpRun, Estimate parametric cone fundamentals:\n');
-rng('default'); rng(3008,'twister');
-questData = qpRun(256, ...
-    'stimParamsDomainList',{[440 550 660], -0.04:0.04:0.04, 0, 0, 0, -0.04:0.04:0.04, 0}, ...
-    'psiParamsDomainList',{0, 0, 0, 0, 0, -4:4, 0, 0, 0.02}, ...
-    'qpPF', qpPFFun, ...
-    'qpOutcomeF',@(x) qpSimulatedObserver(x,qpPFFun,simulatedPsiParamsVec), ...
+%% Psychometric and simulated observer functions
+qpPFFun = @(stimParamsVec,psiParamsVec) qpPFFCCM(stimParamsVec,psiParamsVec,S,stimVectorType,stimParamsStruct,psiVectorType,psiParamsStruct,psiParamsStructRef,adaptationSpd);
+simulatedObserverFun = @(stimParamsVec) qpSimulatedObserver(stimParamsVec,qpPFFun,simulatedPsiParamsVec);
+
+% Initialize quest data
+fprintf('Initializing quest structure ...');
+questData = qpInitialize(...
     'nOutcomes', 2, ...
-    'verbose',true);
+    'qpPF',qpPFFun, ...
+    'stimParamsDomainList',{[440 550 660], -0.04:0.04:0.04, 0, 0, 0, -0.04:0.04:0.04, 0}, ...
+    'psiParamsDomainList',{0, 0, 0, 0, 0, -4:4, 0, 0, 0.02} ...
+    );
+% 'filterPsiParamsDomainFun',@(psiParams) qpQuestPlusColorMaterialCubicModelParamsCheck(psiParams,maxStimValue,maxPosition,minSpacing) ...
+fprintf(' done\n');      
+
+%% qpRun estimating the parameters
+fprintf('*** Simluated run, estimate parametric cone fundamentals:\n');
+rng('default'); rng(3008,'twister');
+nTrials = 256;
+for tt = 1:nTrials
+    % Get stimulus for this trial
+    stim = qpQuery(questData);
+    
+    % Simulate outcome
+    outcome = simulatedObserverFun(stim);
+    
+    % Update quest data structure
+    questData = qpUpdate(questData,stim,outcome); 
+    
+    if (rem(tt,10) == 0)
+        fprintf('\tTrial %d of %d\n',tt,nTrials);
+    end
+end
+fprintf('Done with trial simulation\n');
+
+%% Process simulated data
 psiParamsIndex = qpListMaxArg(questData.posterior);
 psiParamsQuest = questData.psiParamsDomain(psiParamsIndex,:);
 fprintf('Simulated parameters:            %0.1f, %0.1f, %0.1f, %0.1f. %0.1f, %0.1f, %0.1f, %0.1f, %0.3f\n', ...
@@ -71,7 +96,7 @@ fprintf('Max posterior QUEST+ parameters: %0.1f, %0.1f, %0.1f, %0.1f. %0.1f, %0.
 % impose as parameter bounds the range provided to QUEST+.
 psiParamsFit = qpFit(questData.trialData,questData.qpPF,psiParamsQuest,questData.nOutcomes,...
      'lowerBounds', [0, 0, 0, 0, 0, -4, 0, 0, 0.02],'upperBounds',[0, 0, 0, 0, 0, 4, 0, 0, 0.02]);
-fprintf('Maximum likelihood fit parameters:  %0.1f, %0.1f, %0.1f, %0.1f. %0.1f, %0.1f, %0.1f, %0.1f, %0.1f\n', ...
+fprintf('Maximum likelihood fit parameters:  %0.1f, %0.1f, %0.1f, %0.1f. %0.1f, %0.1f, %0.1f, %0.1f, %0.3f\n', ...
     psiParamsFit(1),psiParamsFit(2),psiParamsFit(3),psiParamsFit(4), ...
     psiParamsFit(5),psiParamsFit(6),psiParamsFit(7),psiParamsFit(8),psiParamsFit(9));
 % psiParamsCheck = [-359123 -485262 11325 0];
