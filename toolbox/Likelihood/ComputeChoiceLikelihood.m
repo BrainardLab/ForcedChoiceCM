@@ -1,8 +1,8 @@
-function [prob1,T] = ComputeChoiceLikelihood(params,S,adaptation,reference,comparison1,comparison2)
+function [prob1] = ComputeChoiceLikelihood(params,T,adaptation,reference,comparison1,comparison2)
 % Compute probability that stim1 will be chosen as closer to reference than stim2
 %
 % Syntax:
-%   [prob1,T] = ComputeChoiceLikelihood(params,S,adaptation,reference,comparison1,comparison2)
+%   [prob1] = ComputeChoiceLikelihood(params,T,adaptation,reference,comparison1,comparison2)
 %
 % Description:
 %   This routine simulates a three interval experiment.  The subject's task
@@ -16,7 +16,7 @@ function [prob1,T] = ComputeChoiceLikelihood(params,S,adaptation,reference,compa
 %
 % Inputs:
 %    params                    - Parameter structure describing the observer.
-%    S                         - Wavelength sampling for stimuli (PTB convention.)
+%    T                         - Color matching functions corresponding to params
 %    fieldSizeDegrees          - Field size in degrees.
 %    ageInYears                - Observer age in years
 %    pupilDiameterMM           - Pupil size in mm.
@@ -27,7 +27,6 @@ function [prob1,T] = ComputeChoiceLikelihood(params,S,adaptation,reference,compa
 %
 % Outputs:
 %    prob1                     - The probability that stimulus 1 is judged closer.
-%    T                         - Cone fundamentals in energy units
 %
 % Optional key/value pairs
 %    None.
@@ -38,9 +37,8 @@ function [prob1,T] = ComputeChoiceLikelihood(params,S,adaptation,reference,compa
 
 % History:
 %   08/09/19  dhb  Wrote it.
-
-% Cone fundamentals
-T = ComputeObserverFundamentals(params.coneParams,S);
+%   08/14/19  dhb  Pass T rather than comnpute locally. It's slow to compute, and this
+%                  routine gets called a lot with the same T.
 
 % Compute cone responses
 adaptationLMS = T*adaptation;

@@ -58,7 +58,7 @@ if (max(abs(opponentDirLMS-opponentDirLMSCheck2)) > 1e-8)
 end
 opponentDirDeltaPrimary = opponentDirPrimary-metamerPrimary;
 opponentDirDeltaSpd = opponentDirSpd-metamerSpd;
-probCheck = ComputeChoiceLikelihood(observerParams1,S,...
+probCheck = ComputeChoiceLikelihood(observerParams1,T,...
         adaptationSpd,referenceSpd,comparison1Spd,comparison1Spd + opponentDirDeltaSpd);
 if (abs(probCheck - normcdf(1,0,1)) > 1e-8)
     error('Did not properly construct a one noise sd opponent step.');
@@ -74,7 +74,7 @@ primaryDeltaFactor = 2/nSteps;
 for ii = 0:nSteps-1
     comparison2Primary = metamerPrimary + ii*primaryDeltaFactor*opponentDirDeltaPrimary;
     comparison2Spd = stimulusParams.matchApparatusParams.primaryBasis*comparison2Primary;
-    probs1(ii+1) = ComputeChoiceLikelihood(observerParams1,S,...
+    probs1(ii+1) = ComputeChoiceLikelihood(observerParams1,T,...
         adaptationSpd,referenceSpd,comparison1Spd,comparison2Spd);
 end
 likelihoodFigure1 = figure; clf; hold on
@@ -89,7 +89,7 @@ comparison1Spd = stimulusParams.matchApparatusParams.primaryBasis*(metamerPrimar
 for ii = 0:nSteps-1
     comparison2Primary = metamerPrimary + ii*primaryDeltaFactor*opponentDirDeltaPrimary;
     comparison2Spd = stimulusParams.matchApparatusParams.primaryBasis*comparison2Primary;
-    probs1(ii+1) = ComputeChoiceLikelihood(observerParams1,S,...
+    probs1(ii+1) = ComputeChoiceLikelihood(observerParams1,T,...
         adaptationSpd,referenceSpd,comparison1Spd,comparison2Spd);
 end
 likelihoodFigure2 = figure; clf; hold on
@@ -107,7 +107,8 @@ observerParams2.coneParams.indDiffParams.lambdaMaxShift(3) = 0;
 for ii = 0:nSteps-1
     comparison2Primary = metamerPrimary + ii*primaryDeltaFactor*opponentDirDeltaPrimary;
     comparison2Spd = stimulusParams.matchApparatusParams.primaryBasis*comparison2Primary;
-    probs2(ii+1) = ComputeChoiceLikelihood(observerParams2,S,...
+    T2 = ComputeObserverFundamentals(observerParams2.coneParams,S);
+    probs2(ii+1) = ComputeChoiceLikelihood(observerParams2,T2, ...
         adaptationSpd,referenceSpd,comparison1Spd,comparison2Spd);
 end
 figure(likelihoodFigure2);

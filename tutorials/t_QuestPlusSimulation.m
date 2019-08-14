@@ -40,32 +40,53 @@ simulatedPsiParamsStruct = psiParamsStruct;
 simulatedPsiParamsStruct.coneParams.indDiffParams.dlens = 0;
 simulatedPsiParamsStruct.coneParams.indDiffParams.dmac = 0;
 simulatedPsiParamsStruct.coneParams.indDiffParams.dphotopigment = [0 0 0]';
-simulatedPsiParamsStruct.coneParams.indDiffParams.lambdaMaxShift = [-3 2 0]';
-simulatedPsiParamsStruct.colorDiffParams.noiseSd = 0.02;
+simulatedPsiParamsStruct.coneParams.indDiffParams.lambdaMaxShift = [-2.6 2.3 0]';
+simulatedPsiParamsStruct.colorDiffParams.noiseSd = 0.03;
 simulatedPsiParamsVec = ObserverParamsToVec(psiVecType,simulatedPsiParamsStruct);
 
 %% Psychometric and simulated observer functions
 qpPFFun = @(stimParamsVec,psiParamsVec) qpPFFCCM(stimParamsVec,psiParamsVec,S,stimVecType,stimParamsStruct,psiVecType,psiParamsStruct,psiParamsStructRef,adaptationSpd);
 simulatedObserverFun = @(stimParamsVec) qpSimulatedObserver(stimParamsVec,qpPFFun,simulatedPsiParamsVec);
 
-% Initialize quest data
-fprintf('Initializing quest structure ...');
-start = GetSecs;
-questData = qpInitialize(...
-    'nOutcomes', 2, ...
-    'qpPF',qpPFFun, ...
-    'stimParamsDomainList',{[440:20:680], -0.04:0.02:0.04, -0.04:0.02:0.04, -0.04:0.02:0.04, -0.04:0.02:0.04, -0.04:0.02:0.04, -0.04:0.02:0.04}, ...
-    'psiParamsDomainList',{0, 0, 0, 0, 0, -4:4, -4:4, -1:1, 0.02}, ...
-    'filterStimParamsDomainFun',@(stimParamsVec) qpFCCMStimDomainCheck(stimParamsVec,stimVecType,stimParamsStruct) ...
-    );
-stop = GetSecs;
-fprintf(' done in %0.1f seconds\n',stop-start);      
+%% Initialize quest data
+%
+% From Asono et al. (2016), PlosOne, Table 1.
+%   Lens density standard deviation in percent: ~20.
+%   Macular density standard deviation in percent: ~40
+%   Photopigment density standard deviation in percent: ~15
+%   L lambda max standard deviation in nm: ~3
+%   M lambda max standard deviation in nm: ~2
+%   S lambda max standard deviation in nm: ~1.5
+% These are pretty ballpark numbers.
+
+% This can be slow, so best is to precompute and then load on individual
+% runs.
+USE_PRECOMPUTE = false;
+if (~USE_PRECOMPUTE)
+    fprintf('Initializing quest structure ... ');
+    start = GetSecs;
+    questDataRaw = qpInitialize(...
+        'nOutcomes', 2, ...
+        'qpPF',qpPFFun, ...
+        'stimParamsDomainList',{440:10:680, -0.06:0.03:0.06, -0.06:0.03:0.06, -0.06:0.03:0.06, -0.06:0.03:0.06, -0.06:0.03:0.06, -0.06:0.03:0.06}, ...
+        'psiParamsDomainList',{-30:15:30, -40:20:40, -20:20:20, -20:20:20, -20:20:20, -4:4, -4:4, -2:2, 0.02:0.02:0.06}, ...
+        'filterStimParamsDomainFun',@(stimParamsVec) qpFCCMStimDomainCheck(stimParamsVec,stimVecType,stimParamsStruct), ...
+        'verbose', false ...
+        );
+    stop = GetSecs;
+    fprintf(' done in %0.1f seconds\n',stop-start);
+    save questDataRaw questDataRaw 
+else
+    load questDataRaw questDataRaw;
+end
+
 
 %% qpRun estimating the parameters
 fprintf('*** Simluated run, estimate parametric cone fundamentals:\n');
 rng('default'); rng(3008,'twister');
 nTrials = 256;
 start = GetSecs;
+questData = questDataRaw;
 for tt = 1:nTrials
     % Get stimulus for this trial
     stim = qpQuery(questData);
@@ -99,12 +120,14 @@ fprintf('Max posterior QUEST+ parameters: %0.1f, %0.1f, %0.1f, %0.1f. %0.1f, %0.
 % Use psiParams from QUEST+ as the starting parameter for the search, and
 % impose as parameter bounds the range provided to QUEST+.
 psiParamsFit = qpFit(questData.trialData,questData.qpPF,psiParamsQuest,questData.nOutcomes,...
-     'lowerBounds', [0, 0, 0, 0, 0, -4, 0, 0, 0.02],'upperBounds',[0, 0, 0, 0, 0, 4, 0, 0, 0.02]);
+     'lowerBounds', [0, 0, 0, 0, 0, -4, -4, 0, 0.001],'upperBounds',[0, 0, 0, 0, 0, 4, 4, 0, 0.06]);
 fprintf('Maximum likelihood fit parameters:  %0.1f, %0.1f, %0.1f, %0.1f. %0.1f, %0.1f, %0.1f, %0.1f, %0.3f\n', ...
     psiParamsFit(1),psiParamsFit(2),psiParamsFit(3),psiParamsFit(4), ...
     psiParamsFit(5),psiParamsFit(6),psiParamsFit(7),psiParamsFit(8),psiParamsFit(9));
 % psiParamsCheck = [-359123 -485262 11325 0];
 % assert(all(psiParamsCheck == round(10000*psiParamsFit)),'No longer get same ML estimate for this case');
+disp
+
  
 % Plot trial locations together with maximum likelihood fit.
 %

@@ -86,7 +86,7 @@ for ii = 1:nStim
     
     % Do the main work
     predictedProportions(ii,1) = ...
-        ComputeChoiceLikelihood(psiParamsStruct,S,adaptationSpd,referenceSpd,comparison1Spd,comparison2Spd);
+        ComputeChoiceLikelihood(psiParamsStruct,T,adaptationSpd,referenceSpd,comparison1Spd,comparison2Spd);
     
     % Fill in complement
     predictedProportions(ii,2) = 1-predictedProportions(ii,1);  
