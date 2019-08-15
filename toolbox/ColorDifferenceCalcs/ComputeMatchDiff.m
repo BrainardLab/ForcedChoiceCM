@@ -1,7 +1,7 @@
-function [colorDiff,comparisonContrast] = ComputeMatchDiff(colorDiffParams,adaptationLMS,referenceLMS,comparisonLMS)
+function [colorDiff,comparisonContrast] = ComputeMatchDiff(colorDiffParams,M,adaptationLMS,referenceLMS,comparisonLMS)
 %
 % Syntax:
-%     [colorDiff,comparisonContrast] = ComputeMatchDiff(colorDiffParams,adaptationLMS,referenceLMS,comparisonLMS)
+%     [colorDiff,comparisonContrast] = ComputeMatchDiff(colorDiffParams,M,adaptationLMS,referenceLMS,comparisonLMS)
 %
 % Description:
 %     Compute a single number color difference between two vectors
@@ -13,6 +13,7 @@ function [colorDiff,comparisonContrast] = ComputeMatchDiff(colorDiffParams,adapt
 %
 % Inputs:
 %     colorDiffParams        - Structure understood LMSToOpponentContrast
+%     M                      - Matrix that goes from LMS contrast to opponent contrast
 %     adpatationLMS          - LMS coordinates of the adapting feield
 %     referenceLMS           - LMS coordinates of the reference.
 %     comparisonLMS          - LMS coordinates of the stimulus whose
@@ -41,12 +42,13 @@ function [colorDiff,comparisonContrast] = ComputeMatchDiff(colorDiffParams,adapt
     colorDiffParams.byWeight = 0.5;
     referenceLMS = [1 1 1]';
     comparisonLMS = [2 0.5 1.5]';
-    colorDiff = ComputeMatchDiff(colorDiffParams,referenceLMS,referenceLMS,comparisonLMS)
+    M = GetOpponentContrastMatrix(colorDiffParams);
+    colorDiff = ComputeMatchDiff(colorDiffParams,M,referenceLMS,referenceLMS,comparisonLMS)
 %}
 
 % Get opponent representations
-referenceContrast = LMSToOpponentContrast(colorDiffParams,adaptationLMS,referenceLMS);
-comparisonContrast = LMSToOpponentContrast(colorDiffParams,adaptationLMS,comparisonLMS);
+referenceContrast = LMSToOpponentContrast(M,adaptationLMS,referenceLMS);
+comparisonContrast = LMSToOpponentContrast(M,adaptationLMS,comparisonLMS);
 
 % Take appropriate weighted vector length
 colorDiff = norm(comparisonContrast-referenceContrast);

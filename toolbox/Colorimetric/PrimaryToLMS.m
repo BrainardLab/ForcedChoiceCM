@@ -34,7 +34,8 @@ function [spectrumLMS,spectrum] = PrimaryToLMS(apparatusParams,T,spectrumPrimary
     coneParams = DefaultConeParams('cie_asano');
     T = ComputeObserverFundamentals(coneParams,apparatusParams.S);
     [spectrumLMS,spectrum1] = PrimaryToLMS(apparatusParams,T,spectrumPrimary);
-    [spectrumPrimaryCheck,spectrum2] = LMSToPrimary(apparatusParams,T,spectrumLMS);
+    spectrumPrimaryCheck = LMSToPrimary(apparatusParams,T,spectrumLMS);
+    spectrum2 = apparatusParams.primaryBasis*spectrumPrimaryCheck;
     if (max(abs(spectrum1 - spectrum2)) > 1e-8)
         error('Do not recover the same spectrum both ways tried.');
     end

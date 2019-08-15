@@ -1,8 +1,8 @@
-function [prob1] = ComputeChoiceLikelihood(params,T,adaptation,reference,comparison1,comparison2)
+function [prob1] = ComputeChoiceLikelihood(params,M,adaptationLMS,referenceLMS,comparison1LMS,comparison2LMS)
 % Compute probability that stim1 will be chosen as closer to reference than stim2
 %
 % Syntax:
-%   [prob1] = ComputeChoiceLikelihood(params,T,adaptation,reference,comparison1,comparison2)
+%   [prob1] = ComputeChoiceLikelihood(params,M,adaptationLMS,referenceLMS,comparison1LMS,comparison2LMS)
 %
 % Description:
 %   This routine simulates a three interval experiment.  The subject's task
@@ -15,15 +15,12 @@ function [prob1] = ComputeChoiceLikelihood(params,T,adaptation,reference,compari
 %   such as cone spectral sensitivities and color difference model.
 %
 % Inputs:
-%    params                    - Parameter structure describing the observer.
-%    T                         - Color matching functions corresponding to params
-%    fieldSizeDegrees          - Field size in degrees.
-%    ageInYears                - Observer age in years
-%    pupilDiameterMM           - Pupil size in mm.
-%    adaptation                - Adaptation spectrum spectral power distribution.
-%    reference                 - Reference stimulus spectral power distribution.
-%    comparison1               - First comparison spectral power distribution.
-%    comparison2               - Second comparison spectral power distribution.
+%    params                       - Parameter structure describing the observer.
+%    M                            - Matrix that goes from LMS contrast to opponent contrast
+%    adaptationLMS                - Adaptation LMS (3 by 1 vector).
+%    referenceLMS                 - Reference LMS (3 by 1 vector)..
+%    comparison1LMS               - First LMS (3 by 1 vector)..
+%    comparison2LMS               - Second LMS (3 by 1 vector)..
 %
 % Outputs:
 %    prob1                     - The probability that stimulus 1 is judged closer.
@@ -40,15 +37,9 @@ function [prob1] = ComputeChoiceLikelihood(params,T,adaptation,reference,compari
 %   08/14/19  dhb  Pass T rather than comnpute locally. It's slow to compute, and this
 %                  routine gets called a lot with the same T.
 
-% Compute cone responses
-adaptationLMS = T*adaptation;
-referenceLMS = T*reference;
-comparison1LMS = T*comparison1;
-comparison2LMS = T*comparison2;
-
 % Compute differences
-comparison1Diff = ComputeMatchDiff(params.colorDiffParams,adaptationLMS,referenceLMS,comparison1LMS);
-comparison2Diff = ComputeMatchDiff(params.colorDiffParams,adaptationLMS,referenceLMS,comparison2LMS);
+comparison1Diff = ComputeMatchDiff(params.colorDiffParams,M,adaptationLMS,referenceLMS,comparison1LMS);
+comparison2Diff = ComputeMatchDiff(params.colorDiffParams,M,adaptationLMS,referenceLMS,comparison2LMS);
 diffDiff = comparison2Diff - comparison1Diff;
 
 % Compute likelihood based on differences

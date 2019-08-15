@@ -1,12 +1,15 @@
-function [spectrumPrimary,spectrum] = LMSToPrimary(apparatusParams,T,spectrumLMS)
+function [spectrumPrimary] = LMSToPrimary(apparatusParams,T,spectrumLMS)
 % Get primary weights and spectrum that have passed LMS coordinates
 %
 % Syntax:
-%    [spectrumPrimary,spectrum] = LMSToPrimary(apparatusParams,T,spectrumLMS)
+%    [spectrumPrimary] = LMSToPrimary(apparatusParams,T,spectrumLMS)
 %
 % Description:
 %    Get apparatus primary weights to produce spectrum with desired LMS
-%    coordinates.  Also returns the spectrum.
+%    coordinates.
+%
+%    If you want the spectrum, obtain it as:
+%        spectrum = apparatusParams.primaryBasis*spectrumPrimary;
 %
 % Inputs:
 %    apparatusParams                       - Structure describing apparatus.    
@@ -15,7 +18,6 @@ function [spectrumPrimary,spectrum] = LMSToPrimary(apparatusParams,T,spectrumLMS
 %
 % Outputs:
 %    spectrumPrimary                       - Spectrum primary weights.
-%    spectrum                              - Spectrum of metamer%
 %
 % Optional key/value pairs:
 %    None.
@@ -34,11 +36,15 @@ switch (apparatusParams.type)
         M_LMSToPrimary = inv(M_PrimaryToLMS);
         
         % Convert
-        spectrumPrimary = M_LMSToPrimary*spectrumLMS;
-        spectrum = apparatusParams.primaryBasis*spectrumPrimary;
-        checkLMS = T*spectrum;
-        if (max(abs(checkLMS-spectrumLMS)./spectrumLMS) > 1e-6)
-            error('Failed to reproduce desired LMS');
+        spectrumPrimary = M_PrimaryToLMS\spectrumLMS;
+         
+        CHECK = false;
+        if (CHECK)
+            spectrum = apparatusParams.primaryBasis*spectrumPrimary;
+            checkLMS = T*spectrum;
+            if (max(abs(checkLMS-spectrumLMS)./spectrumLMS) > 1e-6)
+                error('Failed to reproduce desired LMS');
+            end
         end
         
     otherwise

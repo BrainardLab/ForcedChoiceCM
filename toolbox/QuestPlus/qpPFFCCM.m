@@ -57,6 +57,11 @@ T = ComputeObserverFundamentals(psiParamsStruct.coneParams,S);
 % transformations independent of the current observer 
 % parameters.
 adaptationLMSRef = TRef*adaptationSpd;
+adaptationLMS = T*adaptationSpd;
+
+% Matrix for opponent transformation
+% Be careful not to search over opponent space
+M = GetOpponentContrastMatrix(psiParamsStructRef.colorDiffParams);
 
 %% Loop over stimuli and get the proportions
 nStim = size(stimParamsVec,1);
@@ -68,6 +73,7 @@ for ii = 1:nStim
     
     % Get reference spectrum.
     referenceSpd = adaptationSpd + testParams.testIntensity*testParams.unitTestSpectrum;
+    referenceLMS = T*referenceSpd;
         
     % Get comparison spectra.  We do this with respect to the reference
     % observer, because what we are doing here is converting stimulus
@@ -75,18 +81,20 @@ for ii = 1:nStim
     % stimulus spectra. We don't want to do this with respect to a
     % floating observer specification.
     referenceLMSRef = TRef*referenceSpd;
-    referenceOpponentRef = LMSToOpponentContrast(psiParamsStructRef.colorDiffParams,adaptationLMSRef,referenceLMSRef);
+    referenceOpponentRef = LMSToOpponentContrast(M,adaptationLMSRef,referenceLMSRef);
     
     % Find comparison primaries
-    comparison1LMSRef = OpponentContrastToLMS(psiParamsStructRef.colorDiffParams,adaptationLMSRef,referenceOpponentRef+comparison1Opponent);
-    comparison2LMSRef = OpponentContrastToLMS(psiParamsStructRef.colorDiffParams,adaptationLMSRef,referenceOpponentRef+comparison2Opponent);
+    comparison1LMSRef = OpponentContrastToLMS(M,adaptationLMSRef,referenceOpponentRef+comparison1Opponent);
+    comparison2LMSRef = OpponentContrastToLMS(M,adaptationLMSRef,referenceOpponentRef+comparison2Opponent);
     
     [comparison1Primary,comparison1Spd] = FindMetamer(stimParamsStruct.matchApparatusParams,TRef,comparison1LMSRef);
     [comparison2Primary,comparison2Spd] = FindMetamer(stimParamsStruct.matchApparatusParams,TRef,comparison2LMSRef);
+    comparison1LMS = T*comparison1Spd;
+    comparison2LMS = T*comparison2Spd;
     
     % Do the main work
     predictedProportions(ii,1) = ...
-        ComputeChoiceLikelihood(psiParamsStruct,T,adaptationSpd,referenceSpd,comparison1Spd,comparison2Spd);
+        ComputeChoiceLikelihood(psiParamsStruct,M,adaptationLMS,referenceLMS,comparison1LMS,comparison2LMS);
     
     % Fill in complement
     predictedProportions(ii,2) = 1-predictedProportions(ii,1);  

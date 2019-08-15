@@ -1,8 +1,8 @@
-function [metamerPrimary,metamerSpd,metamerLMS] = FindMetamer(apparatusParams,T,spectrumLMS)
+function [metamerPrimary,metamerSpd] = FindMetamer(apparatusParams,T,spectrumLMS)
 % Find apparatus metamer for a passed spectrum with respect to passed fundamentals.
 %
 % Syntax:
-%    [metamerPrimary,metamerSpd,metamerLMS] = FindMetamer(apparatusParams,T,spectrumLMS)   
+%    [metamerPrimary,metamerSpd] = FindMetamer(apparatusParams,T,spectrumLMS)   
 %
 % Description:
 %    Find a metamer for passed spectrum within apparatus capability.
@@ -15,7 +15,6 @@ function [metamerPrimary,metamerSpd,metamerLMS] = FindMetamer(apparatusParams,T,
 % Outputs:
 %    metamerPrimary                        - Weights on appartus primaries for metamer.
 %    metamerSpd                            - Spectrum of metamer
-%    metamerLMS                            - Metamer's LMS cone coordinates.
 %
 % Optional key/value pairs:
 %
@@ -29,12 +28,16 @@ switch (apparatusParams.type)
     case 'monochromatic'
         
         % Find apparatus spectrum that hits it
-        [metamerPrimary,metamerSpd] = LMSToPrimary(apparatusParams,T,spectrumLMS);
+        metamerPrimary = LMSToPrimary(apparatusParams,T,spectrumLMS);
+        metamerSpd = apparatusParams.primaryBasis*metamerPrimary;
 
         % Check
-        metamerLMS = T*metamerSpd;
-        if (max(abs(metamerLMS-spectrumLMS)./spectrumLMS) > 1e-6)
-            error('Failed to compute good metamer');
+        CHECK = false;
+        if (CHECK)
+            metamerLMS = T*metamerSpd;
+            if (max(abs(metamerLMS-spectrumLMS)./spectrumLMS) > 1e-6)
+                error('Failed to compute good metamer');
+            end
         end
         
     otherwise
