@@ -2,7 +2,7 @@ function [prob1] = ComputeChoiceLikelihood(params,adaptationLMS,referenceLMS,com
 % Compute probability that stim1 will be chosen as closer to reference than stim2
 %
 % Syntax:
-%   [prob1] = ComputeChoiceLikelihood(params,M,adaptationLMS,referenceLMS,comparison1LMS,comparison2LMS)
+%   [prob1] = ComputeChoiceLikelihood(params,adaptationLMS,referenceLMS,comparison1LMS,comparison2LMS)
 %
 % Description:
 %   This routine simulates a three interval experiment.  The subject's task
