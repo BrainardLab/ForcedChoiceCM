@@ -40,14 +40,14 @@ comparison1Spd = stimulusParams.matchApparatusParams.primaryBasis*metamerPrimary
 %
 % This is one noise sd worth of step in the r/g direction.
 opponentDirContrast = [0,observerParams1.colorDiffParams.noiseSd 0]';
-opponentDirLMS = OpponentContrastToLMS(GetOpponentContrastMatrix(observerParams1.colorDiffParams),T*metamerSpd,opponentDirContrast);
+opponentDirLMS = OpponentContrastToLMS(observerParams1.colorDiffParams,T*metamerSpd,opponentDirContrast);
 [opponentDirPrimary,opponentDirSpd] = FindMetamer(stimulusParams.matchApparatusParams,T,opponentDirLMS);
 opponentDirLMSCheck = T*opponentDirSpd;
 if (max(abs(opponentDirLMS-opponentDirLMSCheck)) > 1e-8)
     error('Do not recover metameric cone excitations properly');
 end
 [opponentDirDiff,opponentDirContrastCheck] = ComputeMatchDiff(observerParams1.colorDiffParams, ...
-    GetOpponentContrastMatrix(observerParams1.colorDiffParams),T*adaptationSpd,T*referenceSpd,opponentDirLMS);
+    T*adaptationSpd,T*referenceSpd,opponentDirLMS);
 if (max(abs(opponentDirContrast-opponentDirContrastCheck)) > 1e-8)
     error('Do not recover opponent direction contrast the way we should');
 end
@@ -61,7 +61,7 @@ if (max(abs(opponentDirLMS-opponentDirLMSCheck2)) > 1e-8)
 end
 opponentDirDeltaPrimary = opponentDirPrimary-metamerPrimary;
 opponentDirDeltaSpd = opponentDirSpd-metamerSpd;
-probCheck = ComputeChoiceLikelihood(observerParams1, GetOpponentContrastMatrix(observerParams1.colorDiffParams), ...
+probCheck = ComputeChoiceLikelihood(observerParams1, ...
         T*adaptationSpd,T*referenceSpd,T*comparison1Spd,T*(comparison1Spd + opponentDirDeltaSpd));
 if (abs(probCheck - normcdf(1,0,1)) > 1e-8)
     error('Did not properly construct a one noise sd opponent step.');
@@ -77,7 +77,7 @@ primaryDeltaFactor = 2/nSteps;
 for ii = 0:nSteps-1
     comparison2Primary = metamerPrimary + ii*primaryDeltaFactor*opponentDirDeltaPrimary;
     comparison2Spd = stimulusParams.matchApparatusParams.primaryBasis*comparison2Primary;
-    probs1(ii+1) = ComputeChoiceLikelihood(observerParams1, GetOpponentContrastMatrix(observerParams1.colorDiffParams), ...
+    probs1(ii+1) = ComputeChoiceLikelihood(observerParams1, ...
         T*adaptationSpd,T*referenceSpd,T*comparison1Spd,T*comparison2Spd);
 end
 likelihoodFigure1 = figure; clf; hold on
@@ -92,7 +92,7 @@ comparison1Spd = stimulusParams.matchApparatusParams.primaryBasis*(metamerPrimar
 for ii = 0:nSteps-1
     comparison2Primary = metamerPrimary + ii*primaryDeltaFactor*opponentDirDeltaPrimary;
     comparison2Spd = stimulusParams.matchApparatusParams.primaryBasis*comparison2Primary;
-    probs1(ii+1) = ComputeChoiceLikelihood(observerParams1, GetOpponentContrastMatrix(observerParams1.colorDiffParams), ...
+    probs1(ii+1) = ComputeChoiceLikelihood(observerParams1, ...
         T*adaptationSpd,T*referenceSpd,T*comparison1Spd,T*comparison2Spd);
 end
 likelihoodFigure2 = figure; clf; hold on
@@ -111,7 +111,7 @@ for ii = 0:nSteps-1
     comparison2Primary = metamerPrimary + ii*primaryDeltaFactor*opponentDirDeltaPrimary;
     comparison2Spd = stimulusParams.matchApparatusParams.primaryBasis*comparison2Primary;
     T2 = ComputeObserverFundamentals(observerParams2.coneParams,S);
-    probs2(ii+1) = ComputeChoiceLikelihood(observerParams2, GetOpponentContrastMatrix(observerParams2.colorDiffParams), ...
+    probs2(ii+1) = ComputeChoiceLikelihood(observerParams2, ...
         T2*adaptationSpd,T2*referenceSpd,T2*comparison1Spd,T2*comparison2Spd);
 end
 figure(likelihoodFigure2);

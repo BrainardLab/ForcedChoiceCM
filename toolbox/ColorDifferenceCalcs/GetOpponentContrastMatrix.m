@@ -16,7 +16,13 @@ function M_LMSContrastToOpponentContrast = GetOpponentContrastMatrix(colorDiffPa
 %                               rgWeight: Weight on rg mechanism.
 %                               byWeight: Weight on by mechanism.
 %
-% See also LMSToOpponentContrast, OpponentContrastToLMS
+% Outputs:
+%    M_LMSContrastToOpponentContrast - Matrix that goes from cone contrast
+%                                      to opponent contrast.
+%
+% Optional key/value pairs
+%
+% See also DefaultColorDiffParams, LMSToOpponentContrast, OpponentContrastToLMS
 
 % History
 %   08/15/19  dhb  Wrote it.

@@ -1,7 +1,7 @@
-function opponentContrast = LMSToOpponentContrast(M,referenceLMS,comparisonLMS)
+function opponentContrast = LMSToOpponentContrast(colorDiffParams,referenceLMS,comparisonLMS)
 %
 % Syntax:
-%     opponentContrast = LMSToOpponentContrast(M,referenceLMS,comparisonLMS)
+%     opponentContrast = LMSToOpponentContrast(colorDiffParams,,referenceLMS,comparisonLMS)
 %
 % Description:
 %     Convert LMS representation to opponent contrast respresentation
@@ -12,9 +12,7 @@ function opponentContrast = LMSToOpponentContrast(M,referenceLMS,comparisonLMS)
 %     are scaled by the weights specified in the parameters structure.
 %
 % Inputs:
-%     M                      - Matrix that goes from LMS contrast to
-%                              opponent contrast.  See
-%                              GetOpponentContrastMatrix.
+%     colorDiffParams        - Structure with color difference parameters.
 %     referenceLMS           - LMS coordinates of the reference with
 %                              respect to which contrast is computed.
 %     comparisonLMS          - LMS coordinates of the stimulus whose
@@ -39,11 +37,11 @@ function opponentContrast = LMSToOpponentContrast(M,referenceLMS,comparisonLMS)
     colorDiffParams.lumWeight = 1;
     colorDiffParams.rgWeight = 3;
     colorDiffParams.byWeight = 1.5;
+    colorDiffParams.M = GetOpponentContrastMatrix(colorDiffParams);
     referenceLMS = [1 1 1]';
     comparisonLMS = [2 0.5 1.5]';
-    M = GetOpponentContrastMatrix(colorDiffParams);
-    opponentContrast = LMSToOpponentContrast(M,referenceLMS,comparisonLMS)
-    opponentContrast = LMSToOpponentContrast(M,referenceLMS,2*referenceLMS)
+    opponentContrast = LMSToOpponentContrast(colorDiffParams,referenceLMS,comparisonLMS)
+    opponentContrast = LMSToOpponentContrast(colorDiffParams,referenceLMS,2*referenceLMS)
     if (any(abs(opponentContrast - [1 0 0]')) > 1e-6)
        error('Don''t get right answer in simple test case.');
     end
@@ -53,6 +51,6 @@ function opponentContrast = LMSToOpponentContrast(M,referenceLMS,comparisonLMS)
 coneContrast = (comparisonLMS - referenceLMS) ./ referenceLMS;
 
 % And then to opponent contrast
-opponentContrast = M*coneContrast;
+opponentContrast = colorDiffParams.M*coneContrast;
 
    

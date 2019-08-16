@@ -63,18 +63,18 @@ simulatedObserverFun = @(stimParamsVec) qpSimulatedObserver(stimParamsVec,qpPFFu
 % runs.
 USE_PRECOMPUTE = false;
 if (~USE_PRECOMPUTE)
-    fprintf('Initializing quest structure ... ');
-    start = GetSecs;
+    fprintf('Initializing quest structure ...\n');
+    startTime = GetSecs;
     questDataRaw = qpInitialize(...
         'nOutcomes', 2, ...
         'qpPF',qpPFFun, ...
         'stimParamsDomainList',{440:10:680, -0.06:0.03:0.06, -0.06:0.03:0.06, -0.06:0.03:0.06, -0.06:0.03:0.06, -0.06:0.03:0.06, -0.06:0.03:0.06}, ...
         'psiParamsDomainList',{-30:15:30, -40:20:40, -20:20:20, -20:20:20, -20:20:20, -4:4, -4:4, -2:2, 0.02:0.02:0.06}, ...
         'filterStimParamsDomainFun',@(stimParamsVec) qpFCCMStimDomainCheck(stimParamsVec,stimVecType,stimParamsStruct), ...
-        'verbose', false ...
+        'verbose', true ...
         );
-    stop = GetSecs;
-    fprintf(' done in %0.1f seconds\n',stop-start);
+    stopTime = GetSecs;
+    fprintf('Done initializing in %0.1f seconds\n',stopTime-startTime);
     save questDataRaw questDataRaw 
 else
     load questDataRaw questDataRaw;
@@ -85,7 +85,7 @@ end
 fprintf('*** Simluated run, estimate parametric cone fundamentals:\n');
 rng('default'); rng(3008,'twister');
 nTrials = 256;
-start = GetSecs;
+startTime = GetSecs;
 questData = questDataRaw;
 for tt = 1:nTrials
     % Get stimulus for this trial
@@ -101,8 +101,8 @@ for tt = 1:nTrials
         fprintf('\tTrial %d of %d\n',tt,nTrials);
     end
 end
-stop = GetSecs;
-fprintf('Done with trial simulation, %0.3f calculation time per trial\n',(stop-start)/nTrials);
+stopTime = GetSecs;
+fprintf('Done with trial simulation, %0.3f calculation time per trial\n',(stopTime-startTime)/nTrials);
 
 %% Process simulated data
 psiParamsIndex = qpListMaxArg(questData.posterior);

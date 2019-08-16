@@ -1,16 +1,15 @@
-function comparisonLMS = OpponentContrastToLMS(M,referenceLMS,opponentContrast)
+function comparisonLMS = OpponentContrastToLMS(colorDiffParams,referenceLMS,opponentContrast)
 %
 % Syntax:
-%     comparisonLMS = OpponentContrastToLMS(M,referenceLMS,opponentContrast)
+%     comparisonLMS = OpponentContrastToLMS(colorDiffParams,referenceLMS,opponentContrast)
 %
 % Description:
 %     Convert opponent contrast respresentation to LMS. This inverts
 %     LMSToOpponentContrast.
 %
 % Inputs:
-%     M                      - Matrix that goes from LMS contrast to
-%                              opponent contrast.  See
-%                              GetOpponentContrastMatrix.
+%     colorDiffParams        - Structure with color difference parameters.
+
 %     referenceLMS           - LMS coordinates of the reference with
 %                              respect to which contrast is computed.
 %     opponentContrast       - Contrast representation to be converted.
@@ -34,18 +33,18 @@ function comparisonLMS = OpponentContrastToLMS(M,referenceLMS,opponentContrast)
     colorDiffParams.lumWeight = 1;
     colorDiffParams.rgWeight = 3;
     colorDiffParams.byWeight = 1.5;
+    colorDiffParams.M = GetOpponentContrastMatrix(colorDiffParams);
     referenceLMS = [1 1 1]';
     comparisonLMS = [2 0.5 1.5]';
-    M = GetOpponentContrastMatrix(colorDiffParams);
-    opponentContrast = LMSToOpponentContrast(M,referenceLMS,comparisonLMS)
-    checkLMS = OpponentContrastToLMS(M,referenceLMS,opponentContrast)
+    opponentContrast = LMSToOpponentContrast(colorDiffParams,referenceLMS,comparisonLMS)
+    checkLMS = OpponentContrastToLMS(colorDiffParams,referenceLMS,opponentContrast)
     if (max(abs(comparisonLMS - checkLMS) ./ comparisonLMS) > 1e-6)
         error('Routines do not self invert properly.');
     end
 %}
         
 % Go to cone contrast
-coneContrast = inv(M)*opponentContrast;
+coneContrast = colorDiffParams.M\opponentContrast;
 
 % And then LMS
 comparisonLMS = (coneContrast .* referenceLMS) + referenceLMS;

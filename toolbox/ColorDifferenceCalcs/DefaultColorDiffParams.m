@@ -41,6 +41,7 @@ switch (type)
         colorDiffParams.rgWeight = 2;
         colorDiffParams.byWeight = 0.5;
         colorDiffParams.noiseSd = 0.02;
+        colorDiffParams.M = GetOpponentContrastMatrix(colorDiffParams);
      
     otherwise
         error('Unknown colordiff parameters type passed.');

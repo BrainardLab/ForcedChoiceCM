@@ -1,4 +1,4 @@
-function [prob1] = ComputeChoiceLikelihood(params,M,adaptationLMS,referenceLMS,comparison1LMS,comparison2LMS)
+function [prob1] = ComputeChoiceLikelihood(params,adaptationLMS,referenceLMS,comparison1LMS,comparison2LMS)
 % Compute probability that stim1 will be chosen as closer to reference than stim2
 %
 % Syntax:
@@ -16,7 +16,6 @@ function [prob1] = ComputeChoiceLikelihood(params,M,adaptationLMS,referenceLMS,c
 %
 % Inputs:
 %    params                       - Parameter structure describing the observer.
-%    M                            - Matrix that goes from LMS contrast to opponent contrast
 %    adaptationLMS                - Adaptation LMS (3 by 1 vector).
 %    referenceLMS                 - Reference LMS (3 by 1 vector)..
 %    comparison1LMS               - First LMS (3 by 1 vector)..
@@ -38,8 +37,8 @@ function [prob1] = ComputeChoiceLikelihood(params,M,adaptationLMS,referenceLMS,c
 %                  routine gets called a lot with the same T.
 
 % Compute differences
-comparison1Diff = ComputeMatchDiff(params.colorDiffParams,M,adaptationLMS,referenceLMS,comparison1LMS);
-comparison2Diff = ComputeMatchDiff(params.colorDiffParams,M,adaptationLMS,referenceLMS,comparison2LMS);
+comparison1Diff = ComputeMatchDiff(params.colorDiffParams,adaptationLMS,referenceLMS,comparison1LMS);
+comparison2Diff = ComputeMatchDiff(params.colorDiffParams,adaptationLMS,referenceLMS,comparison2LMS);
 diffDiff = comparison2Diff - comparison1Diff;
 
 % Compute likelihood based on differences

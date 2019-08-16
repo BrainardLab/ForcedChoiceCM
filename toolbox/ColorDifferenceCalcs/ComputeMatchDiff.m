@@ -1,7 +1,7 @@
-function [colorDiff,comparisonContrast] = ComputeMatchDiff(colorDiffParams,M,adaptationLMS,referenceLMS,comparisonLMS)
+function [colorDiff,comparisonContrast] = ComputeMatchDiff(colorDiffParams,adaptationLMS,referenceLMS,comparisonLMS)
 %
 % Syntax:
-%     [colorDiff,comparisonContrast] = ComputeMatchDiff(colorDiffParams,M,adaptationLMS,referenceLMS,comparisonLMS)
+%     [colorDiff,comparisonContrast] = ComputeMatchDiff(colorDiffParams,adaptationLMS,referenceLMS,comparisonLMS)
 %
 % Description:
 %     Compute a single number color difference between two vectors
@@ -40,15 +40,15 @@ function [colorDiff,comparisonContrast] = ComputeMatchDiff(colorDiffParams,M,ada
     colorDiffParams.lumWeight = 4;
     colorDiffParams.rgWeight = 2;
     colorDiffParams.byWeight = 0.5;
+    colorDiffParams.M = GetOpponentContrastMatrix(colorDiffParams);
     referenceLMS = [1 1 1]';
     comparisonLMS = [2 0.5 1.5]';
-    M = GetOpponentContrastMatrix(colorDiffParams);
-    colorDiff = ComputeMatchDiff(colorDiffParams,M,referenceLMS,referenceLMS,comparisonLMS)
+    colorDiff = ComputeMatchDiff(colorDiffParams,referenceLMS,referenceLMS,comparisonLMS)
 %}
 
 % Get opponent representations
-referenceContrast = LMSToOpponentContrast(M,adaptationLMS,referenceLMS);
-comparisonContrast = LMSToOpponentContrast(M,adaptationLMS,comparisonLMS);
+referenceContrast = LMSToOpponentContrast(colorDiffParams,adaptationLMS,referenceLMS);
+comparisonContrast = LMSToOpponentContrast(colorDiffParams,adaptationLMS,comparisonLMS);
 
 % Take appropriate weighted vector length
 colorDiff = norm(comparisonContrast-referenceContrast);
