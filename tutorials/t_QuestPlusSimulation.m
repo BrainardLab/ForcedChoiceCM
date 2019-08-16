@@ -60,7 +60,7 @@ simulatedObserverFun = @(stimParamsVec) qpSimulatedObserver(stimParamsVec,qpPFFu
 
 %% Initialize quest data
 %
-% From Asono et al. (2016), PlosOne, Table 1.
+% From Asano et al. (2016), PlosOne, Table 1.
 %   Lens density standard deviation in percent: ~20.
 %   Macular density standard deviation in percent: ~40
 %   Photopigment density standard deviation in percent: ~15
