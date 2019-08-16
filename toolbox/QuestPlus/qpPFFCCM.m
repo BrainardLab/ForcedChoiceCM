@@ -1,8 +1,8 @@
-function [predictedProportions] = qpPFFCCM(stimParamsVec,psiParamsVec,S,stimVectorType,stimParamsStruct,psiVectorType,psiParamsStruct,psiParamsStructRef,adaptationSpd,varargin)
+function [predictedProportions] = qpPFFCCM(stimParamsVec,psiParamsVec,S,stimVectorType,stimParamsStruct,psiVectorType,psiParamsStruct,psiParamsStructRef,adaptationSpd,TRef,adaptationLMSRef,varargin)
 % Psychometric function for forced choice color matching
 %
 % Usage:
-%     [predictedProportions] = qpPFFCCM(stimParamsVec,psiParamsVec,S,stimVectorType,stimParamsStruct,psiVectorType,psiParamsStruct,psiParamsStructRef,adaptationSpd)
+%     [predictedProportions] = qpPFFCCM(stimParamsVec,psiParamsVec,S,stimVectorType,stimParamsStruct,psiVectorType,psiParamsStruct,psiParamsStructRef,adaptationSpd,TRef,adaptationLMSRef)
 %
 % Description:
 %     Psychometric function for forced choice color matching.  
@@ -17,6 +17,10 @@ function [predictedProportions] = qpPFFCCM(stimParamsVec,psiParamsVec,S,stimVect
 %     psiParamsStruct        Full observer parameters structure
 %     psiParamsStructRef     Full observer parameters structure for a reference observer.
 %     adaptationSpd          Spectral power distribution of adapting light
+%     TRef                   Reference color matching functions.  We could
+%                            compute these here, but passing speeds things up a little.
+%     adaptationLMSRef       adaptation LMS under reference T (TRef).  We
+%                            could compute this here, but passing speeds things up a little.
 %
 % Output:
 %     predictedProportions   Matrix, where each row is a vector of predicted proportions
@@ -47,7 +51,6 @@ p.parse(stimParamsVec,psiParamsVec,S,stimVectorType,stimParamsStruct,psiVectorTy
 psiParamsStruct = ObserverVecToParams(psiVectorType,psiParamsVec,psiParamsStruct);
 
 %% Get cone funadmentals
-TRef = ComputeObserverFundamentals(psiParamsStructRef.coneParams,S);
 T = ComputeObserverFundamentals(psiParamsStruct.coneParams,S);
 
 %% LMS coordinates of adapting light
@@ -56,7 +59,6 @@ T = ComputeObserverFundamentals(psiParamsStruct.coneParams,S);
 % reference observer, so that we can keep our stimulus
 % transformations independent of the current observer 
 % parameters.
-adaptationLMSRef = TRef*adaptationSpd;
 adaptationLMS = T*adaptationSpd;
 
 %% Loop over stimuli and get the proportions

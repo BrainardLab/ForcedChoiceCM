@@ -47,7 +47,9 @@ simulatedPsiParamsVec = ObserverParamsToVec(psiVecType,simulatedPsiParamsStruct)
 %% Psychometric and simulated observer functions
 %
 % Call into qpPFFCM
-qpPFFun = @(stimParamsVec,psiParamsVec) qpPFFCCM(stimParamsVec,psiParamsVec,S,stimVecType,stimParamsStruct,psiVecType,psiParamsStruct,psiParamsStructRef,adaptationSpd);
+TRef = ComputeObserverFundamentals(psiParamsStructRef.coneParams,S);
+adaptationLMSRef = TRef*adaptationSpd;
+qpPFFun = @(stimParamsVec,psiParamsVec) qpPFFCCM(stimParamsVec,psiParamsVec,S,stimVecType,stimParamsStruct,psiVecType,psiParamsStruct,psiParamsStructRef,adaptationSpd,TRef,adaptationLMSRef);
 
 % If you want to test with a PF that runs fast, uncomment this line.  The
 % resulting behavior will be meaningless, however.
