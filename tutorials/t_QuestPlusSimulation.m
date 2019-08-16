@@ -45,7 +45,15 @@ simulatedPsiParamsStruct.colorDiffParams.noiseSd = 0.03;
 simulatedPsiParamsVec = ObserverParamsToVec(psiVecType,simulatedPsiParamsStruct);
 
 %% Psychometric and simulated observer functions
+%
+% Call into qpPFFCM
 qpPFFun = @(stimParamsVec,psiParamsVec) qpPFFCCM(stimParamsVec,psiParamsVec,S,stimVecType,stimParamsStruct,psiVecType,psiParamsStruct,psiParamsStructRef,adaptationSpd);
+
+% If you want to test with a PF that runs fast, uncomment this line.  The
+% resulting behavior will be meaningless, however.
+%qpPFFun = @(stimParamsVec,psiParamsVec) 0.5;
+
+% Standard QUEST+ simulated observer
 simulatedObserverFun = @(stimParamsVec) qpSimulatedObserver(stimParamsVec,qpPFFun,simulatedPsiParamsVec);
 
 %% Initialize quest data
@@ -75,11 +83,10 @@ if (~USE_PRECOMPUTE)
         );
     stopTime = GetSecs;
     fprintf('Done initializing in %0.1f seconds\n',stopTime-startTime);
-    save questDataRaw questDataRaw 
+    save('questDataRaw','questDataRaw','-v7.3');
 else
     load questDataRaw questDataRaw;
 end
-
 
 %% qpRun estimating the parameters
 fprintf('*** Simluated run, estimate parametric cone fundamentals:\n');
