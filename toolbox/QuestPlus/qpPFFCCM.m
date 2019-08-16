@@ -59,10 +59,6 @@ T = ComputeObserverFundamentals(psiParamsStruct.coneParams,S);
 adaptationLMSRef = TRef*adaptationSpd;
 adaptationLMS = T*adaptationSpd;
 
-% Matrix for opponent transformation
-% Be careful not to search over opponent space
-M = GetOpponentContrastMatrix(psiParamsStructRef.colorDiffParams);
-
 %% Loop over stimuli and get the proportions
 nStim = size(stimParamsVec,1);
 predictedProportions = zeros(nStim,2);
@@ -81,11 +77,11 @@ for ii = 1:nStim
     % stimulus spectra. We don't want to do this with respect to a
     % floating observer specification.
     referenceLMSRef = TRef*referenceSpd;
-    referenceOpponentRef = LMSToOpponentContrast(M,adaptationLMSRef,referenceLMSRef);
+    referenceOpponentRef = LMSToOpponentContrast(psiParamsStructRef.colorDiffParams,adaptationLMSRef,referenceLMSRef);
     
     % Find comparison primaries
-    comparison1LMSRef = OpponentContrastToLMS(M,adaptationLMSRef,referenceOpponentRef+comparison1Opponent);
-    comparison2LMSRef = OpponentContrastToLMS(M,adaptationLMSRef,referenceOpponentRef+comparison2Opponent);
+    comparison1LMSRef = OpponentContrastToLMS(psiParamsStructRef.colorDiffParams,adaptationLMSRef,referenceOpponentRef+comparison1Opponent);
+    comparison2LMSRef = OpponentContrastToLMS(psiParamsStructRef.colorDiffParams,adaptationLMSRef,referenceOpponentRef+comparison2Opponent);
     
     [comparison1Primary,comparison1Spd] = FindMetamer(stimParamsStruct.matchApparatusParams,TRef,comparison1LMSRef);
     [comparison2Primary,comparison2Spd] = FindMetamer(stimParamsStruct.matchApparatusParams,TRef,comparison2LMSRef);
@@ -94,7 +90,7 @@ for ii = 1:nStim
     
     % Do the main work
     predictedProportions(ii,1) = ...
-        ComputeChoiceLikelihood(psiParamsStruct,M,adaptationLMS,referenceLMS,comparison1LMS,comparison2LMS);
+        ComputeChoiceLikelihood(psiParamsStruct,adaptationLMS,referenceLMS,comparison1LMS,comparison2LMS);
     
     % Fill in complement
     predictedProportions(ii,2) = 1-predictedProportions(ii,1);  
