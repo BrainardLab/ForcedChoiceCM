@@ -33,7 +33,6 @@ switch (apparatusParams.type)
         
         % Get conversion matrices
         M_PrimaryToLMS = T*apparatusParams.primaryBasis;
-        M_LMSToPrimary = inv(M_PrimaryToLMS);
         
         % Convert
         spectrumPrimary = M_PrimaryToLMS\spectrumLMS;
