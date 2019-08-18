@@ -53,7 +53,7 @@ qpPFFun = @(stimParamsVec,psiParamsVec) qpPFFCCM(stimParamsVec,psiParamsVec,S,st
 
 % If you want to test with a PF that runs fast, uncomment this line.  The
 % resulting behavior will be meaningless, however.
-%qpPFFun = @(stimParamsVec,psiParamsVec) 0.5;
+% qpPFFun = @(stimParamsVec,psiParamsVec) 0.5;
 
 % Standard QUEST+ simulated observer
 simulatedObserverFun = @(stimParamsVec) qpSimulatedObserver(stimParamsVec,qpPFFun,simulatedPsiParamsVec);
@@ -71,7 +71,7 @@ simulatedObserverFun = @(stimParamsVec) qpSimulatedObserver(stimParamsVec,qpPFFu
 
 % This can be slow, so best is to precompute and then load on individual
 % runs.
-USE_PRECOMPUTE = false;
+USE_PRECOMPUTE = true;
 if (~USE_PRECOMPUTE)
     fprintf('Initializing quest structure ...\n');
     startTime = GetSecs;
@@ -87,7 +87,9 @@ if (~USE_PRECOMPUTE)
     fprintf('Done initializing in %0.1f seconds\n',stopTime-startTime);
     save('questDataRaw','questDataRaw','-v7.3');
 else
+    fprintf('Loading quest structure ...\n');
     load questDataRaw questDataRaw;
+    fprintf('Done loading\n');
 end
 
 %% qpRun estimating the parameters
