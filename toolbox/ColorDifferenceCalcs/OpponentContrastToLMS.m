@@ -8,7 +8,8 @@ function comparisonLMS = OpponentContrastToLMS(colorDiffParams,referenceLMS,oppo
 %     LMSToOpponentContrast.
 %
 % Inputs:
-%     colorDiffParams        - Structure of parameters understood by LMSToOpponentContrast
+%     colorDiffParams        - Structure with color difference parameters.
+
 %     referenceLMS           - LMS coordinates of the reference with
 %                              respect to which contrast is computed.
 %     opponentContrast       - Contrast representation to be converted.
@@ -19,7 +20,7 @@ function comparisonLMS = OpponentContrastToLMS(colorDiffParams,referenceLMS,oppo
 % Optional key/value pairs:
 %   None:
 %
-% See also: LMSToOpponentContrast, ComputeMatchDiff
+% See also: GetOpponentContrastMatrix, LMSToOpponentContrast, ComputeMatchDiff
 %
 
 % History:
@@ -32,6 +33,7 @@ function comparisonLMS = OpponentContrastToLMS(colorDiffParams,referenceLMS,oppo
     colorDiffParams.lumWeight = 1;
     colorDiffParams.rgWeight = 3;
     colorDiffParams.byWeight = 1.5;
+    colorDiffParams.M = GetOpponentContrastMatrix(colorDiffParams);
     referenceLMS = [1 1 1]';
     comparisonLMS = [2 0.5 1.5]';
     opponentContrast = LMSToOpponentContrast(colorDiffParams,referenceLMS,comparisonLMS)
@@ -40,22 +42,10 @@ function comparisonLMS = OpponentContrastToLMS(colorDiffParams,referenceLMS,oppo
         error('Routines do not self invert properly.');
     end
 %}
+        
+% Go to cone contrast
+coneContrast = colorDiffParams.M\opponentContrast;
 
-switch (colorDiffParams.type)
-    case 'opponentContrast'
-        
-        % Build up matrix
-        M = diag([colorDiffParams.lumWeight colorDiffParams.rgWeight colorDiffParams.byWeight])*[ [colorDiffParams.LMRatio 1 0]/(colorDiffParams.LMRatio+1) ; ...
-            [1 -1 0] ; ...
-            [-0.5 -0.5 1] ];
-        
-        % Go to cone contrast
-        coneContrast = inv(M)*opponentContrast;
-        
-        % And then LMS
-        comparisonLMS = (coneContrast .* referenceLMS) + referenceLMS;
-        
-    otherwise
-        error('Unknown type field passed in colorDiffParams structure');
-end
+% And then LMS
+comparisonLMS = (coneContrast .* referenceLMS) + referenceLMS;
 

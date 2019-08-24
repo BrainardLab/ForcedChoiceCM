@@ -1,8 +1,8 @@
-function params = ObserverVecToParams(x,params)
+function params = ObserverVecToParams(type,x,params)
 % Convert vector of observer parameters to a structure
 %
 % Synopsis:
-%   params = ObserverVecToParams(x,params)
+%   params = ObserverVecToParams(type,x,params)
 %
 % Description:
 %   Our goal is to used forced choice color similarity judgments to
@@ -20,8 +20,11 @@ function params = ObserverVecToParams(x,params)
 %       params.coneParams.indDiffParams.lambdaMaxShift(1) = x(6);
 %       params.coneParams.indDiffParams.lambdaMaxShift(2) = x(7);
 %       params.coneParams.indDiffParams.lambdaMaxShift(3) = x(8);
+%       params.colorDiffParams.noiseSd = x(9);
 %
 % Inputs:
+%   type                    - Type of vector to set up.
+%                             'basic': Asano cones plus difference noise.
 %   x                       - Parameters as vector.
 %   params                  - Base parameter structure.
 %
@@ -41,21 +44,27 @@ function params = ObserverVecToParams(x,params)
 % Examples:
 %{
     params.coneParams = DefaultConeParams('cie_asano');
-    x = (1:8)';
-    params = ObserverVecToParams(x,params);
+    x = (1:9);
+    params = ObserverVecToParams('basic',x,params);
     params.coneParams.indDiffParams
-    x1 = ObserverParamsToVec(params)
+    x1 = ObserverParamsToVec('basic',params)
     if (any(x - x1) ~= 0)
         error('Routines do not properly self invert');
     end
 %}
 
-params.coneParams.indDiffParams.dlens = x(1);
-params.coneParams.indDiffParams.dmac = x(2);
-params.coneParams.indDiffParams.dphotopigment(1) = x(3);
-params.coneParams.indDiffParams.dphotopigment(2) = x(4);
-params.coneParams.indDiffParams.dphotopigment(3) = x(5);
-params.coneParams.indDiffParams.lambdaMaxShift(1) = x(6);
-params.coneParams.indDiffParams.lambdaMaxShift(2) = x(7);
-params.coneParams.indDiffParams.lambdaMaxShift(3) = x(8);
-params.coneParams.indDiffParams.shiftType = 'linear';
+switch (type)
+    case 'basic'
+        params.coneParams.indDiffParams.dlens = x(1);
+        params.coneParams.indDiffParams.dmac = x(2);
+        params.coneParams.indDiffParams.dphotopigment = x(3:5)';
+        params.coneParams.indDiffParams.lambdaMaxShift = x(6:8)';
+        params.colorDiffParams.noiseSd = x(9);
+        params.coneParams.indDiffParams.shiftType = 'linear';
+        
+    otherwise
+        error('Unknown parameter vector type requested');
+        
+end
+
+
