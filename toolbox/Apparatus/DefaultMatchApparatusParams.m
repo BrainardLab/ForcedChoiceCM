@@ -12,7 +12,8 @@ function matchApparatusParams = DefaultMatchApparatusParams(type,S)
 %
 % Inputs:
 %     type                          - String specifying cone parameterization type.
-%                                     'monochromatic': Primary lights are monochromatic.
+%                                     'monochromatic': Three primary lights are monochromatic.
+%                                     'rayleigh': Two primary rayleigh
 %     S                             - Wavelength sampling information to use
 %
 % Outputs:
@@ -47,7 +48,7 @@ switch (matchApparatusParams.type)
         
         % Apparatus parameters
         matchApparatusParams.primaryWavelength1 = 430;
-        matchApparatusParams.primaryWavelength2 = 545;
+        matchApparatusParams.primaryWavelength2 = 54;
         matchApparatusParams.primaryWavelength3 = 670;
         
         % Compute indices and set spectra below
@@ -65,6 +66,28 @@ switch (matchApparatusParams.type)
         matchApparatusParams.primaryBasis = [matchApparatusParams.unitPrimarySpectrum1 ... 
             matchApparatusParams.unitPrimarySpectrum2 ... 
             matchApparatusParams.unitPrimarySpectrum3];
+     
+    case 'rayleigh'
+                
+        % Wavelength sampling
+        matchApparatusParams.S = S;
+        matchApparatusParams.wls = SToWls(matchApparatusParams.S);
+        
+        % Apparatus parameters
+        matchApparatusParams.primaryWavelength1 = 540;
+        matchApparatusParams.primaryWavelength2 = 670;
+        
+        % Compute indices and set spectra below
+        matchApparatusParams.primaryIndex1 = find(matchApparatusParams.wls == matchApparatusParams.primaryWavelength1);
+        matchApparatusParams.primaryIndex2 = find(matchApparatusParams.wls == matchApparatusParams.primaryWavelength2);
+        
+        matchApparatusParams.unitPrimarySpectrum1 = zeros(size(matchApparatusParams.wls));
+        matchApparatusParams.unitPrimarySpectrum1(matchApparatusParams.primaryIndex1) = 1;
+        matchApparatusParams.unitPrimarySpectrum2 = zeros(size(matchApparatusParams.wls));
+        matchApparatusParams.unitPrimarySpectrum2(matchApparatusParams.primaryIndex2) = 1;
+        
+        matchApparatusParams.primaryBasis = [matchApparatusParams.unitPrimarySpectrum1 ... 
+            matchApparatusParams.unitPrimarySpectrum2];
         
     otherwise
         error('Unknown apparatus parameters type passed.');
