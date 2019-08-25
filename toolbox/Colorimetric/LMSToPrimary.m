@@ -12,7 +12,7 @@ function [spectrumPrimary] = LMSToPrimary(apparatusParams,T,spectrumLMS)
 %        spectrum = apparatusParams.primaryBasis*spectrumPrimary;
 %
 % Inputs:
-%    apparatusParams                       - Structure describing apparatus.    
+%    apparatusParams                       - Structure describing apparatus.
 %    T                                     - Cone fundametals
 %    spectrumLMS                           - Target LMS coordinates.
 %
@@ -36,13 +36,31 @@ switch (apparatusParams.type)
         
         % Convert
         spectrumPrimary = M_PrimaryToLMS\spectrumLMS;
-         
+        
         CHECK = false;
         if (CHECK)
             spectrum = apparatusParams.primaryBasis*spectrumPrimary;
             checkLMS = T*spectrum;
             if (max(abs(checkLMS-spectrumLMS)./spectrumLMS) > 1e-6)
                 error('Failed to reproduce desired LMS');
+            end
+        end
+        
+    case 'rayleigh'
+        % Act like S cones don't exist
+        
+        % Get conversion matrices
+        M_PrimaryToLM = T(1:2,:)*apparatusParams.primaryBasis;
+        
+        % Convert
+        spectrumPrimary = M_PrimaryToLM\spectrumLMS(1:2);
+        
+        CHECK = false;
+        if (CHECK)
+            spectrum = apparatusParams.primaryBasis*spectrumPrimary;
+            checkLM = T(1:2,:)*spectrum;
+            if (max(abs(checkLM-spectrumLM)./spectrumLM) > 1e-6)
+                error('Failed to reproduce desired LM');
             end
         end
         

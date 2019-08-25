@@ -36,7 +36,7 @@ function testParams = SetTestParams(testParams)
 
 %% Dp the right thing according to type
 switch (testParams.type)
-    case 'monochromatic'
+    case {'monochromatic', 'rayleigh'}
                 
         % Compute indices and set spectra below
         testParams.testIndex = find(testParams.wls == testParams.testWavelength);

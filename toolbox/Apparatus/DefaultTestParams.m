@@ -12,6 +12,7 @@ function testParams = DefaultTestParams(type,S)
 % Inputs:
 %     type                          - String specifying cone parameterization type.
 %                                     'monochromatic': Test lights are monochromatic.
+%                                     'rayleigh': Test lights are monochromtic.
 %     S                             - Wavelength sampling information to use
 %
 % Outputs:
@@ -46,6 +47,21 @@ switch (testParams.type)
         
         % Apparatus parameters
         testParams.testWavelength = 520;
+        
+        % Compute indices and set spectra below
+        testParams.testIndex = find(testParams.wls == testParams.testWavelength);
+        testParams.unitTestSpectrum = zeros(size(testParams.wls));
+        testParams.unitTestSpectrum(testParams.testIndex) = 1;
+        testParams.testIntensity = 1;
+    
+    case 'rayleigh'
+                
+        % Wavelength sampling
+        testParams.S = S;
+        testParams.wls = SToWls(testParams.S);
+        
+        % Apparatus parameters
+        testParams.testWavelength = 550;
         
         % Compute indices and set spectra below
         testParams.testIndex = find(testParams.wls == testParams.testWavelength);

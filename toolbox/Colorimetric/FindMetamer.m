@@ -25,7 +25,7 @@ function [metamerPrimary,metamerSpd] = FindMetamer(apparatusParams,T,spectrumLMS
 %   08/11/19  dhb  Wrote it.
 
 switch (apparatusParams.type)
-    case 'monochromatic'
+    case {'monochromatic', 'rayleigh'}
         
         % Find apparatus spectrum that hits it
         metamerPrimary = LMSToPrimary(apparatusParams,T,spectrumLMS);
