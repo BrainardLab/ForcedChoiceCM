@@ -74,6 +74,7 @@ simulatedObserverFun = @(stimParamsVec) qpSimulatedObserver(stimParamsVec,qpPFFu
 % runs.
 stimParamsDomainList = {540:10:670, -0.09:0.03:0.09, -0.09:0.03:0.09, 0, -0.09:0.03:0.09, -0.09:0.03:0.09, 0};
 psiParamsDomainList = {0, 0, -20:5:20, -20:5:20, 0, -4:1:4, -4:1:4, 0, 0.02};
+psiParamsDomainList = {0, 0, 0, 0, 0, -4:1:4, -4:1:4, 0, 0.02};
 USE_PRECOMPUTE = false;
 if (~USE_PRECOMPUTE)
     fprintf('Initializing quest structure ...\n');
