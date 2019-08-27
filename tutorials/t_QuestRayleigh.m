@@ -56,9 +56,6 @@ qpPFFun = @(stimParamsVec,psiParamsVec) qpPFFCCM(stimParamsVec,psiParamsVec,S,st
 % resulting behavior will be meaningless, however.
 % qpPFFun = @(stimParamsVec,psiParamsVec) 0.5;
 
-% Standard QUEST+ simulated observer
-simulatedObserverFun = @(stimParamsVec) qpSimulatedObserver(stimParamsVec,qpPFFun,simulatedPsiParamsVec);
-
 %% Initialize quest data
 %
 % From Asano et al. (2016), PlosOne, Table 1.
@@ -74,7 +71,7 @@ simulatedObserverFun = @(stimParamsVec) qpSimulatedObserver(stimParamsVec,qpPFFu
 % runs.
 stimParamsDomainList = {540:10:670, -0.09:0.03:0.09, -0.09:0.03:0.09, 0, -0.09:0.03:0.09, -0.09:0.03:0.09, 0};
 psiParamsDomainList = {0, 0, -20:5:20, -20:5:20, 0, -4:1:4, -4:1:4, 0, 0.02};
-psiParamsDomainList = {0, 0, 0, 0, 0, -4:1:4, -4:1:4, 0, 0.02};
+psiParamsDomainList = {0, 0, 0, 0, 0, -4:1:4, 0, 0, 0.02};
 USE_PRECOMPUTE = false;
 if (~USE_PRECOMPUTE)
     fprintf('Initializing quest structure ...\n');
@@ -129,6 +126,9 @@ for ss = 1:nParamSets
     simulatedPsiParamsVecCell{ss}(9) = simulatedPsiParamsVec(9);
     simulatedPsiParamsVec = simulatedPsiParamsVecCell{ss};
     simulatedPsiParamsStruct = ObserverVecToParams(psiVecType,simulatedPsiParamsVec,simulatedPsiParamsStruct);
+    
+    % Standard QUEST+ simulated observer
+    simulatedObserverFun = @(stimParamsVec) qpSimulatedObserver(stimParamsVec,qpPFFun,simulatedPsiParamsVec);
     
     % Do the runs
     for rr = 1:nRunsPerParamSet
