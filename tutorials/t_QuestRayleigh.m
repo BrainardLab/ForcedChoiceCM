@@ -41,7 +41,7 @@ simulatedPsiParamsStruct = psiParamsStruct;
 simulatedPsiParamsStruct.coneParams.indDiffParams.dlens = 0;
 simulatedPsiParamsStruct.coneParams.indDiffParams.dmac = 0;
 simulatedPsiParamsStruct.coneParams.indDiffParams.dphotopigment = [0 0 0]';
-simulatedPsiParamsStruct.coneParams.indDiffParams.lambdaMaxShift = [-2.6 2.3 0]';
+simulatedPsiParamsStruct.coneParams.indDiffParams.lambdaMaxShift = [0 0 0]';
 simulatedPsiParamsStruct.colorDiffParams.noiseSd = 0.02;
 simulatedPsiParamsVec = ObserverParamsToVec(psiVecType,simulatedPsiParamsStruct);
 
@@ -71,7 +71,9 @@ qpPFFun = @(stimParamsVec,psiParamsVec) qpPFFCCM(stimParamsVec,psiParamsVec,S,st
 % runs.
 stimParamsDomainList = {540:10:670, -0.09:0.03:0.09, -0.09:0.03:0.09, 0, -0.09:0.03:0.09, -0.09:0.03:0.09, 0};
 psiParamsDomainList = {0, 0, -20:5:20, -20:5:20, 0, -4:1:4, -4:1:4, 0, 0.02};
-psiParamsDomainList = {0, 0, 0, 0, 0, -4:1:4, 0, 0, 0.02};
+%psiParamsDomainList = {0, 0, 0, 0, 0, -4:1:4,-4:1:4, 0, 0.02};
+psiParamsLabels = {'Lens Density', 'Macular Pigment Density', 'L density', 'M density', 'S density', 'L lambda max', 'M lambda max', 'S lambda max', 'Noise'};
+
 USE_PRECOMPUTE = false;
 if (~USE_PRECOMPUTE)
     fprintf('Initializing quest structure ...\n');
@@ -114,20 +116,21 @@ end
 
 %% qpRun estimating the parameters, over and over
 rng('default'); rng(3008,'twister');
-nParamSets = 10;
-nRunsPerParamSet = 5;
-nTrials = 1024;
+nParamSets = 20;
+nRunsPerParamSet = 2;
+nTrials = 512;
 
-[domainVlb,domainVub] = GetBoundsFromDomainList(psiParamsDomainList);
+[domainVlb,domainVub] = qpGetBoundsFromDomainList(psiParamsDomainList);
 for ss = 1:nParamSets
     % Set up parameters for this run by random draw.  But keep noise
     % fixed, as we can probably establish that separately.
-    simulatedPsiParamsVecCell{ss} = DrawFromDomainList(psiParamsDomainList);
+    simulatedPsiParamsVecCell{ss} = qpDrawFromDomainList(psiParamsDomainList);
     simulatedPsiParamsVecCell{ss}(9) = simulatedPsiParamsVec(9);
     simulatedPsiParamsVec = simulatedPsiParamsVecCell{ss};
     simulatedPsiParamsStruct = ObserverVecToParams(psiVecType,simulatedPsiParamsVec,simulatedPsiParamsStruct);
     
-    % Standard QUEST+ simulated observer
+    % Standard QUEST+ simulated observer.  Ths function definition needs to come after we set
+    % stimulus parameter vec and before we call it.
     simulatedObserverFun = @(stimParamsVec) qpSimulatedObserver(stimParamsVec,qpPFFun,simulatedPsiParamsVec);
     
     % Do the runs
@@ -171,6 +174,34 @@ for ss = 1:nParamSets
         fprintf('Maximum likelihood fit parameters:   %0.3f, %0.3f, %0.3f, %0.3f. %0.3f, %0.3f, %0.3f, %0.3f, %0.3f\n', ...
             psiParamsFit{ss,rr}(1),psiParamsFit{ss,rr}(2),psiParamsFit{ss,rr}(3),psiParamsFit{ss,rr}(4), ...
             psiParamsFit{ss,rr}(5),psiParamsFit{ss,rr}(6),psiParamsFit{ss,rr}(7),psiParamsFit{ss,rr}(8),psiParamsFit{ss,rr}(9));
+        
+        
+    end
+end
+
+%% Marginalize posterior to improve estimates of individual parameters.
+whichParamsToMarginalize = [1, 2, 3, 4, 5, 8, 9];
+figure;
+for ss = 1:nParamSets
+    for rr = 1:nRunsPerParamSet
+        % Marginalize
+        psiParamsDomain = questData{ss,rr}.psiParamsDomain;
+        posterior = questData{ss,rr}.posterior;
+        [marginalPosterior{ss,rr},marginalPsiParamsDomain, marginalPsiParamsLabels] = qpMarginalizePosterior(posterior,psiParamsDomain,whichParamsToMarginalize,psiParamsLabels);
+        
+        % Find max of marginalized posterior
+        marginalPsiParamsIndex = qpListMaxArg(marginalPosterior{ss,rr});
+        marginalPsiParamsQuest{ss,rr} = marginalPsiParamsDomain(marginalPsiParamsIndex,:);
+        
+        % Little plot
+        clf; hold on;
+        plot3(marginalPsiParamsDomain(:,1),marginalPsiParamsDomain(:,2),marginalPosterior{ss,rr},'ro','MarkerFaceColor','r','MarkerSize',6);
+        plot(simulatedPsiParamsVecCell{ss}(6),simulatedPsiParamsVecCell{ss}(7),'ko','MarkerFaceColor','k','MarkerSize',8);
+        plot(marginalPsiParamsDomain(marginalPsiParamsIndex,1),marginalPsiParamsDomain(marginalPsiParamsIndex,2),'go','MarkerFaceColor','g','MarkerSize',6);
+        xlabel('L lambda max'); ylabel('M lambda max');
+        view([37 85]);
+        drawnow;
+        pause;
     end
 end
 
@@ -182,6 +213,9 @@ if (domainVlb(theParamIndex) < domainVub(theParamIndex))
     for ss = 1:nParamSets
         for rr = 1:nRunsPerParamSet
             plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsFit{ss,rr}(theParamIndex),'ro','MarkerFaceColor','r','MarkerSize',8);
+            plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsQuest{ss,rr}(theParamIndex),'bo','MarkerFaceColor','b','MarkerSize',8);
+            plot(simulatedPsiParamsVecCell{ss}(theParamIndex),marginalPsiParamsQuest{ss,rr}(1),'go','MarkerFaceColor','g','MarkerSize',6);
+            %plot(simulatedPsiParamsVecCell{ss}(theParamIndex),marginalPsiParamsQuest1{ss,rr},'kx','MarkerFaceColor','k','MarkerSize',8);
         end
     end
     xlim([domainVlb(theParamIndex) domainVub(theParamIndex)]);
@@ -200,6 +234,8 @@ if (domainVlb(theParamIndex) < domainVub(theParamIndex))
     for ss = 1:nParamSets
         for rr = 1:nRunsPerParamSet
             plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsFit{ss,rr}(theParamIndex),'ro','MarkerFaceColor','r','MarkerSize',8);
+            plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsQuest{ss,rr}(theParamIndex),'bo','MarkerFaceColor','b','MarkerSize',8);
+            plot(simulatedPsiParamsVecCell{ss}(theParamIndex),marginalPsiParamsQuest{ss,rr}(2),'go','MarkerFaceColor','g','MarkerSize',6);
         end
     end
     xlim([domainVlb(theParamIndex) domainVub(theParamIndex)]);
@@ -218,13 +254,14 @@ if (domainVlb(theParamIndex) < domainVub(theParamIndex))
     for ss = 1:nParamSets
         for rr = 1:nRunsPerParamSet
             plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsFit{ss,rr}(theParamIndex),'ro','MarkerFaceColor','r','MarkerSize',8);
+            plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsQuest{ss,rr}(theParamIndex),'bo','MarkerFaceColor','b','MarkerSize',8);
         end
     end
     xlim([domainVlb(theParamIndex) domainVub(theParamIndex)]);
     ylim([domainVlb(theParamIndex) domainVub(theParamIndex)]);
     plot([domainVlb(theParamIndex) domainVub(theParamIndex)],[domainVlb(theParamIndex) domainVub(theParamIndex)],'k','LineWidth',1);
     axis('square');
-    xlabel('Simulated');
+    xlabel('Simulated');me
     ylabel('Estimated');
     title(theParamName);
 end
@@ -236,6 +273,7 @@ if (domainVlb(theParamIndex) < domainVub(theParamIndex))
     for ss = 1:nParamSets
         for rr = 1:nRunsPerParamSet
             plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsFit{ss,rr}(theParamIndex),'ro','MarkerFaceColor','r','MarkerSize',8);
+            plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsQuest{ss,rr}(theParamIndex),'bo','MarkerFaceColor','b','MarkerSize',8);
         end
     end
     xlim([domainVlb(theParamIndex) domainVub(theParamIndex)]);
@@ -251,7 +289,7 @@ end
 %
 % Get stimulus counts
 % stimCounts = qpCounts(qpData(questData.trialData),questData.nOutcomes);
-% 
+%
 % % Log likelihoods
 % logLikelihoodRef = -qpFitError(referencePsiParamsVec,stimCounts,questData.qpPF);
 % logLikelihoodSimulated = -qpFitError(simulatedPsiParamsVec,stimCounts,questData.qpPF);
@@ -270,7 +308,7 @@ end
 % T_simulated = ComputeObserverFundamentals(simulatedParamsStruct.coneParams,S);
 % T_quest = ComputeObserverFundamentals(questParamsStruct.coneParams,S);
 % T_fit = ComputeObserverFundamentals(fitParamsStruct.coneParams,S);
-% 
+%
 % fundamentalsFig = figure; clf;
 % set(gcf,'Position',[50 420 2400 900]);
 % subplot(1,3,1); hold on
@@ -282,7 +320,7 @@ end
 % ylabel('Fundamental');
 % title('L cone');
 % legend({'Reference', 'Simulated','Fit'});
-% 
+%
 % subplot(1,3,2); hold on
 % plot(SToWls(S),TRef(2,:),'k','LineWidth',3);
 % plot(SToWls(S),T_simulated(2,:),'r','LineWidth',3);
@@ -292,7 +330,7 @@ end
 % ylabel('Fundamental');
 % title('M cone');
 % legend({'Reference', 'Simulated','Fit'});
-% 
+%
 % subplot(1,3,3); hold on
 % plot(SToWls(S),TRef(3,:),'k','LineWidth',3);
 % plot(SToWls(S),T_simulated(3,:),'r','LineWidth',3);
