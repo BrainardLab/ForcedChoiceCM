@@ -1,9 +1,10 @@
-% Illustrate how Rayleigh matches and Pitt diagram work
+% Illustrates how Rayleigh matches vary with changes in cone lambda max and
+% optical density
 %
 % Description:
-%   Simulate Rayleigh match performance and plot in the form of what
-%   I think is called a Pitt diagram. Illustrates the principles of
-%   color vision testing by anomaloscope.
+%   Simulate Rayleigh match performance for variations in L and M cone
+%   peak sensitivity and optical density, as described by Thomas and Mollon
+%   (2003). Plots Rayleigh match performance in the form of a Pitt diagram.
 %
 %   The simulated anomaloscope allows adjustment of a monochromatic test
 %   and the ratio of two monochromatic primaries in the match. The routine
@@ -16,76 +17,93 @@
 %   diagram reproduces the qualitative features of the one that came in the
 %   manual for our anamoloscope.
 %
+%   This routine produces two plots that come close to the Thomas and
+%   Mollon results. The first plots Rayleigh match performance for
+%   hypothetical dichromats with varying L/M cone lambda maxes, while the
+%   second plots Rayleigh matches for dichromats with varying optical
+%   densities.
+%
 %   The color difference model is very simple and is briefly described in
 %   the header comments for routine ComputeConfusions, which is at the
 %   bottom of this file.
-%
-%   You can play around with the modeled observers and the properties of
-%   the simulated anomaloscope by adjusting parameters.
 
 % History
-%   07/03/19  dhb  Wrote it.
+%   07/03/19  dhb       Wrote it.
 %   09/03/19  dhb, dce  Modified to use Asano et al. individual difference
 %                       parameters, but in the end does the same thing.
 %                       However, and enterprising person can now examine
 %                       the effect of changing photopigment density.
-
+%   09/12/19  dce       Modified to include specific plots of Thomas and
+%                       Mollon results
 %% Clear
 clear; close all;
 
-%% Parameters
-%
+%% The first case plots effects of variation in cone lambda max for a 
+%% hypothetical dichromat. We begin by defining our parameters
 
-% Cone lambda max.  Set two of them to be the same
-% to create a dichromat, etc.
-lambdaMaxes = [  ... %all are deuteranopes
-    [561 561 420.7]' ...     
-    [561 561 420.7]' ...      
-    [561 561 420.7]' ... 
-    [561 561 420.7]' ... 
-    [561 561 420.7]' ... 
-    [561 561 420.7]' ... 
-    [561 561 420.7]'];      
-%   [558.9 530.3 420.7]'];     % Normal trichromat
-    
-% We actually specify the cones as a shift relative to a 
-% nomogram generated lambda max.  These base values are given
-% here.  If you make this match the above, then all shifts
-% end up as zero.  But you can specify deviations, and control
-% what the shift is relative to.
-baseLambdaMaxes = [  ... %all are deuteranopes
-    [561 561 420.7]' ...     
-    [561 561 420.7]' ...      
-    [561 561 420.7]' ... 
-    [561 561 420.7]' ... 
-    [561 561 420.7]' ... 
-    [561 561 420.7]' ... 
+% Cone lambda maxes, taken from Fig. 1 of the Thomas and Mollon paper.
+lambdaMaxes1 = [  ...
+    [531 531 420.7]' ...
+    [541 541 420.7]' ...
+    [551 551 420.7]' ...
     [561 561 420.7]'];
 
-% [ ...
-%     [558.9 530.3 420.7]' ...      
-%     [538.9 530.3 420.7]' ...   
-%     [558.9 530.3 420.7]' ...  
-%     [558.9 530.3 420.7]' ...   
-%     [558.9 530.3 420.7]'];     
+% We specify the cones as a shift relative to a nomogram generated lambda
+%  max. These base values are set equal to the test values
+baseLambdaMaxes1 = [  ...
+    [531 531 420.7]' ...
+    [541 541 420.7]' ...
+    [551 551 420.7]' ...
+    [561 561 420.7]'];
 
 % You can also allow the specified photopigment density to
 % vary.  Enter these as percent changes relative to nominal
-% values. Can be positive or negative.
-dphotopigments = [  ...
-    [-90 -90 0]' ...   
-    [-50 -50 0]' ...  
-    [-10 -10 0]' ...  
-    [0 0 0]'...
-    [10 10 0]'...
-    [50 50 0]'...
-    [90 90 0]'];   
-theColors = [ 'r' 'g' 'k' 'b' 'y' 'm' 'c'];
-theLegend = {'-90' '-50' '-10' '0' '10' '50' '90' };
+% values. Can be positive or negative. Here, photopigment densities are set
+% to 0
+dphotopigments1 = zeros(3,4);
 
+% Plotting parameters
+colors1 = [ 'r' 'g' 'b' 'y'];
+legend1 = {'531' '541' '551' '561'};
+title1 = 'Lambda Max Variation'; 
+testIntensityRange1 = 0:0.001:0.35; 
+plotMatches(lambdaMaxes1, baseLambdaMaxes1, dphotopigments1, colors1, legend1, title1, testIntensityRange1)
+
+%% The second case plots effects of optical density variation for a  
+%% hypothetical dichromat
+
+% All lambda max and base lambda max values are the same
+lambdaMaxes2 = [[561 561 420.7]' ...
+    [561 561 420.7]' ...
+    [561 561 420.7]' ...
+    [561 561 420.7]' ...
+    [561 561 420.7]'];
+
+baseLambdaMaxes2 = [[561 561 420.7]' ...
+    [561 561 420.7]' ...
+    [561 561 420.7]' ...
+    [561 561 420.7]' ...
+    [561 561 420.7]'];
+
+% Optical density shifts are taken from Fig. 1 of the Thomas and Mollon
+% paper: 0.05, 0.2, 0.35, 0.5, 0.65. The values here are calculated as 
+% percent changes from the average optical density of 0.3.
+dphotopigments2 = [  ...
+    [-83.33 -83.33 0]' ...
+    [-33.33 -33.33 0]' ...
+    [16.67 16.67 0]' ...
+    [66.67 66.67 0]'...
+    [116.67 116.67 0]'];
+
+colors2 = [ 'r' 'g' 'b' 'y' 'm' ];
+legend2 = { '-83.33%' '-33.33%' '16.67%' '66.67%' '116.67%' };
+title2 = 'Optical Density Variation'; 
+testIntensityRange2 = 0.:0.001:0.35; 
+plotMatches(lambdaMaxes2, baseLambdaMaxes2, dphotopigments2, colors2, legend2, title2, testIntensityRange2)
+
+function plotMatches(lambdaMaxes, baseLambdaMaxes, dphotopigments, colors, theLegend, theTitle, testIntensityRange)
 % Convert specified lambda max values to shifts from the nominal CIE
 % standard values.
-nominalLambdaMax = [558.9 530.3 420.7];
 for ii = 1:size(lambdaMaxes,2)
     indDiffParams(ii).dlens= 0;
     indDiffParams(ii).dmac = 0;
@@ -98,13 +116,11 @@ end
 % Fussed with this by hand to adjust plot to taste.
 thresholdVal = 0.12;
 
-% Apparatus range parameters
-%
+% Apparatus range parameters.
 % Mixing ratio of zero is all green primary, 1 is all red
-% (assuming shorter primary is first one specified in routine 
+% (assuming shorter primary is first one specified in routine
 % below.)
-testIntensityRange = 0.01:0.001:0.4;
-mixingRatioRange = 0.1:0.001:1;
+mixingRatioRange = 0:0.001:1;
 
 %% Loop to calculate matching locus for each set of cones
 %
@@ -113,16 +129,12 @@ mixingRatioRange = 0.1:0.001:1;
 % plot.
 theFigure = figure; clf; hold on
 for kk = 1:size(lambdaMaxes,2)
-    
-    %lambdaMax = lambdaMaxes(:,kk);
-
-    
     % Function below does the work, based on lambdaMax.
     % Most operating parameters are set in the function itself.
     [testIntensity{kk},mixingRatio{kk},matchDiff{kk}] = ComputeConfusions(baseLambdaMaxes(:,kk),indDiffParams(kk),testIntensityRange,mixingRatioRange);
     
     % This plot will show the color difference as a function of mixing ratio
-    % and test intensity, one plot per set of lambda max values.  I found these 
+    % and test intensity, one plot per set of lambda max values.  I found these
     % useful for development but not all that instructive in the end, so
     % they conditional and off by default.
     diffPlots = false;
@@ -141,8 +153,8 @@ for kk = 1:size(lambdaMaxes,2)
     
     figure(theFigure);
     index = find(matchDiff{kk} < thresholdVal);
-    plot(mixingRatio{kk}(index),testIntensity{kk}(index),[theColors(kk) 'o'],'MarkerFaceColor',theColors(kk));
-   
+    plot(mixingRatio{kk}(index),testIntensity{kk}(index),[colors(kk) 'o'],'MarkerFaceColor',colors(kk));
+    
 end
 
 % Finish off the plot
@@ -153,9 +165,9 @@ xlabel(' Mixing Ratio (0 -> green; 1 -> red)');
 ylabel('Test Intensity');
 axis('square')
 legend(theLegend);
-title('Pitt Diagram')
-FigureSave('pittDiagram.pdf',theFigure,'pdf');
-    
+title(theTitle)
+end
+
 % Compute locus of confusions in intensity-ratio plot
 %
 % Syntax:
@@ -212,12 +224,6 @@ FigureSave('pittDiagram.pdf',theFigure,'pdf');
 %   07/04/19  dhb  Made this its own routine.
 
 function [testIntensity,mixingRatio,matchDiff] = ComputeConfusions(lambdaMax,indDiffParams,testIntensityRange,mixingRatioRange)
-
-% Check
-% if (~isempty(indDiffParams) & ~isempty(lambdaMax))
-%     error('Don''t risk using two different ways to adjust cone fundamentals.');
-% end
-
 % Observer parameters
 fieldSizeDegs = 2;
 observerAge = 32;
@@ -228,14 +234,14 @@ S = [380 1 401];
 wls = SToWls(S);
 
 % Apparatus parameters.  These match the Nagel in wavelengths.
-testWavelength = 589;
+testWavelength = 590;
 matchWavelength1 = 545;
-matchWavelength2 = 670;
+matchWavelength2 = 679;
 
 % I fussed with these to rotate the D line to be horizontal in the plot.
 % In real life, they are parameters of the apparatus.
-matchIntensity1 = 0.12;
-matchIntensity2 = 2.5;
+matchIntensity1 = 0.1;
+matchIntensity2 = 3;
 
 % Compute indices so that we can set spectra below
 testIndex = find(wls == testWavelength);
@@ -270,20 +276,20 @@ matchSpectrum2 = zeros(size(wls)); matchSpectrum2(matchIndex2) = matchIntensity2
 % individual difference parameters.
 T_cones = EnergyToQuanta(S, ...
     ComputeCIEConeFundamentals(S,fieldSizeDegs,observerAge,pupilDiameterMM,lambdaMax, ...
-        [],[],[],[],[],indDiffParams)')';
+    [],[],[],[],[],indDiffParams)')';
 
 for ii = 1:size(T_cones,1)
     T_cones(ii,:) = T_cones(ii,:)/max(T_cones(ii,:));
 end
 
 % Make diagnostic plot of cone fundamentals?
-FUNDAMENTAL_PLOTS = true;
-figure; clf; hold on;
-plot(SToWls(S),T_cones(1,:),'r','LineWidth',2);
-plot(SToWls(S),T_cones(2,:),'g','LineWidth',2);
-plot(SToWls(S),T_cones(3,:),'b','LineWidth',2);
-xlabel('Wavelength');
-ylabel('Fundamental');
+% FUNDAMENTAL_PLOTS = ;
+% figure; clf; hold on;
+% plot(SToWls(S),T_cones(1,:),'r','LineWidth',2);
+% plot(SToWls(S),T_cones(2,:),'g','LineWidth',2);
+% plot(SToWls(S),T_cones(3,:),'b','LineWidth',2);
+% xlabel('Wavelength');
+% ylabel('Fundamental');
 
 % Compute cone respones to test and match
 %
