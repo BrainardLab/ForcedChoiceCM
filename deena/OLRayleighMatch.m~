@@ -62,10 +62,6 @@ end
 delaySecs = 2; % time in seconds that a given field is displayed for
 isPrimary = true; % logical indicating whether we're currently displaying primary or test light
 
-% Initial position in primary and test arrays 
-primary_pos = 1; 
-test_pos = 1; 
-
 % Enable character listening and turn on OneLight
 ol = OneLight;
 mglDisplayCursor(0);
