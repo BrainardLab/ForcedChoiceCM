@@ -38,7 +38,7 @@
 %% Clear
 clear; close all;
 
-%% The first case plots effects of variation in cone lambda max for a 
+%% The first case plots effects of variation in cone lambda max for a
 %% hypothetical dichromat. We begin by defining our parameters
 
 % Cone lambda maxes, taken from Fig. 1 of the Thomas and Mollon paper.
@@ -50,7 +50,7 @@ lambdaMaxes1 = [  ...
 
 % We specify the cones as a shift relative to a nomogram generated lambda
 %  max. These base values are set equal to the test values
-baseLambdaMaxes1 = lambdaMaxes1; 
+baseLambdaMaxes1 = lambdaMaxes1;
 
 % You can also allow the specified photopigment density to
 % vary.  Enter these as percent changes relative to nominal
@@ -61,11 +61,10 @@ dphotopigments1 = zeros(3,4);
 % Plotting parameters
 colors1 = [ 'r' 'g' 'b' 'y'];
 legend1 = {'531' '541' '551' '561'};
-title1 = 'Lambda Max Variation'; 
-testIntensityRange1 = 0:0.001:0.35; 
-plotMatches(lambdaMaxes1, baseLambdaMaxes1, dphotopigments1, colors1, legend1, title1, testIntensityRange1)
+title1 = 'Lambda Max Variation';
+plotMatches(lambdaMaxes1, baseLambdaMaxes1, dphotopigments1, colors1, legend1, title1, false)
 
-%% The second case plots effects of optical density variation for a  
+%% The second case plots effects of optical density variation for a
 %% hypothetical dichromat
 
 % All lambda max and base lambda max values are the same
@@ -74,10 +73,10 @@ lambdaMaxes2 = [[561 561 420.7]' ...
     [561 561 420.7]' ...
     [561 561 420.7]' ...
     [561 561 420.7]'];
-baseLambdaMaxes2 = lambdaMaxes2; 
+baseLambdaMaxes2 = lambdaMaxes2;
 
 % Optical density shifts are taken from Fig. 1 of the Thomas and Mollon
-% paper: 0.05, 0.2, 0.35, 0.5, 0.65. The values here are calculated as 
+% paper: 0.05, 0.2, 0.35, 0.5, 0.65. The values here are calculated as
 % percent changes from the average optical density of 0.3.
 dphotopigments2 = [  ...
     [-83.33 -83.33 0]' ...
@@ -88,11 +87,10 @@ dphotopigments2 = [  ...
 
 colors2 = [ 'r' 'g' 'b' 'y' 'm' ];
 legend2 = { '-83.33%' '-33.33%' '16.67%' '66.67%' '116.67%' };
-title2 = 'Optical Density Variation'; 
-testIntensityRange2 = 0.:0.001:0.35; 
-plotMatches(lambdaMaxes2, baseLambdaMaxes2, dphotopigments2, colors2, legend2, title2, testIntensityRange2)
+title2 = 'Optical Density Variation';
+plotMatches(lambdaMaxes2, baseLambdaMaxes2, dphotopigments2, colors2, legend2, title2, true);
 
-function plotMatches(lambdaMaxes, baseLambdaMaxes, dphotopigments, colors, theLegend, theTitle, testIntensityRange)
+function plotMatches(lambdaMaxes, baseLambdaMaxes, dphotopigments, colors, theLegend, theTitle, od)
 % Convert specified lambda max values to shifts from the nominal CIE
 % standard values.
 for ii = 1:size(lambdaMaxes,2)
@@ -112,6 +110,7 @@ thresholdVal = 0.12;
 % (assuming shorter primary is first one specified in routine
 % below.)
 mixingRatioRange = 0:0.001:1;
+testIntensityRange = 0:0.001:0.35;
 
 %% Loop to calculate matching locus for each set of cones
 %
@@ -141,11 +140,9 @@ for kk = 1:size(lambdaMaxes,2)
         ylabel('Test Intensity');
         zlabel('Color Difference');
     end
-    
     figure(theFigure);
     index = find(matchDiff{kk} < thresholdVal);
     plot(mixingRatio{kk}(index),testIntensity{kk}(index),[colors(kk) 'o'],'MarkerFaceColor',colors(kk));
-    
 end
 
 % Finish off the plot
@@ -157,7 +154,25 @@ ylabel('Test Intensity');
 axis('square')
 legend(theLegend);
 title(theTitle)
+
+mollonThomasPlots = true;
+if (mollonThomasPlots && od)
+    load mollon_thomas_odFitParams;
+    % Plot all optical density data
+    [row, col] = size(odFitParams);
+    xVals = 0:0.01:1;
+    figure(3);
+    hold on;
+    for i = 1:row
+        plot(xVals, odFitParams(i,1) * xVals + odFitParams(i,2), 'b');
+        tutorialFit = polyfit(mixingRatio{1,i}(index), testIntensity{1,i}(index), 1); 
+        plot(xVals, xVals * tutorialFit(1) + tutorialFit(2), 'r');
+    end
+    title('Rayleigh match variation with optical density');
+    xlabel('mixing ratio');
+    ylabel('test intensity');
 end
+end 
 
 % Compute locus of confusions in intensity-ratio plot
 %
