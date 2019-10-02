@@ -117,6 +117,33 @@ testIntensityRange = 0:0.001:0.35;
 % For each set of specified cone pigment lambda max, this
 % computes the matching range and adds to the Pitt diagram
 % plot.
+
+%% Mollon Thomas plots
+
+mollonThomasPlots = true;
+if mollonThomasPlots
+    if od
+        load mollon_thomas_odFitParams;
+        fitParams = odFitParams;
+        figure(3);
+        title('Rayleigh match variation with optical density');
+    else % lambda max variation
+        load mollon_thomas_lambdaMaxFitParams;
+        fitParams = lambdaMaxFitParams;
+        figure(4);
+        title('Rayleigh match variation with lambda max density');
+    end
+    xVals = 0:0.01:1;
+    [row, ~] = size(fitParams);
+    hold on;
+    for i = 1:row
+        plot(xVals, fitParams(i,1) * xVals + fitParams(i,2), 'b');
+    end
+    xlabel('mixing ratio');
+    ylabel('test intensity');
+    hold off;
+end
+
 theFigure = figure; clf; hold on
 for kk = 1:size(lambdaMaxes,2)
     % Function below does the work, based on lambdaMax.
@@ -140,9 +167,23 @@ for kk = 1:size(lambdaMaxes,2)
         ylabel('Test Intensity');
         zlabel('Color Difference');
     end
+    
     figure(theFigure);
     index = find(matchDiff{kk} < thresholdVal);
     plot(mixingRatio{kk}(index),testIntensity{kk}(index),[colors(kk) 'o'],'MarkerFaceColor',colors(kk));
+    
+    if (mollonThomasPlots)
+        if od 
+            figure(3)
+            hold on; 
+        else 
+            figure(4)
+            hold on; 
+        end 
+        tutorialFit = polyfit(mixingRatio{kk}(index), testIntensity{kk}(index), 1);
+        plot(xVals, xVals * tutorialFit(1) + tutorialFit(2), 'r'); % + 0.062 for od, + 0.08 for lambda max 
+        hold off; 
+    end
 end
 
 % Finish off the plot
@@ -155,24 +196,10 @@ axis('square')
 legend(theLegend);
 title(theTitle)
 
-mollonThomasPlots = true;
-if (mollonThomasPlots && od)
-    load mollon_thomas_odFitParams;
-    % Plot all optical density data
-    [row, col] = size(odFitParams);
-    xVals = 0:0.01:1;
-    figure(3);
-    hold on;
-    for i = 1:row
-        plot(xVals, odFitParams(i,1) * xVals + odFitParams(i,2), 'b');
-        tutorialFit = polyfit(mixingRatio{1,i}(index), testIntensity{1,i}(index), 1); 
-        plot(xVals, xVals * tutorialFit(1) + tutorialFit(2), 'r');
-    end
-    title('Rayleigh match variation with optical density');
-    xlabel('mixing ratio');
-    ylabel('test intensity');
+figure(3);
+legend('Mollon and Thomas plots', 'Simulated Plots');
+
 end
-end 
 
 % Compute locus of confusions in intensity-ratio plot
 %
