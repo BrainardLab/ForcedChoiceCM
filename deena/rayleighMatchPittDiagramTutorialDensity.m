@@ -31,6 +31,7 @@
 %   09/12/19  dce       Modified to include specific plots of Thomas and
 %                       Mollon results
 %   10/2/19   dce       Added comments and comparative routines
+
 %% Clear
 clear; close all;
 
@@ -299,8 +300,11 @@ matchWavelength2 = 679;
 
 % I fussed with these to rotate the D line to be horizontal in the plot.
 % In real life, they are parameters of the apparatus.
-matchIntensity1 = 0.1;
-matchIntensity2 = 3;
+matchLowRawIntensity = 0.1;
+overallFactor = 1.65;
+relativeHighMatchFactor = 20;
+matchIntensity1 = overallFactor*matchLowRawIntensity;
+matchIntensity2 = overallFactor*relativeHighMatchFactor*matchIntensity1;
 
 % Compute indices so that we can set spectra below
 testIndex = find(wls == testWavelength);
