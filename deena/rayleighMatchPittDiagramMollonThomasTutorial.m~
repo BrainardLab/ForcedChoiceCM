@@ -31,6 +31,7 @@
 %   09/12/19  dce       Modified to include specific plots of Thomas and
 %                       Mollon results
 %   10/2/19   dce       Added comments and comparative routines
+%   10/10/19  dce       Cleaned up. Made ComputeRayleigh Tu
 %% Clear
 clear; close all;
 

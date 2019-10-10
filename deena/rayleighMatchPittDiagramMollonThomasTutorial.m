@@ -18,9 +18,11 @@
 %   Mollon results. The first plots Rayleigh match performance for
 %   hypothetical dichromats with varying L/M cone lambda maxes, while the
 %   second plots Rayleigh matches for dichromats with varying optical
-%   densities. The routine also makes two plots that compare the simulated
-%   results for lambda max and optical density with data extracted from the
-%   Thomas and Mollon plots (using WebPlotDigitizer).
+%   densities. The routine also makes two plots that compare fit lines of 
+%   the simulated results for lambda max and optical density with fit lines 
+%   extracted from theThomas and Mollon plots (using WebPlotDigitizer), as
+%   well as two plots that compare the slopes of these fit lines for each 
+%   condition.
 
 % History
 %   07/03/19  dhb       Wrote it.
@@ -31,6 +33,8 @@
 %   09/12/19  dce       Modified to include specific plots of Thomas and
 %                       Mollon results
 %   10/2/19   dce       Added comments and comparative routines
+%   10/10/19  dce       Cleaned up. Made ComputeRayleighConfusion a
+%                       separate routine
 %% Clear
 clear; close all;
 
