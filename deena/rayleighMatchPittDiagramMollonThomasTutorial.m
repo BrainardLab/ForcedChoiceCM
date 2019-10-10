@@ -54,10 +54,10 @@ baseLambdaMaxes1 = lambdaMaxes1;
 
 % You can also allow the specified photopigment density to vary. Enter
 % these as percent changes relative to nominal values (positive or
-% negative). Here, all photopigment densities are set to .
+% negative). Here, all photopigment densities are set to zero.
 dphotopigments1 = zeros(3,4);
 
-% Plotting parameters
+% Define plotting parameters and produce Figure 1 
 colors1 = [ 'r' 'g' 'b' 'y'];
 legend1 = {'531' '541' '551' '561'};
 title1 = 'Lambda Max Variation';
@@ -85,6 +85,7 @@ dphotopigments2 = [  ...
     [66.67 66.67 0]'...
     [116.67 116.67 0]'];
 
+% Define plotting parameters and plot Figure 2
 colors2 = [ 'r' 'g' 'b' 'y' 'm' ];
 legend2 = { '-83.33%' '-33.33%' '16.67%' '66.67%' '116.67%' };
 title2 = 'Optical Density Variation';
@@ -102,7 +103,7 @@ end
 % Finish off the slope comparison plots (Figures 5-6)
 figure(5);
 hold on;
-plot(-0.2:0.01:0.2, -0.2:0.01:0.2, 'r-'); % comparison 1:1 line  
+plot(-0.4:0.01:0.2, -0.4:0.01:0.2, 'r-'); % comparison 1:1 line  
 title('Slope comparison - lambda max variation');
 xlabel('Simulated Rayleigh match slope');
 ylabel('Mollon-Thomas Rayleigh match slope');
@@ -194,7 +195,7 @@ hold off;
 theFigure = figure; clf; hold on
 for kk = 1:size(lambdaMaxes,2)
     [testIntensity{kk},mixingRatio{kk},matchDiff{kk}] =...
-        ComputeConfusions(baseLambdaMaxes(:,kk),indDiffParams(kk),...
+        ComputeRayleighConfusions(baseLambdaMaxes(:,kk),indDiffParams(kk),...
         testIntensityRange,mixingRatioRange);
     figure(theFigure);
     index = find(matchDiff{kk} < thresholdVal);
