@@ -48,7 +48,7 @@ switch (matchApparatusParams.type)
         
         % Apparatus parameters
         matchApparatusParams.primaryWavelength1 = 430;
-        matchApparatusParams.primaryWavelength2 = 54;
+        matchApparatusParams.primaryWavelength2 = 540;
         matchApparatusParams.primaryWavelength3 = 670;
         
         % Compute indices and set spectra below

@@ -19,7 +19,7 @@ close all;
 % Wavelength sampling
 S = [400 1 301];
 
-% Apparatus parameters
+% Basic apparatus parameters
 stimParamsStruct.matchApparatusParams = DefaultMatchApparatusParams('rayleigh',S);
 stimParamsStruct.testParams = DefaultTestParams('rayleigh',S);
 
@@ -78,19 +78,20 @@ USE_PRECOMPUTE = false;
 if (~USE_PRECOMPUTE)
     fprintf('Initializing quest structure ...\n');
     
-    startTime = GetSecs;
+    startTime = tic;
     questDataRaw = qpInitialize(...
         'nOutcomes', 2, ...
         'qpPF',qpPFFun, ...
         'stimParamsDomainList',stimParamsDomainList, ...
         'psiParamsDomainList',psiParamsDomainList, ...
         'filterStimParamsDomainFun',@(stimParamsVec) qpFCCMStimDomainCheck(stimParamsVec,stimVecType,stimParamsStruct), ...
+        'marginalize', [3 4], ...
         'verbose', true ...
         );
-    stopTime = GetSecs;
+    elapsedTime = toc(startTime);
     stimParamsDomainListCheck = stimParamsDomainList;
     psiParamsDomainListCheck = psiParamsDomainList;
-    fprintf('Done initializing in %0.1f seconds\n',stopTime-startTime);
+    fprintf('Done initializing in %0.1f seconds\n',elapsedTime);
     save('questDataRaw','questDataRaw','stimParamsDomainListCheck','psiParamsDomainListCheck','-v7.3');
 else
     fprintf('Loading quest structure ...\n');
@@ -137,7 +138,7 @@ for ss = 1:nParamSets
     for rr = 1:nRunsPerParamSet
         % Simulate run
         fprintf('*** Simluated run %d of %d for parameters set %d of %d:\n',rr,nRunsPerParamSet,ss,nParamSets);
-        startTime = GetSecs;
+        startTime = tic;
         questData{ss,rr} = questDataRaw;
         for tt = 1:nTrials
             % Get stimulus for this trial
@@ -153,8 +154,8 @@ for ss = 1:nParamSets
                 fprintf('\tTrial %d of %d\n',tt,nTrials);
             end
         end
-        stopTime = GetSecs;
-        fprintf('Done with trial simulation, %0.3f calculation time per trial\n',(stopTime-startTime)/nTrials);
+        elapsedTime = toc(startTime);
+        fprintf('Done with trial simulation, %0.3f calculation time per trial\n',(elapsedTime)/nTrials);
         
         % Process simulated data
         psiParamsIndex = qpListMaxArg(questData{ss,rr}.posterior);
@@ -181,7 +182,7 @@ end
 
 %% Marginalize posterior to improve estimates of individual parameters.
 whichParamsToMarginalize = [1, 2, 3, 4, 5, 8, 9];
-figure;
+% figure;
 for ss = 1:nParamSets
     for rr = 1:nRunsPerParamSet
         % Marginalize
@@ -193,15 +194,15 @@ for ss = 1:nParamSets
         marginalPsiParamsIndex = qpListMaxArg(marginalPosterior{ss,rr});
         marginalPsiParamsQuest{ss,rr} = marginalPsiParamsDomain(marginalPsiParamsIndex,:);
         
-        % Little plot
-        clf; hold on;
-        plot3(marginalPsiParamsDomain(:,1),marginalPsiParamsDomain(:,2),marginalPosterior{ss,rr},'ro','MarkerFaceColor','r','MarkerSize',6);
-        plot(simulatedPsiParamsVecCell{ss}(6),simulatedPsiParamsVecCell{ss}(7),'ko','MarkerFaceColor','k','MarkerSize',8);
-        plot(marginalPsiParamsDomain(marginalPsiParamsIndex,1),marginalPsiParamsDomain(marginalPsiParamsIndex,2),'go','MarkerFaceColor','g','MarkerSize',6);
-        xlabel('L lambda max'); ylabel('M lambda max');
-        view([37 85]);
-        drawnow;
-        pause;
+        % % Little plot
+        % clf; hold on;
+        % plot3(marginalPsiParamsDomain(:,1),marginalPsiParamsDomain(:,2),marginalPosterior{ss,rr},'ro','MarkerFaceColor','r','MarkerSize',6);
+        % plot(simulatedPsiParamsVecCell{ss}(6),simulatedPsiParamsVecCell{ss}(7),'ko','MarkerFaceColor','k','MarkerSize',8);
+        % plot(marginalPsiParamsDomain(marginalPsiParamsIndex,1),marginalPsiParamsDomain(marginalPsiParamsIndex,2),'go','MarkerFaceColor','g','MarkerSize',6);
+        % xlabel('L lambda max'); ylabel('M lambda max');
+        % view([37 85]);
+        % drawnow;
+        % pause;
     end
 end
 
@@ -214,7 +215,7 @@ if (domainVlb(theParamIndex) < domainVub(theParamIndex))
         for rr = 1:nRunsPerParamSet
             plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsFit{ss,rr}(theParamIndex),'ro','MarkerFaceColor','r','MarkerSize',8);
             plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsQuest{ss,rr}(theParamIndex),'bo','MarkerFaceColor','b','MarkerSize',8);
-            plot(simulatedPsiParamsVecCell{ss}(theParamIndex),marginalPsiParamsQuest{ss,rr}(1),'go','MarkerFaceColor','g','MarkerSize',6);
+            plot(simulatedPsiParamsVecCell{ss}(theParamIndex),marginalPsiParamsQuest{ss,rr}(1),'go','MarkerFaceColor','g','MarkerSize',4);
             %plot(simulatedPsiParamsVecCell{ss}(theParamIndex),marginalPsiParamsQuest1{ss,rr},'kx','MarkerFaceColor','k','MarkerSize',8);
         end
     end
@@ -235,7 +236,7 @@ if (domainVlb(theParamIndex) < domainVub(theParamIndex))
         for rr = 1:nRunsPerParamSet
             plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsFit{ss,rr}(theParamIndex),'ro','MarkerFaceColor','r','MarkerSize',8);
             plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsQuest{ss,rr}(theParamIndex),'bo','MarkerFaceColor','b','MarkerSize',8);
-            plot(simulatedPsiParamsVecCell{ss}(theParamIndex),marginalPsiParamsQuest{ss,rr}(2),'go','MarkerFaceColor','g','MarkerSize',6);
+            plot(simulatedPsiParamsVecCell{ss}(theParamIndex),marginalPsiParamsQuest{ss,rr}(2),'go','MarkerFaceColor','g','MarkerSize',4);
         end
     end
     xlim([domainVlb(theParamIndex) domainVub(theParamIndex)]);
