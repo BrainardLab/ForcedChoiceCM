@@ -31,7 +31,7 @@ cal = OLGetCalibrationStructure;
 % Spectrum-generating parameters
 fullWidthHalfMax = 20;
 lambda = 0.001;
-[spdLength,primaryLength,~] =  size(cal.computed.pr650M);
+[spdLength,primaryLength] =  size(cal.computed.pr650M);
 numCols = cal.describe.numColMirrors; % Number of mirrors in each OL column
 
 % Initialize arrays for storing precomputed adjustments. The StartStops 
@@ -62,6 +62,13 @@ for i = 1:adjustment_length
     primaryStartStops(i,1,:) = primaryStart;
     primaryStartStops(i,2,:) = primaryStop;
 end
+
+%% Take a look at spectra
+figure; clf; holf on
+OLplotSpdCheck(testSpds,cal);
+
+figure; clf;
+OLplotSpdCheck(primarySpds,cal);
 
 %% Display loop
 % Display parameters
