@@ -80,8 +80,7 @@ primaryPos = 1;
 testPos = 1; 
 
 % Enable character listening and turn on OneLight
-% ol = OneLight;
-mglDisplayCursor(0);
+ol = OneLight;
 ListenChar(2);
 FlushEvents;
 fprintf('Starting display loop \n');
@@ -89,11 +88,11 @@ fprintf('Starting display loop \n');
 % Loop through primary and test light until the user presses a key
 while(true)
     % Display primary or test light
-%     if isPrimary
-%         ol.setMirrors(squeeze(primaryStartStops(primaryPos,1,:))', squeeze(primaryStartStops(primaryPos,2,:))');
-%     else
-%         ol.setMirrors(squeeze(testStartStops(testPos,1,:))', squeeze(testStartStops(testPos,2,:))'); 
-%     end
+    if isPrimary
+        ol.setMirrors(squeeze(primaryStartStops(primaryPos,1,:))', squeeze(primaryStartStops(primaryPos,2,:))');
+    else
+        ol.setMirrors(squeeze(testStartStops(testPos,1,:))', squeeze(testStartStops(testPos,2,:))'); 
+    end
     
     mglWaitSecs(delaySecs); % Time delay
     isPrimary = ~isPrimary; % Switch from primary to test
@@ -105,8 +104,8 @@ while(true)
                 break;
             case 'a' % Scale up test intensity
                 testPos = testPos + 1;
-                if testPos > 21
-                    testPos = 1;
+                if testPos > adjustment_length
+                    testPos = adjustment_length;
                 end
             case 'b' % Scale down test intensity
                 testPos = testPos - 1;
@@ -115,8 +114,8 @@ while(true)
                 end
             case 'c' % Move towards p1
                 primaryPos = primaryPos + 1;
-                if primaryPos > 21
-                    primaryPos = 21;
+                if primaryPos > adjustment_length
+                    primaryPos = adjustment_length;
                 end
             case 'd' % Move towards p2
                 primaryPos = primaryPos - 1;
