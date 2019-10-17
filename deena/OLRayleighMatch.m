@@ -64,7 +64,7 @@ for i = 1:adjustment_length
 end
 
 %% Take a look at spectra
-figure; clf; holf on
+figure; clf; hold on
 OLplotSpdCheck(testSpds,cal);
 
 figure; clf;
