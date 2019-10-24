@@ -35,6 +35,12 @@ function plotRayleighMatches(lambdaMaxes, baseLambdaMaxes, dphotopigments,...
 % Outputs:
 %    Pitt Diagram that plots passed cone parameters 
 
+% Parse input 
+p = inputParser;
+p.addParameter('testWavelength', 590, @(x) (isnumeric(x)));
+p.parse(varargin{:});
+testWavelength = p.Results.testWavelength;
+
 % Range parameters for simulated anomaloscope
 % Mixing ratio of zero is all green primary, 1 is all red
 % (assuming shorter primary is first one specified in routine below.)
@@ -58,7 +64,7 @@ theFigure = figure; clf; hold on
 for kk = 1:size(lambdaMaxes,2)
     [testIntensity{kk},mixingRatio{kk},matchDiff{kk}] =...
         ComputeRayleighConfusions(baseLambdaMaxes(:,kk),indDiffParams(kk),...
-        testIntensityRange,mixingRatioRange);
+        testWavelength,testIntensityRange,mixingRatioRange);
     figure(theFigure);
     index = find(matchDiff{kk} < thresholdVal);
     plot(mixingRatio{kk}(index),testIntensity{kk}(index),...

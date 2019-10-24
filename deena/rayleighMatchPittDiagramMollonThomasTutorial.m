@@ -155,6 +155,7 @@ function plotMatches(lambdaMaxes, baseLambdaMaxes, dphotopigments,...
 % (assuming shorter primary is first one specified in routine below.)
 mixingRatioRange = 0:0.001:1;
 testIntensityRange = 0:0.001:0.35;
+testWavelength = 590; 
 thresholdVal = 0.12; % Threshold difference below which it is a match
 
 % Find the individual different parameters for each observer
@@ -196,7 +197,7 @@ theFigure = figure; clf; hold on
 for kk = 1:size(lambdaMaxes,2)
     [testIntensity{kk},mixingRatio{kk},matchDiff{kk}] =...
         ComputeRayleighConfusions(baseLambdaMaxes(:,kk),indDiffParams(kk),...
-        testIntensityRange,mixingRatioRange);
+        testWavelength,testIntensityRange,mixingRatioRange);
     figure(theFigure);
     index = find(matchDiff{kk} < thresholdVal);
     plot(mixingRatio{kk}(index),testIntensity{kk}(index),...
