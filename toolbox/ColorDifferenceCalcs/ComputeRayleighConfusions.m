@@ -29,6 +29,7 @@
 %                              and vice-versa.  That is, only adjust the
 %                              fundamentals using one of the two available
 %                              methods.
+%    testWavelength            Integer for test light wavelength in nm.
 %    testIntensityRange        Row vector of test intensities.  Arbitrary
 %                              units.  Values between 0 and 1 are about
 %                              right given the way the other parameters are
@@ -55,7 +56,9 @@
 %   07/04/19  dhb  Made this its own routine.
 %   10/10/19  dce  Made separate routine
 
-function [testIntensity,mixingRatio,matchDiff] = ComputeRayleighConfusions(lambdaMax,indDiffParams,testIntensityRange,mixingRatioRange)
+function [testIntensity,mixingRatio,matchDiff] = ...
+    ComputeRayleighConfusions(lambdaMax,indDiffParams,...
+    testWavelength,testIntensityRange,mixingRatioRange)
 % Observer parameters
 fieldSizeDegs = 2;
 observerAge = 32;
@@ -65,8 +68,8 @@ pupilDiameterMM = 3;
 S = [380 1 401];
 wls = SToWls(S);
 
-% Apparatus parameters.  These match the Nagel in wavelengths.
-testWavelength = 590;
+% Apparatus parameters. These match the Nagel in wavelengths. 
+% (Note that test wavelength is passed in, default is 590)
 matchWavelength1 = 545;
 matchWavelength2 = 679;
 
