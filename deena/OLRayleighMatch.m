@@ -12,8 +12,9 @@ function matches = OLRayleighMatch(varargin)
 %    and the ratio of the two primaries to try and get the two fields to
 %    match: right moves the primary ratio towards red and left towards
 %    green, up increases the test intensity and down decreases the test
-%    intensity. The subject can also use the top 'A' button to toggle step
-%    size and the bottom 'y' button to quit.
+%    intensity. The subject can also use the top 'Y' button to toggle step
+%    size, the right 'B' button to record a match, and the bottom 'A'
+%    button to quit.
 %
 % Inputs:
 %    none
@@ -24,7 +25,7 @@ function matches = OLRayleighMatch(varargin)
 %
 % Optional key-value pairs:
 %    'p1'    - integer wavelength of the first primary light in nm. Default
-%              is 670
+%              is 670. 
 %    'p2'    - integer wavelength of the second primary light in nm.
 %              Default is 540.
 %    'test'  - integer wavelength of the test light in nm. Default is 580.
@@ -118,9 +119,11 @@ while(true)
     nowTime = mglGetSecs;
     % Display primary or test light
     if isPrimary
-        ol.setMirrors(squeeze(primaryStartStops(primaryPos,1,:))', squeeze(primaryStartStops(primaryPos,2,:))');
+        ol.setMirrors(squeeze(primaryStartStops(primaryPos,1,:))',...
+            squeeze(primaryStartStops(primaryPos,2,:))');
     else
-        ol.setMirrors(squeeze(testStartStops(testPos,1,:))', squeeze(testStartStops(testPos,2,:))');
+        ol.setMirrors(squeeze(testStartStops(testPos,1,:))',...
+            squeeze(testStartStops(testPos,2,:))');
     end
     
     % Until time limit runs out, check for user input
@@ -141,6 +144,7 @@ while(true)
                     matches = [matches;...
                         [testScales(testPos), p1Scales(primaryPos)]];
                 case 'GP:A' % Quit
+                    fprintf('User exited program \n');
                     break;
                 case 'GP:North' % Scale up test intensity
                     testPos = testPos + stepModes(stepModePos);
@@ -176,6 +180,10 @@ while(true)
     isPrimary = ~isPrimary; % Switch from primary to test
 end
 
-fprintf('User exited program \n');
-save('matches.mat', matches);
+% Save matches 
+[~, userID] = system('whoami');
+userID = strtrim(userID);
+fName = fullfile('Users',userID,'Dropbox (Aguirre-Brainard Lab)/Deena/OL Rayleigh pilot data/matches.mat');
+save(fName, matches);
+
 end
