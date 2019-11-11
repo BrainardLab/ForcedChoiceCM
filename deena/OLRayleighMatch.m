@@ -1,6 +1,6 @@
 
 % Program to run a Rayleigh match experiment on the OneLight
-function OLRayleighMatch(varargin)
+function matches = OLRayleighMatch(varargin)
 % Syntax:
 %   OLRayleighMatch(varargin)
 %
@@ -19,7 +19,8 @@ function OLRayleighMatch(varargin)
 %    none
 %
 % Outputs:
-%    none
+%    matches - 2x2 integer array containing test and primary values for
+%              subject's matches (first column is test, second is primary)
 %
 % Optional key-value pairs:
 %    'p1'    - integer wavelength of the first primary light in nm. Default
@@ -100,19 +101,21 @@ end
 delaySecs = 2; % time in seconds that a given field is displayed for
 isPrimary = true; % are we currently displaying primary or test light?
 stepModes = [20 5 1]; % Possible step sizes (relative to adjustment_length)
+matches = []; % Output array with subject matches
 
-% Initial position in primary, test, and step size arrays 
+% Initial position in primary, test, and step size arrays
 primaryPos = 1;
 testPos = 1;
-stepModePos = 1; % Start with largest step size 
+stepModePos = 1; % Start with largest step size
 
-% Intialize OneLight and button box 
+% Intialize OneLight and button box
 ol = OneLight;
-gamePad = GamePad(); 
+gamePad = GamePad();
 fprintf('Starting display loop \n');
 
 % Loop through primary and test light until the user presses a key
 while(true)
+    nowTime = mglGetSecs;
     % Display primary or test light
     if isPrimary
         ol.setMirrors(squeeze(primaryStartStops(primaryPos,1,:))', squeeze(primaryStartStops(primaryPos,2,:))');
@@ -120,48 +123,59 @@ while(true)
         ol.setMirrors(squeeze(testStartStops(testPos,1,:))', squeeze(testStartStops(testPos,2,:))');
     end
     
-    mglWaitSecs(delaySecs); % Time delay
-    isPrimary = ~isPrimary; % Switch from primary to test
-    
-    % Check for user input
-    key = gamePad.getKeyEvent(); 
-    if ~isEmpty(key)
-        switch(key.charCode)
-            case 'GP:Y' % Exit program
-                break;
-            case 'GP:A' % Switch step size mode 
-                stepModePos = stepModePos + 1; 
-                if stepModePos > length(stepModes)
-                    stepModePos = 1; 
-                end 
-            case 'GP:North' % Scale up test intensity
-                testPos = testPos + stepModes(stepModePos);
-                if testPos > adjustment_length
-                    testPos = adjustment_length;
-                end
-            case 'GP:South' % Scale down test intensity
-                testPos = testPos - stepModes(stepModePos);
-                if testPos < 1
-                    testPos = 1;
-                end
-            case 'GP:East' % Move towards p1
-                primaryPos = primaryPos + stepModes(stepModePos);
-                if primaryPos > adjustment_length
-                    primaryPos = adjustment_length;
-                end
-            case 'GP:West' % Move towards p2
-                primaryPos = primaryPos - stepModes(stepModePos);
-                if primaryPos < 1
-                    primaryPos = 1;
-                end
+    % Until time limit runs out, check for user input
+    while(mglGetSecs < nowTime + delaySecs)
+        key = gamePad.getKeyEvent();
+        if (~isempty(key))
+            switch(key.charCode)
+                case 'GP:Y' % Switch step size mode
+                    stepModePos = stepModePos + 1;
+                    if stepModePos > length(stepModes)
+                        stepModePos = 1;
+                    end
+                    fprintf('User switched step size to %g \n',...
+                        (stepModes(stepModePos)/100.0));
+                case 'GP:B' % Subject found a match
+                    fprintf('User found match at %g test, %g primary \n',...
+                        testScales(testPos), p1Scales(primaryPos));
+                    matches = [matches;...
+                        [testScales(testPos), p1Scales(primaryPos)]];
+                case 'GP:A' % Quit
+                    break;
+                case 'GP:North' % Scale up test intensity
+                    testPos = testPos + stepModes(stepModePos);
+                    if testPos > adjustment_length
+                        testPos = adjustment_length;
+                    end
+                    fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
+                        testScales(testPos), p1Scales(primaryPos));
+                case 'GP:South' % Scale down test intensity
+                    testPos = testPos - stepModes(stepModePos);
+                    if testPos < 1
+                        testPos = 1;
+                    end
+                    fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
+                        testScales(testPos), p1Scales(primaryPos));
+                case 'GP:East' % Move towards p1
+                    primaryPos = primaryPos + stepModes(stepModePos);
+                    if primaryPos > adjustment_length
+                        primaryPos = adjustment_length;
+                    end
+                    fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
+                        testScales(testPos), p1Scales(primaryPos));
+                case 'GP:West' % Move towards p2
+                    primaryPos = primaryPos - stepModes(stepModePos);
+                    if primaryPos < 1
+                        primaryPos = 1;
+                    end
+                    fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
+                        testScales(testPos), p1Scales(primaryPos));
+            end
         end
-        fprintf('User pressed key. Test intensity = %g, red primary = %g, step size = %g \n',...
-            testScales(testPos), p1Scales(primaryPos), (stepModes(stepModePos)/100.0));
     end
+    isPrimary = ~isPrimary; % Switch from primary to test
 end
 
-% Clean up once user exits
-fprintf('User exited the program \n');
-ListenChar(0);
-mglDisplayCursor(1);
+fprintf('User exited program \n');
+save('matches.mat', matches);
 end
