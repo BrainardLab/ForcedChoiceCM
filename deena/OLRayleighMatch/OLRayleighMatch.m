@@ -183,6 +183,6 @@ end
 % Save matches 
 [~, userID] = system('whoami');
 userID = strtrim(userID);
-fName = fullfile('/Users',userID,'Documents/MATLAB/projects/Experiments/ForcedChoiceCM/deena','OLSampleMatches.mat');
+fName = fullfile('/Users',userID, 'Documents/MATLAB/projects/Experiments/ForcedChoiceCM/deena/OLRayleighMatch','OLSampleMatches.mat');
 save(fName, 'matches');
 end

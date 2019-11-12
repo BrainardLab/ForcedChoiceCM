@@ -2,7 +2,7 @@
 %
 % Syntax:
 %    [testIntensity,mixingRatio,matchDiff] =
-%    ComputeRayleighConfusions(lambdaMax,indDiffParams,testIntensityRange,mixingRatioRange)
+%    ComputeRayleighConfusions(lambdaMax,indDiffParams,p1, p2, test, testIntensityRange,mixingRatioRange)
 %
 % Description:
 %    Take lambdaMax values and generate receptor fundamentals. Then loop
@@ -21,20 +21,22 @@
 %    principles we are interested in here.
 %
 % Inputs:
-%    lambdaMax                 Column vector of three receptor photopigment lambda
+%    lambdaMax                -Column vector of three receptor photopigment lambda
 %                              max (wavelength of peak sensitivity) values, in nm.
-%    indDiffParams             Passed to ComputeCIEConeFundamentals.
+%    indDiffParams            -Passed to ComputeCIEConeFundamentals.
 %                              Ignored if empty.  If you pass this
 %                              structure, then lambdaMax should be empty,
 %                              and vice-versa.  That is, only adjust the
 %                              fundamentals using one of the two available
 %                              methods.
-%    testWavelength            Integer for test light wavelength in nm.
-%    testIntensityRange        Row vector of test intensities.  Arbitrary
+%    p1                       -Integer for first primary wavelength in nm.
+%    p2                       -Integer for second primary wavelength in nm.
+%    test                     -Integer for test light wavelength in nm.
+%    testIntensityRange       -Row vector of test intensities.  Arbitrary
 %                              units.  Values between 0 and 1 are about
 %                              right given the way the other parameters are
 %                              set.
-%    mixingRatioRange          Row vector of g/r mixing ratios. 0 means all
+%    mixingRatioRange         -Row vector of g/r mixing ratios. 0 means all
 %                              green primary, 1 means all red. Here green
 %                              and red are really defined by the
 %                              wavelengths of the two matching primaries
@@ -57,8 +59,8 @@
 %   10/10/19  dce  Made separate routine
 
 function [testIntensity,mixingRatio,matchDiff] = ...
-    ComputeRayleighConfusions(lambdaMax,indDiffParams,...
-    testWavelength,testIntensityRange,mixingRatioRange)
+    ComputeRayleighConfusions(lambdaMax,indDiffParams, p1, p2, test,...
+    testIntensityRange,mixingRatioRange) 
 % Observer parameters
 fieldSizeDegs = 2;
 observerAge = 32;
@@ -67,11 +69,6 @@ pupilDiameterMM = 3;
 % Wavelength sampling. Life is easiest at 1 nm sampling.
 S = [380 1 401];
 wls = SToWls(S);
-
-% Apparatus parameters. These match the Nagel in wavelengths. 
-% (Note that test wavelength is passed in, default is 590)
-matchWavelength1 = 545;
-matchWavelength2 = 679;
 
 % I fussed with these to rotate the D line to be horizontal in the plot.
 % In real life, they are parameters of the apparatus.
@@ -82,9 +79,9 @@ matchIntensity1 = overallFactor*matchLowRawIntensity;
 matchIntensity2 = overallFactor*relativeHighMatchFactor*matchIntensity1;
 
 % Compute indices so that we can set spectra below
-testIndex = find(wls == testWavelength);
-matchIndex1 = find(wls == matchWavelength1);
-matchIndex2 = find(wls == matchWavelength2);
+testIndex = find(wls == test);
+matchIndex1 = find(wls == p1);
+matchIndex2 = find(wls == p2);
 
 % Color difference computation parameters.
 % I fussed with these to make the uncertainty

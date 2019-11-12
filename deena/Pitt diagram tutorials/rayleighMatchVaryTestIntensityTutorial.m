@@ -35,18 +35,21 @@ plotRayleighMatches(lambdaMaxes, baseLambdaMaxes, dphotopigments1, colors,...
 plotRayleighMatches(lambdaMaxes, baseLambdaMaxes, dphotopigments2, colors,...
     legend, 'Optical Density Variation: observer2 - 95%');
 
+%% Plot the cone fundamentals for the two overlapping observers to see 
+%  potential sites of modification
+
 %% Can you separate the observers using different test lights?
 plotRayleighMatches(lambdaMaxes, baseLambdaMaxes, dphotopigments2, colors,...
-    legend, 'Optical Density Variation, test light to 570', 'testWavelength', 570);
+    legend, 'Optical Density Variation, test light to 570', 'test', 570);
 
 plotRayleighMatches(lambdaMaxes, baseLambdaMaxes, dphotopigments2, colors,...
-    legend, 'Optical Density Variation, test light to 580', 'testWavelength', 580);
+    legend, 'Optical Density Variation, test light to 580', 'test', 580);
 
 plotRayleighMatches(lambdaMaxes, baseLambdaMaxes, dphotopigments2, colors,...
-    legend, 'Optical Density Variation, test light to 600', 'testWavelength', 600);
+    legend, 'Optical Density Variation, test light to 600', 'test', 600);
 
 plotRayleighMatches(lambdaMaxes, baseLambdaMaxes, dphotopigments2, colors,...
-    legend, 'Optical Density Variation, test light to 610', 'testWavelength', 610);
+    legend, 'Optical Density Variation, test light to 610', 'test', 610);
 
 plotRayleighMatches(lambdaMaxes, baseLambdaMaxes, dphotopigments2, colors,...
-    legend, 'Optical Density Variation, test light to 620', 'testWavelength', 620);
+    legend, 'Optical Density Variation, test light to 620', 'test', 620);

@@ -28,7 +28,11 @@ function plotRayleighMatches(lambdaMaxes, baseLambdaMaxes, dphotopigments,...
 %                       max variation (true) or optical density variation
 %                       (false).
 % Optional key-value pairs: 
-%    'testWavelength' - integer wavelength of the test light in nm. Default
+%    'test'           - integer wavelength of the test light in nm. Default
+%                       is 590
+%    'p1'           - integer wavelength of the test light in nm. Default
+%                       is 590
+%    'p2'           - integer wavelength of the test light in nm. Default
 %                       is 590
 
 
@@ -37,9 +41,10 @@ function plotRayleighMatches(lambdaMaxes, baseLambdaMaxes, dphotopigments,...
 
 % Parse input 
 p = inputParser;
-p.addParameter('testWavelength', 590, @(x) (isnumeric(x)));
+p.addParameter('p1', 545, @(x) (isnumeric(x)));
+p.addParameter('p2', 679, @(x) (isnumeric(x)));
+p.addParameter('test', 580, @(x) (isnumeric(x)));
 p.parse(varargin{:});
-testWavelength = p.Results.testWavelength;
 
 % Range parameters for simulated anomaloscope
 % Mixing ratio of zero is all green primary, 1 is all red
@@ -64,7 +69,8 @@ theFigure = figure; clf; hold on
 for kk = 1:size(lambdaMaxes,2)
     [testIntensity{kk},mixingRatio{kk},matchDiff{kk}] =...
         ComputeRayleighConfusions(baseLambdaMaxes(:,kk),indDiffParams(kk),...
-        testWavelength,testIntensityRange,mixingRatioRange);
+        p.Results.p1, p.Results.p2, p.Results.test, testIntensityRange,...
+        mixingRatioRange);
     figure(theFigure);
     index = find(matchDiff{kk} < thresholdVal);
     plot(mixingRatio{kk}(index),testIntensity{kk}(index),...
