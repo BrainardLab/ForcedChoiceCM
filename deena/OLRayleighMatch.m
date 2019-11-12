@@ -113,9 +113,10 @@ stepModePos = 1; % Start with largest step size
 ol = OneLight;
 gamePad = GamePad();
 fprintf('Starting display loop \n');
+stillLooping = true;
 
 % Loop through primary and test light until the user presses a key
-while(true)
+while(stillLooping)
     nowTime = mglGetSecs;
     % Display primary or test light
     if isPrimary
@@ -145,7 +146,7 @@ while(true)
                         [testScales(testPos), p1Scales(primaryPos)]];
                 case 'GP:A' % Quit
                     fprintf('User exited program \n');
-                    break;
+                    stillLooping = false; 
                 case 'GP:North' % Scale up test intensity
                     testPos = testPos + stepModes(stepModePos);
                     if testPos > adjustment_length
@@ -179,11 +180,9 @@ while(true)
     end
     isPrimary = ~isPrimary; % Switch from primary to test
 end
-
 % Save matches 
 [~, userID] = system('whoami');
 userID = strtrim(userID);
-fName = fullfile('Users',userID,'Dropbox (Aguirre-Brainard Lab)/Deena/OL Rayleigh pilot data/matches.mat');
-save(fName, matches);
-
+fName = fullfile('/Users',userID,'Documents/MATLAB/projects/Experiments/ForcedChoiceCM/deena','OLSampleMatches.mat');
+save(fName, 'matches');
 end
