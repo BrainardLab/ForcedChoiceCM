@@ -30,10 +30,10 @@ function plotRayleighMatches(lambdaMaxes, baseLambdaMaxes, dphotopigments,...
 % Optional key-value pairs: 
 %    'test'           - integer wavelength of the test light in nm. Default
 %                       is 590
-%    'p1'           - integer wavelength of the test light in nm. Default
-%                       is 590
-%    'p2'           - integer wavelength of the test light in nm. Default
-%                       is 590
+%    'p1'           - integer wavelength of the first primary light in nm. 
+%                       Default is 545
+%    'p2'           - integer wavelength of the second primary light in nm. 
+%                      Default is 679
 
 
 % Outputs:
