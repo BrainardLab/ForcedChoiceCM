@@ -120,9 +120,11 @@ while(stillLooping)
     nowTime = mglGetSecs;
     % Display primary or test light
     if isPrimary
+        Snd('Play',sin(0:5000));
         ol.setMirrors(squeeze(primaryStartStops(primaryPos,1,:))',...
             squeeze(primaryStartStops(primaryPos,2,:))');
     else
+        Snd('Play',sin((0:5000)/100));
         ol.setMirrors(squeeze(testStartStops(testPos,1,:))',...
             squeeze(testStartStops(testPos,2,:))');
     end
