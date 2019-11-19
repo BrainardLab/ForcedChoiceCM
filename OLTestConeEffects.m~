@@ -19,31 +19,31 @@ T_cones = findConeFundamentals(lambdaMaxes, dphotopigments);
 [row, col] = size(matches); 
 S = [380 1 401];
 wls = SToWls(S);
+primariesSpectrum = zeros(length(wls), row); 
+testSpectrum = zeros(length(wls), row); 
+
+
+
+matchSpectrum1 = zeros(length(wls)); matchSpectrum1(matchIndex1) = matchIntensity1;
+matchSpectrum2 = zeros(size(wls)); matchSpectrum2(matchIndex2) = matchIntensity2;
+
+
+
+[spdLength, ~] =  size(cal.computed.pr650M);
+
 fullWidthHalfMax = 20;
 
-testIndex = find(wls == test);
-p1Index = find(wls == p1);
-p2Index = find(wls == p2);
-
-primariesSpectrum = zeros(length(wls), row); 
-primariesCones = zeros(3, row); 
-testSpectrum = zeros(length(wls), row);
-testCones = zeros(3, row); 
-
-
 for i = 1:row 
-    % For each match, add primaries and test intensities to spectrum 
-    primariesSpectrum(p1Index,i) = matches(i,2);
-    primariesSpectrum(p2Index, i) = 1 - matches(i, 2); 
-    testSpectrum(testIndex,i) = matches(i,1); 
+    % For each match, find primary and test spds 
+    p1Spd = OLMakeMonochromaticSpd(cal, p1, fullWidthHalfMax)/3;
+    p2Spd = OLMakeMonochromaticSpd(cal, p2, fullWidthHalfMax)/3;
+    spdPrimaries(:,i) = (matches(i,2) * p1Spd) +...
+        ((1 - matches(i,2)) * p2Spd);
+    spdTest(:,i) = matches(i,1) * ...
+        OLMakeMonochromaticSpd(cal, test, fullWidthHalfMax)/3;
     
-    % Calculate effects of the spectra on cones
-    primariesCones(:,i) = T_cones * primariesSpectrum; 
-    testCones(:,i) = T_cones * testSpectrum; 
+    % Calculate effects of the spds on cones
     
-    % Plot results 
-    figure(); 
-    plot(wls, primariesCones(:,i), 'r', wls, testCones(:,i), 'b'); 
 end 
 
 

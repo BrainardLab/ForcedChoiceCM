@@ -11,7 +11,7 @@ function matches = OLRayleighMatch(varargin)
 %    game pad's directional pad to adjust the intensity of the test light
 %    and the ratio of the two primaries to try and get the two fields to
 %    match: right moves the primary ratio towards p1 and left towards
-%    p2, up increases the test intensity and down decreases the test
+%    green, up increases the test intensity and down decreases the test
 %    intensity. The subject can also use the top 'Y' button to toggle step
 %    size, the right 'B' button to record a match, and the bottom 'A'
 %    button to quit.
