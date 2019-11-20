@@ -93,7 +93,7 @@ end
 %% Take a look at spectra (optional)
 makeFigs = false;
 if makeFigs
-    figure; clf; holf on
+    figure; clf; hold on
     OLplotSpdCheck(testSpds,cal);
     
     figure; clf;

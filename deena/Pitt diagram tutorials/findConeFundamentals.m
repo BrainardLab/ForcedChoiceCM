@@ -1,7 +1,15 @@
 % Returns cone fundamentals for an observer. Takes in a 3 x 1 vector of
-% lambda max and a 3 x 1 vector of optical density variation.  
+% lambda max and a 3 x 1 vector of optical density variation, and an
+% optional key value pair of 'increment', an integer for the distance in nm
+% between wavelength samplings (default is 1).  
 
-function T_cones = findConeFundamentals(lambdaMaxes, dphotopigments)
+function T_cones = findConeFundamentals(lambdaMaxes, dphotopigments, varargin)
+% Parse input
+p = inputParser;
+p.addParameter('inc', 1, @(x) (isnumeric(x)));
+p.parse(varargin{:});
+inc = p.Results.inc; 
+
 % Observer parameters
 fieldSizeDegs = 2;
 observerAge = 32;
@@ -15,7 +23,7 @@ pupilDiameterMM = 3;
     indDiffParams.shiftType = 'linear';
 
 % % Generate the cones 
-S = [380 1 401]; % Wavelength sampling 
+S = [380 inc ceil(401/inc)]; % Wavelength sampling 
 T_cones = EnergyToQuanta(S, ...
     ComputeCIEConeFundamentals(S,fieldSizeDegs,observerAge,...
     pupilDiameterMM,lambdaMaxes, [],[],[],[],[],indDiffParams)')';
