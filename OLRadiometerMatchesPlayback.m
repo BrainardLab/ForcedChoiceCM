@@ -67,22 +67,22 @@ spectroRadiometerOBJ.setOptions(...
     );
 
 %% Loop through matches 
-measuredTestSpds = []; 
-measuredPrimarySpds = []; 
+measuredTestSpds = zeros(spdLength, numMatches);
+measuredPrimarySpds = zeros(spdLength, numMatches);
+ol = OneLight(); 
 for i = 1:numMatches
     ol.setMirrors(squeeze(primaryStartStops(i,1,:))',...
             squeeze(primaryStartStops(i,2,:))');
     primaryMeas = spectroRadiometerOBJ.measure;
-    testWls = SToWls(spectroRadiometerOBJ.userS);
-    measuredPrimarySpds = [measuredPrimarySpds; primaryMeas]; 
+    measuredPrimarySpds(:,i) = primaryMeas;  
     
     ol.setMirrors(squeeze(testStartStops(i,1,:))',...
             squeeze(testStartStops(i,2,:))');
     testMeas = spectroRadiometerOBJ.measure;
-    testWls = SToWls(spectroRadiometerOBJ.userS);
-    measuredTestSpds = [measuredTestSpds; testMeas]; 
-end 
-
+    measuredTestSpds(:,i) = testMeas; 
+end
+testWls = SToWls(spectroRadiometerOBJ.userS);
+save('playbackMatches.mat', 'testWls', 'measuredTestSpds', 'measuredPrimarySpds');
 spectroRadiometerOBJ.shutDown;
 
 end 
