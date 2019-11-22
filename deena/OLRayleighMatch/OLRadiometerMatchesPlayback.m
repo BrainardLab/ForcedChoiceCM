@@ -1,15 +1,12 @@
-function OLRadiometerMatchesPlayback(matches, varargin)
+function OLRadiometerMatchesPlayback(matchFile)
 
-%% Set up initial parameters 
-% Base wavelengths - parse input
-p = inputParser;
-p.addParameter('p1', 670, @(x) (isnumeric(x)));
-p.addParameter('p2', 540, @(x) (isnumeric(x)));
-p.addParameter('test', 580, @(x) (isnumeric(x)));
-p.parse(varargin{:});
-p1 = p.Results.p1;
-p2 = p.Results.p2; 
-test = p.Results.test; 
+% Load file and check it contains required variables
+load(matchFile);
+if (exist('p1', 'var') == 0 || exist('p2', 'var') == 0 ||...
+        exist('test', 'var') == 0 || exist('matches', 'var') == 0)
+    error('Passed file does not contain required variables');
+end
+load(matchFile, 'test');  
 
 % Get the calibration structure
 cal = OLGetCalibrationStructure;
@@ -71,18 +68,26 @@ measuredTestSpds = zeros(spdLength, numMatches);
 measuredPrimarySpds = zeros(spdLength, numMatches);
 ol = OneLight(); 
 for i = 1:numMatches
+    % Display primary on OL, measure with radiometer
     ol.setMirrors(squeeze(primaryStartStops(i,1,:))',...
             squeeze(primaryStartStops(i,2,:))');
     primaryMeas = spectroRadiometerOBJ.measure;
     measuredPrimarySpds(:,i) = primaryMeas;  
     
+    % Display test on OL, measure with radiometer
     ol.setMirrors(squeeze(testStartStops(i,1,:))',...
             squeeze(testStartStops(i,2,:))');
     testMeas = spectroRadiometerOBJ.measure;
     measuredTestSpds(:,i) = testMeas; 
 end
-testWls = SToWls(spectroRadiometerOBJ.userS);
-save('playbackMatches.mat', 'testWls', 'measuredTestSpds', 'measuredPrimarySpds');
-spectroRadiometerOBJ.shutDown;
 
+% Save data
+testWls = SToWls(spectroRadiometerOBJ.userS);
+[~, userID] = system('whoami');
+userID = strtrim(userID);
+fName = fullfile('/Users',userID, 'Documents/MATLAB/projects/Experiments/ForcedChoiceCM/deena/OLRayleighMatch','OLPlaybackMatches.mat');
+
+save(fName, 'testWls', 'measuredTestSpds', 'measuredPrimarySpds');
+spectroRadiometerOBJ.shutDown;
+disp('Successfully played back matches'); 
 end 
