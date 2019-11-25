@@ -161,6 +161,7 @@ while(stillLooping)
                         testScales(testPos), p1Scales(primaryPos));
                     matches = [matches;...
                         [testScales(testPos), p1Scales(primaryPos)]];
+                    matchPositions = [matchPositions; [testPos, primaryPos]]; 
                 case 'GP:A' % Quit
                     fprintf('User exited program \n');
                     stillLooping = false; 
@@ -202,5 +203,5 @@ end
 [~, userID] = system('whoami');
 userID = strtrim(userID);
 fName = fullfile('/Users',userID, 'Documents/MATLAB/projects/Experiments/ForcedChoiceCM/deena/OLRayleighMatch','OLSampleMatches.mat');
-save(fName, 'matches', 'p1', 'p2', 'test');
+save(fName, 'matches', 'matchPositions', 'p1', 'p2', 'test', 'cal', 'primarySpdsNominal', 'primarySpdsPredicted', 'testSpdsNominal', 'testSpdsPredicted', 'primaryStartStops', 'testStartStops');
 end
