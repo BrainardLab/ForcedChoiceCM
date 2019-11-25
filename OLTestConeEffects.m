@@ -1,6 +1,6 @@
 % Script for computing cone responses of OL matches. Used to verify whether
-% subjects' settings for primary ratio and test intensity in a given match 
-% lead to similar effects on their cones. 
+% subjects' settings for primary ratio and test intensity in a given match
+% lead to similar effects on their cones.
 
 % Ask user to enter filename, load data
 fName = input('Enter match filename: ');
@@ -9,9 +9,6 @@ if (exist('p1', 'var') == 0 || exist('p2', 'var') == 0 ||...
         exist('test', 'var') == 0 || exist('matches', 'var') == 0)
     error('Passed file does not contain required variables');
 end
-
-% Get calibration information
-cal = OLGetCalibrationStructure;
 
 % Calculate sizes and initialize spd arrays
 [row, col] = size(matches);
@@ -56,13 +53,12 @@ for i = 1:row
     
     % Plot cone effects
     figure();
-    h = zeros(6); 
-    h(1:3) = plot(wls, testCones(1,i) * T_cones(1,:), 'r', wls, testCones(2,i)...
-         * T_cones(2,:), 'r', wls, testCones(3,i) * T_cones(3,:), 'r');
-    hold on; 
-    h(4:6) = plot(wls, primariesCones(1,i) * T_cones(1,:), 'b', wls, primariesCones(2,i)...
-        * T_cones(2,:), 'b', wls, primariesCones(3,i) * T_cones(3,:), 'b');
+    cones = [testCones(1,i), primariesCones(1,i); testCones(2,i), primariesCones(2,i); testCones(3,i), primariesCones(3,i)];
+    bar(cones);
+    
+    somenames={'L'; 'M'; 'S' };
+    set(gca,'xticklabel',somenames)
     theTitle = sprintf('Match %g Cone Responses', i);
     title(theTitle);
-    legend(h(3:4),'Test','Primaries');
+    legend('Test','Primaries');
 end
