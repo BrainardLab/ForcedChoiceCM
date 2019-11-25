@@ -63,18 +63,26 @@ numCols = cal.describe.numColMirrors; % Number of mirrors in each OL column
 
 % Initialize arrays for storing precomputed adjustments. The StartStops
 % arrays have one column each for start and stop.
-testSpds = zeros(spdLength,adjustment_length);
+testSpdsNominal = zeros(spdLength,adjustment_length);
+testSpdsPredicted = zeros(spdLength,adjustment_length);
 testSettings = zeros(primaryLength,adjustment_length);
 testStartStops = zeros(adjustment_length,2,numCols);
 
-primarySpds = zeros(spdLength,adjustment_length);
+primarySpdsNominal = zeros(spdLength,adjustment_length);
+primarySpdsPredicted = zeros(spdLength,adjustment_length);
 primarySettings = zeros(primaryLength,adjustment_length);
 primaryStartStops = zeros(adjustment_length,2,numCols);
 
 % Scale primaries and convert to OL spectra
 for i = 1:adjustment_length
-    testSpds(:,i) = testScales(i) * OLMakeMonochromaticSpd(cal, test, fullWidthHalfMax)/3;
-    testSettings(:,i) = OLSpdToSettings(cal, testSpds(:,i), 'lambda', lambda);
+    testSpdsNominal(:,i) = testScales(i) * OLMakeMonochromaticSpd(cal, test, fullWidthHalfMax)/3;
+    [testSettings(:,i),~,testSpdsPredicted(:,i)] = OLSpdToSettings(cal, testSpdsNominal(:,i), 'lambda', lambda);
+    
+    % Check whether any of the settings are 1. If so, we can't actually
+    % produce the desired spectrum.
+    if (any(testSettings(:,i) == 1))
+        fprintf('Maxed out on test settings.\n');
+    end
     
     [testStart,testStop] = OLSettingsToStartsStops(cal, testSettings(:,i));
     testStartStops(i,1,:) = testStart;
@@ -82,8 +90,12 @@ for i = 1:adjustment_length
     
     primary1Spd = OLMakeMonochromaticSpd(cal, p1, fullWidthHalfMax)/3;
     primary2Spd = OLMakeMonochromaticSpd(cal, p2, fullWidthHalfMax)/3;
-    primarySpds(:,i) = (p1Scales(i) * primary1Spd) + (p2Scales(i) * primary2Spd);
-    primarySettings(:,i) = OLSpdToSettings(cal, primarySpds(:,i), 'lambda', lambda);
+    primarySpdsNominal(:,i) = (p1Scales(i) * primary1Spd) + (p2Scales(i) * primary2Spd);
+    [primarySettings(:,i),~,primarySpdsPredicted(:,i)] = OLSpdToSettings(cal, primarySpdsNominal(:,i), 'lambda', lambda);
+    
+    if (any(primarySettings(:,i) == 1))
+        fprintf('Maxed out on primary settings.\n');
+    end
     
     [primaryStart,primaryStop] = OLSettingsToStartsStops(cal, primarySettings(:,i));
     primaryStartStops(i,1,:) = primaryStart;
@@ -94,10 +106,10 @@ end
 makeFigs = false;
 if makeFigs
     figure; clf; hold on
-    OLplotSpdCheck(testSpds,cal);
+    OLplotSpdCheck(testSpdsNominal,cal);
     
     figure; clf;
-    OLplotSpdCheck(primarySpds,cal);
+    OLplotSpdCheck(primarySpdsNominal,cal);
 end
 
 %% Display loop
@@ -185,6 +197,7 @@ while(stillLooping)
     end
     isPrimary = ~isPrimary; % Switch from primary to test
 end
+
 % Save matches 
 [~, userID] = system('whoami');
 userID = strtrim(userID);

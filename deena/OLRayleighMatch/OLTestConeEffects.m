@@ -4,20 +4,22 @@
 
 % Ask user to enter filename, load data
 fName = input('Enter match filename: ');
-load(fName);
-if (exist('p1', 'var') == 0 || exist('p2', 'var') == 0 ||...
-        exist('test', 'var') == 0 || exist('matches', 'var') == 0)
-    error('Passed file does not contain required variables');
+theData = load(fName);
+if (isfield(theData,'p1') == 0 || isfield(theData,'p2') == 0  ||...
+       isfield(theData,'test') == 0 || isfield(theData,'matches') == 0)
+    error('Data file does not contain required variables');
 end
 
 % Get calibration information
 cal = OLGetCalibrationStructure;
 
 % Calculate sizes and initialize spd arrays
-[row, col] = size(matches);
+[nMatches, ~] = size(theData.matches);
 wls = cal.computed.pr650Wls;
+S = WlsToS(wls);
 inc = wls(2) - wls(1);
 fullWidthHalfMax = 20;
+lambda = 0.001;
 
 % Generate standard cone fundamentals for observer
 lambdaMaxes = [558.9 530.3 420.7]';     % Normal trichromat
@@ -25,31 +27,47 @@ dphotopigments = [0 0 0]';
 T_cones = findConeFundamentals(lambdaMaxes, dphotopigments, 'inc', inc);
 
 % Initialize arrays
-primariesSpd = zeros(length(wls), row);
-testSpd = zeros(length(wls), row);
+primariesSpdNominal = zeros(length(wls), nMatches);
+testSpdNominal = zeros(length(wls), nMatches);
+primariesSpdPredicted = zeros(length(wls), nMatches);
+testSpdPredicted = zeros(length(wls), nMatches);
 
-primariesCones = zeros(3, row);
-testCones = zeros(3, row);
+primariesCones = zeros(3, nMatches);
+testCones = zeros(3, nMatches);
 
-for i = 1:row
+for i = 1:nMatches
     % For each match, add primaries and test intensities to spectrum
-    p1Spd = OLMakeMonochromaticSpd(cal, p1, fullWidthHalfMax);
-    p2Spd = OLMakeMonochromaticSpd(cal, p2, fullWidthHalfMax);
-    primariesSpd(:,i) = (matches(i, 2) * p1Spd) +...
+    p1Spd = OLMakeMonochromaticSpd(cal, theData.p1, fullWidthHalfMax);
+    p2Spd = OLMakeMonochromaticSpd(cal, theData.p2, fullWidthHalfMax);
+    primariesSpdNominal(:,i) = (matches(i, 2) * p1Spd) +...
         ((1 - matches(i, 2)) * p2Spd);
+    [~,primariesTemp,primariesSpdPredicted(:,i)] = OLSpdToSettings(cal, primariesSpdNominal(:,i), 'lambda', lambda);
+
     
-    testSpd(:,i) = OLMakeMonochromaticSpd(cal, test, fullWidthHalfMax)...
+    testSpdNominal(:,i) = OLMakeMonochromaticSpd(cal, test, fullWidthHalfMax)...
         * matches(i,1);
-    
+    [~,~,testSpdPredicted(:,i)] = OLSpdToSettings(cal, testSpdNominal(:,i), 'lambda', lambda);
+
     % Calculate effects of the spectra on cones
-    primariesCones(:,i) = T_cones * primariesSpd;
-    testCones(:,i) = T_cones * testSpd;
+    primariesCones(:,i) = T_cones * primariesSpdPredicted;
+    testCones(:,i) = T_cones * testSpdPredicted;
+    
+    figure;
+    subplot(1,2,1); hold on
+    plot(wls,testSpdPredicted(:,i),'r','LineWidth',4);
+    plot(wls,testSpdNominal(:,i),'k','LineWidth',2);
+    subplot(1,2,2); hold on
+    plot(wls,primariesSpdPredicted(:,i),'r','LineWidth',4);
+    plot(wls,primariesSpdNominal(:,i),'k','LineWidth',2);
     
     % Plot spds
     figure();
-    OLplotSpdCheck(testSpd(:, i),cal);
+    OLplotSpdCheck(testSpdNominal(:, i),cal);
+
     hold on;
-    OLplotSpdCheck(primariesSpd(:, i), cal);
+    OLplotSpdCheck(primariesSpdNominal(:, i),cal);
+    OLplotSpdCheck(testSpdPredicted(:, i),cal); 
+    OLplotSpdCheck(primariesSpdPredicted(:, i),cal);
     theTitle = sprintf('Match %g Spds', i);
     title(theTitle);
     legend({ 'test' 'primaries' });
