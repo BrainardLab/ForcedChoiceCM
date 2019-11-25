@@ -71,12 +71,14 @@ for i = 1:numMatches
     % Display primary on OL, measure with radiometer
     ol.setMirrors(squeeze(primaryStartStops(i,1,:))',...
             squeeze(primaryStartStops(i,2,:))');
+    pause(0.1);
     primaryMeas = spectroRadiometerOBJ.measure;
     measuredPrimarySpds(:,i) = primaryMeas;  
     
     % Display test on OL, measure with radiometer
     ol.setMirrors(squeeze(testStartStops(i,1,:))',...
             squeeze(testStartStops(i,2,:))');
+    pause(0.1);
     testMeas = spectroRadiometerOBJ.measure;
     measuredTestSpds(:,i) = testMeas; 
 end
