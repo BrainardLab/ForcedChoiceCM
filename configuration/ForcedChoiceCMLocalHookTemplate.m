@@ -48,6 +48,7 @@ end
 %
 % This will need to be locally configured.
 setpref(projectName,'simulatedDataDir',fullfile(projectBaseDir,'SimulatedData'));
+setpref(projectName,'rayleighDataDir',fullfile(baseDir,'MELA_data','Experiments',projectName,'OLRayleighMatches'));
 % setpref(projectName,'mainExpDir',projectBaseDir);
 % setpref(projectName,'analysisDir',fullfile(baseDir,'CNST_analysis',projectName));
 % setpref(projectName,'stimulusFolder',fullfile(baseDir,'CNST_materials',projectName,'E3'));
@@ -55,5 +56,5 @@ setpref(projectName,'simulatedDataDir',fullfile(projectBaseDir,'SimulatedData'))
 % setpref(projectName,'demoDataDir',fullfile(baseDir,'CNST_analysis',projectName,'DemoData'));
 % setpref(projectName,'mainCodeDir',fullfile('/Users/', sysInfo.userShortName, 'Documents/MATLAB/projects/Experiments/ColorMaterial/code'));
 % setpref(projectName,'calFileName','ColorMaterialCalibration');
-
-setpref('BrainardLabToolbox','CalDataFolder',fullfile(baseDir,'CNST_materials',projectName,'CalibrationData'));
+setpref('OneLightToolbox', 'OneLightCalData',fullfile(baseDir,'MELA_materials','Experiments',projectName,'OneLightCalData'));
+setpref('BrainardLabToolbox','CalDataFolder',fullfile(baseDir,'MELA_materials','Experiments',projectName,'OneLightCalData'));
