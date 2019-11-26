@@ -43,14 +43,17 @@ p1 = p.Results.p1;
 p2 = p.Results.p2; 
 test = p.Results.test; 
 
+% Length of scaling factor adjustment arrays
+primaries_length = 101; 
+test_length = 101; 
+
 % Scaling factors for intensity of primary and test lights. The two
 % primaries are each scaled from 0 to 1, and the arrays are set up so the
 % two scaling factors will always add up to 1. We start with primary2
 % scaled up to 1 and primary1 scaled down to 0.
-adjustment_length = 101; % Length of scaling factor adjustment arrays
-p1Scales = linspace(0,1,adjustment_length);
-p2Scales = linspace(1,0,adjustment_length);
-testScales = linspace(0,1,adjustment_length);
+p1Scales = linspace(0,1,primary_length);
+p2Scales = linspace(1,0,primary_length);
+testScales = linspace(0,1,test_length);
 
 % Get the calibration structure
 cal = OLGetCalibrationStructure;
@@ -63,31 +66,36 @@ numCols = cal.describe.numColMirrors; % Number of mirrors in each OL column
 
 % Initialize arrays for storing precomputed adjustments. The StartStops
 % arrays have one column each for start and stop.
-testSpdsNominal = zeros(spdLength,adjustment_length);
-testSpdsPredicted = zeros(spdLength,adjustment_length);
-testSettings = zeros(primaryLength,adjustment_length);
-testStartStops = zeros(adjustment_length,2,numCols);
+testSpdsNominal = zeros(spdLength,test_length);
+testSpdsPredicted = zeros(spdLength,test_length);
+testSettings = zeros(primaryLength,test_length);
+testStartStops = zeros(test_length,2,numCols);
 
-primarySpdsNominal = zeros(spdLength,adjustment_length);
-primarySpdsPredicted = zeros(spdLength,adjustment_length);
-primarySettings = zeros(primaryLength,adjustment_length);
-primaryStartStops = zeros(adjustment_length,2,numCols);
+primarySpdsNominal = zeros(spdLength, primary_length);
+primarySpdsPredicted = zeros(spdLength,primary_length);
+primarySettings = zeros(primaryLength, primary_length);
+primaryStartStops = zeros(primary_length,2,numCols);
 
-% Scale primaries and convert to OL spectra
-for i = 1:adjustment_length
+% Scale test and primary lights, clip if needed, convert to OL spectra
+for i = 1:test_length
     testSpdsNominal(:,i) = testScales(i) * OLMakeMonochromaticSpd(cal, test, fullWidthHalfMax)/3;
     [testSettings(:,i),~,testSpdsPredicted(:,i)] = OLSpdToSettings(cal, testSpdsNominal(:,i), 'lambda', lambda);
     
     % Check whether any of the settings are 1. If so, we can't actually
     % produce the desired spectrum.
-    if (any(testSettings(:,i) == 1))
-        fprintf('Maxed out on test settings.\n');
+    if testSettings(:,i) == 1
+        testSettings = testSettings(:, 1:(i-1)); 
+        test_length = i - 1; 
+        fprintf('Maxed out on test settings at position %g.\n', i);
+        break; 
     end
     
     [testStart,testStop] = OLSettingsToStartsStops(cal, testSettings(:,i));
     testStartStops(i,1,:) = testStart;
     testStartStops(i,2,:) = testStop;
-    
+end 
+
+for i = 1:primaries_length
     primary1Spd = OLMakeMonochromaticSpd(cal, p1, fullWidthHalfMax)/3;
     primary2Spd = OLMakeMonochromaticSpd(cal, p2, fullWidthHalfMax)/3;
     primarySpdsNominal(:,i) = (p1Scales(i) * primary1Spd) + (p2Scales(i) * primary2Spd);
@@ -96,7 +104,6 @@ for i = 1:adjustment_length
     if (any(primarySettings(:,i) == 1))
         fprintf('Maxed out on primary settings.\n');
     end
-    
     [primaryStart,primaryStop] = OLSettingsToStartsStops(cal, primarySettings(:,i));
     primaryStartStops(i,1,:) = primaryStart;
     primaryStartStops(i,2,:) = primaryStop;
@@ -106,10 +113,10 @@ end
 makeFigs = false;
 if makeFigs
     figure; clf; hold on
-    OLplotSpdCheck(testSpdsNominal,cal);
+    OLplotSpdCheck(cal.computed.pr650Wls, testSpdsNominal);
     
     figure; clf;
-    OLplotSpdCheck(primarySpdsNominal,cal);
+    OLplotSpdCheck(cal.computed.pr650Wls, primarySpdsNominal);
 end
 
 %% Display loop
@@ -167,8 +174,8 @@ while(stillLooping)
                     stillLooping = false; 
                 case 'GP:North' % Scale up test intensity
                     testPos = testPos + stepModes(stepModePos);
-                    if testPos > adjustment_length
-                        testPos = adjustment_length;
+                    if testPos > test_length
+                        testPos = test_length;
                     end
                     fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
                         testScales(testPos), p1Scales(primaryPos));
@@ -181,8 +188,8 @@ while(stillLooping)
                         testScales(testPos), p1Scales(primaryPos));
                 case 'GP:East' % Move towards p1
                     primaryPos = primaryPos + stepModes(stepModePos);
-                    if primaryPos > adjustment_length
-                        primaryPos = adjustment_length;
+                    if primaryPos > primary_length
+                        primaryPos = primary_length;
                     end
                     fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
                         testScales(testPos), p1Scales(primaryPos));
