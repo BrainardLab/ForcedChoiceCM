@@ -33,6 +33,25 @@ function matches = OLRayleighMatch(varargin)
 
 
 %% Initial parameters
+% Set up director to save results into 
+subjectID = input('Enter subject ID: ');
+sessionNum = input('Enter session number: ');
+
+
+% Create directory named SubjectID for saving data, if it doesn't exist already
+outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),subjectID);
+if (~exist(outputDir,'dir'))
+    mkdir(outputDir);
+end
+
+% Create data file with name Subject ID_SessionNumber. Throw error if a
+% file already exists with that name
+fileName = [subjectID,'_', sessionNum, '.mat'];
+fileLoc = fullfile(outputDir,fileName);
+if (isfile(fileLoc))
+    error('Specified output file %s already exists', fileName);
+end
+
 % Base wavelengths - parse input
 p = inputParser;
 p.addParameter('p1', 670, @(x) (isnumeric(x)));
@@ -212,8 +231,5 @@ while(stillLooping)
 end
 
 % Save matches
-[~, userID] = system('whoami');
-userID = strtrim(userID);
-fName = fullfile('/Users',userID, 'Documents/MATLAB/projects/Experiments/ForcedChoiceCM/deena/OLRayleighMatch','OLSampleMatches.mat');
-save(fName, 'matches', 'matchPositions', 'p1', 'p2', 'test', 'cal', 'primarySpdsNominal', 'primarySpdsPredicted', 'testSpdsNominal', 'testSpdsPredicted', 'primaryStartStops', 'testStartStops');
+save(fileName, 'matches', 'matchPositions', 'p1', 'p2', 'test', 'cal', 'primarySpdsNominal', 'primarySpdsPredicted', 'testSpdsNominal', 'testSpdsPredicted', 'primaryStartStops', 'testStartStops');
 end
