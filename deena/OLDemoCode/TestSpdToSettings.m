@@ -38,9 +38,8 @@ darkSpd = OLPrimaryToSpd(cal,zeros(size(cal.computed.D,2),1));
 primaryScales = linspace(0,maxScaleFactor,nScaleFactors);
 for ii = 1:length(primaryScales)
     primaryScale = primaryScales(ii);
-    [testPrimary,testSpdPredicted] = OLSpdToPrimary(cal, primaryScale*testSpdNominal, 'lambda', lambda, ...
+    [testPrimary,testSpdPredicted] = OLSpdToPrimary(cal, primaryScale*testSpdNominal+darkSpd, 'lambda', lambda, ...
         'whichSpdToPrimaryMin', 'leastSquares', ...
-        'differentialMode', true, ...
         'verbose', false);
     relativeRMSEError(ii) = sqrt(sum( ((testSpdPredicted-primaryScale*testSpdNominal)/mean(primaryScale*testSpdNominal)).^2 ) );
 end
@@ -63,18 +62,20 @@ xlabel('Scale factor');
 ylabel('Relative error');
 
 %% Use the final scale factor and plot nominal and predicted spds
-[testPrimary,testSpdPredicted] = OLSpdToPrimary(cal, usePrimaryScale*testSpdNominal, 'lambda', lambda, ...
+[testPrimary,testSpdPredicted] = OLSpdToPrimary(cal, usePrimaryScale*testSpdNominal+darkSpd, 'lambda', lambda, ...
         'whichSpdToPrimaryMin', 'leastSquares', ...
-        'differentialMode', true, ...
         'verbose', false);
     
 % The dark spd is added back in here, so that we represent what
 % we actually think will reach the eye.
 figure;
 hold on
-plot(wls,testSpdPredicted+darkSpd,'r','LineWidth',4);
+plot(wls,testSpdPredicted,'r','LineWidth',4);
 plot(wls,usePrimaryScale*testSpdNominal+darkSpd,'k','LineWidth',2);
 xlabel('Wavelength (nm)');
 ylabel('Power');
 legend({'Predicted', 'Nominal'});
 title(sprintf('Scale factor: %0.4g',usePrimaryScale));
+
+%% Show how to get settings and starts/stops
+primarySettings = OLPrimaryToSettings(cal,testPrimary);
