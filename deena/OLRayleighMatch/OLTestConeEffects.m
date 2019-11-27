@@ -7,7 +7,11 @@ fName = input('Enter match filename: ');
 theData = load(fName);
 if (isfield(theData,'p1') == 0 || isfield(theData,'p2') == 0  ||...
         isfield(theData,'test') == 0 || isfield(theData,'matches') == 0 ...
-        || isfield(theData,'matchPositions') == 0)
+        || isfield(theData,'matchPositions') == 0 || isfield(theData, 'cal') == 0 ||...
+        isfield(theData, 'primarySpdsNominal' == 0) || isfield(theData,...
+        'primarySpdsPredicted' == 0) || isfield(theData,...
+        'testSpdsNominal' == 0)|| isfield(theData, 'testSpdsPredicted' == 0) ...
+        || isfield(theData,'primaryStartStops') == 0 || isfield(theData,'testStartStops') == 0)
     error('Data file does not contain required variables');
 end
 
@@ -16,8 +20,6 @@ end
 wls = theData.cal.computed.pr650Wls;
 S = WlsToS(wls);
 inc = wls(2) - wls(1);
-fullWidthHalfMax = 20;
-lambda = 0.001;
 
 % Generate standard cone fundamentals for observer
 lambdaMaxes = [558.9 530.3 420.7]';     % Normal trichromat
@@ -38,32 +40,32 @@ for i = 1:nMatches
     primarySpdPredicted = theData.primarySpdsPredicted(:,theData.matchPositions(i,2));
     primaryCones(:,i) = T_cones * primarySpdPredicted;
     
-    
-    
-    
+    % Plots comparing nominal and predicted spds
     figure;
     subplot(1,2,1); hold on
     plot(wls,testSpdPredicted,'r','LineWidth',4);
     plot(wls,testSpdNominal,'k','LineWidth',2);
+    title('Test'); 
+    
     subplot(1,2,2); hold on
     plot(wls,primarySpdPredicted,'r','LineWidth',4);
     plot(wls,primarySpdNominal,'k','LineWidth',2);
+    title('Primaries'); 
+    legend('Predicted', 'Nominal');
+    theTitle = sprintf('Nominal and predicted spds: match %g', i);
+    sgtitle(theTitle); 
     
-    % Plot spds
+    % Plots comparing test and match spds 
     figure();
-    OLplotSpdCheck(testSpdNominal(:, i),cal);
-    
-    hold on;
-    OLplotSpdCheck(primariesSpdNominal(:, i), theData.cal);
-    OLplotSpdCheck(testSpdPredicted(:, i), theData.cal);
-    OLplotSpdCheck(primariesSpdPredicted(:, i),theData.cal);
+    plot(wls, testSpdPredicted, 'r', wls, primarySpdPredicted, 'b'); 
     theTitle = sprintf('Match %g Spds', i);
     title(theTitle);
     legend({ 'test' 'primaries' });
     
     % Plot cone effects
     figure();
-    cones = [testCones(1,i), primaryCones(1,i); testCones(2,i), primaryCones(2,i); testCones(3,i), primaryCones(3,i)];
+    cones = [testCones(1,i), primaryCones(1,i); testCones(2,i),...
+        primaryCones(2,i); testCones(3,i), primaryCones(3,i)];
     bar(cones);
     
     names ={'L'; 'M'; 'S' };

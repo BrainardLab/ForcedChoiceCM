@@ -25,7 +25,7 @@ function matches = OLRayleighMatch(varargin)
 %
 % Optional key-value pairs:
 %    'p1'    - integer wavelength of the first primary light in nm. Default
-%              is 670. 
+%              is 670.
 %    'p2'    - integer wavelength of the second primary light in nm.
 %              Default is 540.
 %    'test'  - integer wavelength of the test light in nm. Default is 580.
@@ -40,19 +40,19 @@ p.addParameter('p2', 540, @(x) (isnumeric(x)));
 p.addParameter('test', 580, @(x) (isnumeric(x)));
 p.parse(varargin{:});
 p1 = p.Results.p1;
-p2 = p.Results.p2; 
-test = p.Results.test; 
+p2 = p.Results.p2;
+test = p.Results.test;
 
 % Length of scaling factor adjustment arrays
-primaries_length = 101; 
-test_length = 101; 
+primaries_length = 101;
+test_length = 101;
 
 % Scaling factors for intensity of primary and test lights. The two
 % primaries are each scaled from 0 to 1, and the arrays are set up so the
 % two scaling factors will always add up to 1. We start with primary2
 % scaled up to 1 and primary1 scaled down to 0.
-p1Scales = linspace(0,1,primary_length);
-p2Scales = linspace(1,0,primary_length);
+p1Scales = linspace(0,1,primaries_length);
+p2Scales = linspace(1,0,primaries_length);
 testScales = linspace(0,1,test_length);
 
 % Get the calibration structure
@@ -61,20 +61,18 @@ cal = OLGetCalibrationStructure;
 % Spectrum-generating parameters
 fullWidthHalfMax = 20;
 lambda = 0.001;
-[spdLength,primaryLength] =  size(cal.computed.pr650M);
+[spdLength,settingsLength] =  size(cal.computed.pr650M);
 numCols = cal.describe.numColMirrors; % Number of mirrors in each OL column
 
 % Initialize arrays for storing precomputed adjustments. The StartStops
 % arrays have one column each for start and stop.
 testSpdsNominal = zeros(spdLength,test_length);
 testSpdsPredicted = zeros(spdLength,test_length);
-testSettings = zeros(primaryLength,test_length);
-testStartStops = zeros(test_length,2,numCols);
+testSettings = zeros(settingsLength,test_length);
 
-primarySpdsNominal = zeros(spdLength, primary_length);
-primarySpdsPredicted = zeros(spdLength,primary_length);
-primarySettings = zeros(primaryLength, primary_length);
-primaryStartStops = zeros(primary_length,2,numCols);
+primarySpdsNominal = zeros(spdLength, primaries_length);
+primarySpdsPredicted = zeros(spdLength,primaries_length);
+primarySettings = zeros(settingsLength, primaries_length);
 
 % Scale test and primary lights, clip if needed, convert to OL spectra
 for i = 1:test_length
@@ -84,30 +82,33 @@ for i = 1:test_length
     % Check whether any of the settings are 1. If so, we can't actually
     % produce the desired spectrum.
     if testSettings(:,i) == 1
-        testSettings = testSettings(:, 1:(i-1)); 
-        test_length = i - 1; 
+        testSettings = testSettings(:, 1:(i-1));
+        test_length = i - 1;
         fprintf('Maxed out on test settings at position %g.\n', i);
-        break; 
+        break;
     end
-    
-    [testStart,testStop] = OLSettingsToStartsStops(cal, testSettings(:,i));
-    testStartStops(i,1,:) = testStart;
-    testStartStops(i,2,:) = testStop;
-end 
+end
+testStartStops = zeros(test_length,2,numCols);
+[testStart,testStop] = OLSettingsToStartsStops(cal, testSettings(:,i));
+testStartStops(i,1,:) = testStart;
+testStartStops(i,2,:) = testStop;
 
 for i = 1:primaries_length
     primary1Spd = OLMakeMonochromaticSpd(cal, p1, fullWidthHalfMax)/3;
     primary2Spd = OLMakeMonochromaticSpd(cal, p2, fullWidthHalfMax)/3;
     primarySpdsNominal(:,i) = (p1Scales(i) * primary1Spd) + (p2Scales(i) * primary2Spd);
     [primarySettings(:,i),~,primarySpdsPredicted(:,i)] = OLSpdToSettings(cal, primarySpdsNominal(:,i), 'lambda', lambda);
-    
-    if (any(primarySettings(:,i) == 1))
-        fprintf('Maxed out on primary settings.\n');
+    if primarySettings(:,i) == 1
+        primarySettings = primarySettings(:, 1:(i-1));
+        primaries_length = i - 1;
+        fprintf('Maxed out on primary settings at position %g.\n', i);
+        break;
     end
-    [primaryStart,primaryStop] = OLSettingsToStartsStops(cal, primarySettings(:,i));
-    primaryStartStops(i,1,:) = primaryStart;
-    primaryStartStops(i,2,:) = primaryStop;
 end
+primaryStartStops = zeros(primaries_length,2,numCols);
+[primaryStart,primaryStop] = OLSettingsToStartsStops(cal, primarySettings(:,i));
+primaryStartStops(i,1,:) = primaryStart;
+primaryStartStops(i,2,:) = primaryStop;
 
 %% Take a look at spectra (optional)
 makeFigs = false;
@@ -168,13 +169,14 @@ while(stillLooping)
                         testScales(testPos), p1Scales(primaryPos));
                     matches = [matches;...
                         [testScales(testPos), p1Scales(primaryPos)]];
-                    matchPositions = [matchPositions; [testPos, primaryPos]]; 
+                    matchPositions = [matchPositions; [testPos, primaryPos]];
                 case 'GP:A' % Quit
                     fprintf('User exited program \n');
-                    stillLooping = false; 
+                    stillLooping = false;
                 case 'GP:North' % Scale up test intensity
                     testPos = testPos + stepModes(stepModePos);
                     if testPos > test_length
+                        Snd('Play',sin(0:5000)/10); 
                         testPos = test_length;
                     end
                     fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
@@ -182,20 +184,23 @@ while(stillLooping)
                 case 'GP:South' % Scale down test intensity
                     testPos = testPos - stepModes(stepModePos);
                     if testPos < 1
+                        Snd('Play',sin(0:5000)/10);
                         testPos = 1;
                     end
                     fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
                         testScales(testPos), p1Scales(primaryPos));
                 case 'GP:East' % Move towards p1
                     primaryPos = primaryPos + stepModes(stepModePos);
-                    if primaryPos > primary_length
-                        primaryPos = primary_length;
+                    if primaryPos > primaries_length
+                        Snd('Play',sin(0:5000)/10);
+                        primaryPos = primaries_length;
                     end
                     fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
                         testScales(testPos), p1Scales(primaryPos));
                 case 'GP:West' % Move towards p2
                     primaryPos = primaryPos - stepModes(stepModePos);
                     if primaryPos < 1
+                        Snd('Play',sin(0:5000)/10);
                         primaryPos = 1;
                     end
                     fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
@@ -206,7 +211,7 @@ while(stillLooping)
     isPrimary = ~isPrimary; % Switch from primary to test
 end
 
-% Save matches 
+% Save matches
 [~, userID] = system('whoami');
 userID = strtrim(userID);
 fName = fullfile('/Users',userID, 'Documents/MATLAB/projects/Experiments/ForcedChoiceCM/deena/OLRayleighMatch','OLSampleMatches.mat');
