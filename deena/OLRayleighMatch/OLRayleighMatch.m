@@ -46,9 +46,9 @@ end
 
 % Create data file with name Subject ID_SessionNumber. Throw error if a
 % file already exists with that name
-fileName = [subjectID,'_', sessionNum, '.mat'];
+fileName = [subjectID, '_', num2str(sessionNum), '.mat'];
 fileLoc = fullfile(outputDir,fileName);
-if (isfile(fileLoc))
+if (exist(fileLoc, 'file'))
     error('Specified output file %s already exists', fileName);
 end
 
@@ -145,6 +145,7 @@ delaySecs = 2; % time in seconds that a given field is displayed for
 isPrimary = true; % are we currently displaying primary or test light?
 stepModes = [20 5 1]; % Possible step sizes (relative to adjustment_length)
 matches = []; % Output array with subject matches
+matchPositions = []; % Positions o matches in the adjustment array 
 
 % Initial position in primary, test, and step size arrays
 primaryPos = 1;
@@ -195,7 +196,8 @@ while(stillLooping)
                 case 'GP:North' % Scale up test intensity
                     testPos = testPos + stepModes(stepModePos);
                     if testPos > test_length
-                        Snd('Play',sin(0:5000)/10); 
+                        Snd('Play',sin(0:5000)/50); 
+                        fprintf('User reached upper test limit \n'); 
                         testPos = test_length;
                     end
                     fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
@@ -203,7 +205,8 @@ while(stillLooping)
                 case 'GP:South' % Scale down test intensity
                     testPos = testPos - stepModes(stepModePos);
                     if testPos < 1
-                        Snd('Play',sin(0:5000)/10);
+                        Snd('Play',sin(0:5000)/50);
+                        fprintf('User reached lower test limit \n'); 
                         testPos = 1;
                     end
                     fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
@@ -211,7 +214,8 @@ while(stillLooping)
                 case 'GP:East' % Move towards p1
                     primaryPos = primaryPos + stepModes(stepModePos);
                     if primaryPos > primaries_length
-                        Snd('Play',sin(0:5000)/10);
+                        Snd('Play',sin(0:5000)/50);
+                        fprintf('User reached upper primary limit \n'); 
                         primaryPos = primaries_length;
                     end
                     fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
@@ -219,7 +223,8 @@ while(stillLooping)
                 case 'GP:West' % Move towards p2
                     primaryPos = primaryPos - stepModes(stepModePos);
                     if primaryPos < 1
-                        Snd('Play',sin(0:5000)/10);
+                        Snd('Play',sin(0:5000)/50);
+                        fprintf('User reached lower primary limit \n'); 
                         primaryPos = 1;
                     end
                     fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
@@ -231,5 +236,8 @@ while(stillLooping)
 end
 
 % Save matches
-save(fileName, 'matches', 'matchPositions', 'p1', 'p2', 'test', 'cal', 'primarySpdsNominal', 'primarySpdsPredicted', 'testSpdsNominal', 'testSpdsPredicted', 'primaryStartStops', 'testStartStops');
+save(fileLoc, 'matches', 'matchPositions', 'p1', 'p2', 'test', 'cal',...
+    'primarySpdsNominal', 'primarySpdsPredicted', 'testSpdsNominal',...
+    'testSpdsPredicted', 'primaryStartStops', 'testStartStops',...
+    'subjectID', 'sessionNum');
 end

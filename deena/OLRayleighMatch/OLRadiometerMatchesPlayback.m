@@ -1,4 +1,24 @@
+% Program to play back OneLight Rayleigh matches and measure with
+% radiometer
 function OLRadiometerMatchesPlayback(matchFile)
+% Syntax:
+%   OLRayleighMatch(matchFile)
+%
+% Description
+%    Takes in a file of user's Rayleigh matches on the OneLight. Plays
+%    these back and records using the radiometer 
+%
+% Inputs:
+%    matchfile  - character array of filename. Ends in .mat
+%
+% Outputs:
+%    saves a file named 'matchfile_meas.mat' in the same directory as
+%    matchfile. 
+%
+% Optional key-value pairs:
+%    none 
+
+% Example: OLRadiometerMatchesPlayback('/Users/melanopsin/Dropbox (Aguirre-Brainard Lab)/MELA_data/Experiments/ForcedChoiceCM/OLRayleighMatches/test/test_1.mat')
 
 %% Load file and check it contains required variables
 theData = load(matchFile);
@@ -54,11 +74,7 @@ for i = 1:numMatches
 end
 
 % Save data
-fName = [matchesFilename, '_meas']; 
-[~, userID] = system('whoami');
-userID = strtrim(userID);
-filePath = fullfile('/Users',userID, 'Documents/MATLAB/projects/Experiments/ForcedChoiceCM/deena/OLRayleighMatch','OLPlaybackMatches.mat');
-
+fName = [matchFile(1:end - 4), '_meas', '.mat']; 
 save(fName, 'testWls', 'measuredTestSpds', 'measuredPrimarySpds');
 spectroRadiometerOBJ.shutDown;
 disp('Successfully played back matches'); 

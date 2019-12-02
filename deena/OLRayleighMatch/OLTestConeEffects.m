@@ -1,18 +1,24 @@
+function OLTestConeEffects(fName)
 % Script for computing cone responses of OL matches. Used to verify whether
 % subjects' settings for primary ratio and test intensity in a given match
-% lead to similar effects on their cones.
-
-% Ask user to enter filename, load data
-fName = input('Enter match filename: ');
+% lead to similar effects on their cones. Saves data in
 theData = load(fName);
 if (isfield(theData,'p1') == 0 || isfield(theData,'p2') == 0  ||...
         isfield(theData,'test') == 0 || isfield(theData,'matches') == 0 ...
         || isfield(theData,'matchPositions') == 0 || isfield(theData, 'cal') == 0 ||...
-        isfield(theData, 'primarySpdsNominal' == 0) || isfield(theData,...
-        'primarySpdsPredicted' == 0) || isfield(theData,...
-        'testSpdsNominal' == 0)|| isfield(theData, 'testSpdsPredicted' == 0) ...
-        || isfield(theData,'primaryStartStops') == 0 || isfield(theData,'testStartStops') == 0)
+        isfield(theData, 'primarySpdsNominal') == 0 || isfield(theData,...
+        'primarySpdsPredicted') == 0 || isfield(theData,...
+        'testSpdsNominal') == 0|| isfield(theData, 'testSpdsPredicted') == 0 ...
+        || isfield(theData,'primaryStartStops') == 0 || isfield(theData,...
+        'testStartStops') == 0 || isfield(theData,'subjectID') == 0 || ...
+        isfield(theData, 'sessionNum') == 0)
     error('Data file does not contain required variables');
+end
+
+% Make directory for saving files 
+outputDir = fullfile(getpref('ForcedChoiceCM','rayleighAnalysisDir'), 'cone response plots', theData.subjectID);
+if (~exist(outputDir,'dir'))
+    mkdir(outputDir);
 end
 
 % Calculate sizes and initialize spd arrays
@@ -45,19 +51,19 @@ for i = 1:nMatches
     subplot(1,2,1); hold on
     plot(wls,testSpdPredicted,'r','LineWidth',4);
     plot(wls,testSpdNominal,'k','LineWidth',2);
-    title('Test'); 
+    title('Test');
     
     subplot(1,2,2); hold on
     plot(wls,primarySpdPredicted,'r','LineWidth',4);
     plot(wls,primarySpdNominal,'k','LineWidth',2);
-    title('Primaries'); 
+    title('Primaries');
     legend('Predicted', 'Nominal');
     theTitle = sprintf('Nominal and predicted spds: match %g', i);
-    sgtitle(theTitle); 
+    sgtitle(theTitle);
     
-    % Plots comparing test and match spds 
+    % Plots comparing test and match spds
     figure();
-    plot(wls, testSpdPredicted, 'r', wls, primarySpdPredicted, 'b'); 
+    plot(wls, testSpdPredicted, 'r', wls, primarySpdPredicted, 'b');
     theTitle = sprintf('Match %g Spds', i);
     title(theTitle);
     legend({ 'test' 'primaries' });
@@ -73,4 +79,5 @@ for i = 1:nMatches
     theTitle = sprintf('Match %g Cone Responses', i);
     title(theTitle);
     legend('Test','Primaries');
+end
 end

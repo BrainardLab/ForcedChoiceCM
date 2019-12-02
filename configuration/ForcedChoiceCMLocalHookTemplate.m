@@ -48,7 +48,8 @@ end
 %
 % This will need to be locally configured.
 setpref(projectName,'simulatedDataDir',fullfile(projectBaseDir,'SimulatedData'));
-setpref(projectName,'rayleighDataDir',fullfile(baseDir,'MELA_data','Experiments',projectName,'OLRayleighMatches'));
+setpref(projectName,'rayleighDataDir',fullfile(baseDir,'MELA_data','Experiments',projectName));
+setpref(projectName,'rayleighAnalysisDir',fullfile(baseDir,'MELA_analysis','Experiments',projectName, 'OLRayleighMatch'));
 % setpref(projectName,'mainExpDir',projectBaseDir);
 % setpref(projectName,'analysisDir',fullfile(baseDir,'CNST_analysis',projectName));
 % setpref(projectName,'stimulusFolder',fullfile(baseDir,'CNST_materials',projectName,'E3'));
