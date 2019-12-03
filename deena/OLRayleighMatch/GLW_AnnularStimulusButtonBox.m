@@ -1,4 +1,4 @@
-function GLW_AnnularStimulusButtonBox()
+function results = GLW_AnnularStimulusButtonBox()
 % GLW_AnnularStimulusButtonBox()
 %
 % Annular stimulus which can be moved and resized with a button box. The
@@ -67,7 +67,7 @@ try
     disp('Press Back to exit');
     disp('Commands:');
     disp(['Press Start to toggle step size: coarse is ' num2str(coarseStepSize)...
-          ' px, fine is ' num2str(fineStepSize) ' px']);
+        ' px, fine is ' num2str(fineStepSize) ' px']);
     disp('Use directional pad for positional adjustment (L, R, U, D)');
     disp('Use A (-) and Y (+) for diameter adjustment [inner circle]');
     disp('Use X (-) and B (+) for diameter adjustment [outer circle]');
@@ -127,8 +127,10 @@ try
             win.draw;
         end
     end
-    win.close;
-    
+    win.draw;
+    %     file = fullfile(getpref('ForcedChoiceCM', 'rayleighDataDir'), 'OLAnnulusSettings.mat');
+    %     save(file, 'win');
+    %     win.close();
 catch e
     disp('An exception was raised');
     

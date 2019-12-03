@@ -37,8 +37,7 @@ function matches = OLRayleighMatch(varargin)
 subjectID = input('Enter subject ID: ');
 sessionNum = input('Enter session number: ');
 
-
-% Create directory named SubjectID for saving data, if it doesn't exist already
+% Create directory named SubjectID for saving data, if it doesn't exist 
 outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),subjectID);
 if (~exist(outputDir,'dir'))
     mkdir(outputDir);
@@ -139,6 +138,12 @@ if makeFigs
     OLplotSpdCheck(cal.computed.pr650Wls, primarySpdsNominal);
 end
 
+%% Set up projector 
+annulusWindow = fullfile(getpref('ForcedChoiceCM', 'rayleighDataDir'), 'OLAnnulusSettings.mat');
+annulusSettings = load(annulusWindow); 
+annulusSettings.win.open(); 
+annulusSettings.win.draw(); 
+
 %% Display loop
 % Display parameters
 delaySecs = 2; % time in seconds that a given field is displayed for
@@ -160,6 +165,7 @@ stillLooping = true;
 
 % Loop through primary and test light until the user presses a key
 while(stillLooping)
+    annulusSettings.win.draw(); 
     nowTime = mglGetSecs;
     % Display primary or test light
     if isPrimary
@@ -240,6 +246,7 @@ while(stillLooping)
     isPrimary = ~isPrimary; % Switch from primary to test
 end
 
+annulusSettings.win.close();
 % Save matches
 save(fileLoc, 'matches', 'matchPositions', 'p1', 'p2', 'test', 'cal',...
     'primarySpdsNominal', 'primarySpdsPredicted', 'testSpdsNominal',...
