@@ -232,6 +232,11 @@ while(stillLooping)
             end
         end
     end
+    % Display white light for one second between iterations
+    nowTime = mglGetSecs; 
+    while(mglGetSecs < nowTime + 1) 
+        ol.setAll(true);
+    end 
     isPrimary = ~isPrimary; % Switch from primary to test
 end
 

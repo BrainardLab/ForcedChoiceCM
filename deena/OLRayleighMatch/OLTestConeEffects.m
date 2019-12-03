@@ -1,7 +1,26 @@
+% Calculates cone effects of subjects' OL Rayleigh matches
 function OLTestConeEffects(fName)
-% Script for computing cone responses of OL matches. Used to verify whether
-% subjects' settings for primary ratio and test intensity in a given match
-% lead to similar effects on their cones. Saves data in
+% Syntax:
+%   OLTestConeEffects(fName)
+%
+% Description
+%    Takes in a file of user's Rayleigh matches on the OneLight. For each \
+%    match, the program calculates and plots a comparison of nominal and
+%    predicted spds, a comparison of test and match predicted spds, and a
+%    bar graph of cone responses to the test and match lights. Figures are
+%    saved as PDFs in a subject-specific folder in MELA_analysis. 
+%
+% Inputs:
+%    fName  - character array of filename. Ends in .mat
+%
+% Outputs:
+%    saves three PDFs for each match in the match file
+%
+% Optional key-value pairs:
+%    none 
+
+% Example: OLTestConeEffefcts('/Users/melanopsin/Dropbox (Aguirre-Brainard Lab)/MELA_data/Experiments/ForcedChoiceCM/OLRayleighMatches/test/test_1.mat')
+
 theData = load(fName);
 if (isfield(theData,'p1') == 0 || isfield(theData,'p2') == 0  ||...
         isfield(theData,'test') == 0 || isfield(theData,'matches') == 0 ...
@@ -58,8 +77,10 @@ for i = 1:nMatches
     plot(wls,primarySpdNominal,'k','LineWidth',2);
     title('Primaries');
     legend('Predicted', 'Nominal');
-    theTitle = sprintf('Nominal and predicted spds: match %g', i);
-    sgtitle(theTitle);
+    theTitle = sprintf('Match %g nominal and predicted spds', i);
+    % sgtitle(theTitle);
+    file = fullfile(outputDir, [theData.subjectID, '_', theTitle, '.pdf']); 
+    saveas(gcf, file); 
     
     % Plots comparing test and match spds
     figure();
@@ -67,6 +88,8 @@ for i = 1:nMatches
     theTitle = sprintf('Match %g Spds', i);
     title(theTitle);
     legend({ 'test' 'primaries' });
+    file = fullfile(outputDir, [theData.subjectID, '_', theTitle, '.pdf']); 
+    saveas(gcf, file); 
     
     % Plot cone effects
     figure();
@@ -79,5 +102,7 @@ for i = 1:nMatches
     theTitle = sprintf('Match %g Cone Responses', i);
     title(theTitle);
     legend('Test','Primaries');
+    file = fullfile(outputDir, [theData.subjectID, '_', theTitle, '.pdf']); 
+    saveas(gcf, file); 
 end
 end
