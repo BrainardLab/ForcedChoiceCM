@@ -139,10 +139,7 @@ if makeFigs
 end
 
 %% Set up projector 
-annulusWindow = fullfile(getpref('ForcedChoiceCM', 'rayleighDataDir'), 'OLAnnulusSettings.mat');
-annulusSettings = load(annulusWindow); 
-annulusSettings.win.open(); 
-annulusSettings.win.draw(); 
+GLW_AnnularStimulusButtonBox(); 
 
 %% Display loop
 % Display parameters
@@ -165,7 +162,6 @@ stillLooping = true;
 
 % Loop through primary and test light until the user presses a key
 while(stillLooping)
-    annulusSettings.win.draw(); 
     nowTime = mglGetSecs;
     % Display primary or test light
     if isPrimary
@@ -246,7 +242,8 @@ while(stillLooping)
     isPrimary = ~isPrimary; % Switch from primary to test
 end
 
-annulusSettings.win.close();
+GLW_CloseAnnularStimulus(); 
+
 % Save matches
 save(fileLoc, 'matches', 'matchPositions', 'p1', 'p2', 'test', 'cal',...
     'primarySpdsNominal', 'primarySpdsPredicted', 'testSpdsNominal',...

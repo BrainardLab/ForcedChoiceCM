@@ -1,6 +1,3 @@
-function results = GLW_AnnularStimulusButtonBox()
-% GLW_AnnularStimulusButtonBox()
-%
 % Annular stimulus which can be moved and resized with a button box. The
 % directional pad can be used to adjust the position of the annulus left,
 % right, up, or down. The Y and A keys are used to increase/decrease the
@@ -128,20 +125,20 @@ try
         end
     end
     win.draw;
-    %     file = fullfile(getpref('ForcedChoiceCM', 'rayleighDataDir'), 'OLAnnulusSettings.mat');
-    %     save(file, 'win');
-    %     win.close();
+    
+    % Optional setting to save annular stimulus window so it can be used
+    % later
+    saveWin = false; 
+    if saveWin
+        file = fullfile(getpref('ForcedChoiceCM', 'rayleighDataDir'), 'OLAnnulusSettings.mat');
+        save(file, 'win');
+    end 
+    
 catch e
     disp('An exception was raised');
     
-    % Close the window if it was succesfully created.
-    if ~isempty(win)
-        win.close;
-    end
-    
     % Send the error back to the Matlab command window.
     rethrow(e);
-end
 end
 
 
