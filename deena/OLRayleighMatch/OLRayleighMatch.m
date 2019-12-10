@@ -33,11 +33,11 @@ function matches = OLRayleighMatch(varargin)
 
 
 %% Initial parameters
-% Set up director to save results into 
+% Set up director to save results into
 subjectID = input('Enter subject ID: ');
 sessionNum = input('Enter session number: ');
 
-% Create directory named SubjectID for saving data, if it doesn't exist 
+% Create directory named SubjectID for saving data, if it doesn't exist
 outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),subjectID);
 if (~exist(outputDir,'dir'))
     mkdir(outputDir);
@@ -101,15 +101,19 @@ for i = 1:test_length
     % produce the desired spectrum.
     if testSettings(:,i) == 1
         testSettings = testSettings(:, 1:(i-1));
+        testSpdsPredicted = testSpdsPredicted(:, 1:(i-1));
         test_length = i - 1;
         fprintf('Maxed out on test settings at position %g.\n', i);
         break;
     end
 end
+
 testStartStops = zeros(test_length,2,numCols);
-[testStart,testStop] = OLSettingsToStartsStops(cal, testSettings(:,i));
-testStartStops(i,1,:) = testStart;
-testStartStops(i,2,:) = testStop;
+for i = 1: test_length
+    [testStart,testStop] = OLSettingsToStartsStops(cal, testSettings(:,i));
+    testStartStops(i,1,:) = testStart;
+    testStartStops(i,2,:) = testStop;
+end
 
 for i = 1:primaries_length
     primary1Spd = OLMakeMonochromaticSpd(cal, p1, fullWidthHalfMax)/3;
@@ -118,16 +122,18 @@ for i = 1:primaries_length
     [primarySettings(:,i),~,primarySpdsPredicted(:,i)] = OLSpdToSettings(cal, primarySpdsNominal(:,i), 'lambda', lambda);
     if primarySettings(:,i) == 1
         primarySettings = primarySettings(:, 1:(i-1));
+        primarySpdsPredicted = primarySpdsPredicted(:, 1:(i-1));
         primaries_length = i - 1;
         fprintf('Maxed out on primary settings at position %g.\n', i);
         break;
     end
 end
 primaryStartStops = zeros(primaries_length,2,numCols);
-[primaryStart,primaryStop] = OLSettingsToStartsStops(cal, primarySettings(:,i));
-primaryStartStops(i,1,:) = primaryStart;
-primaryStartStops(i,2,:) = primaryStop;
-
+for i = 1:primaries_length
+    [primaryStart,primaryStop] = OLSettingsToStartsStops(cal, primarySettings(:,i));
+    primaryStartStops(i,1,:) = primaryStart;
+    primaryStartStops(i,2,:) = primaryStop;
+end
 %% Take a look at spectra (optional)
 makeFigs = false;
 if makeFigs
@@ -138,8 +144,8 @@ if makeFigs
     OLplotSpdCheck(cal.computed.pr650Wls, primarySpdsNominal);
 end
 
-%% Set up projector 
-GLW_AnnularStimulusButtonBox(); 
+%% Set up projector
+%GLW_AnnularStimulusButtonBox();
 
 %% Display loop
 % Display parameters
@@ -147,7 +153,7 @@ delaySecs = 2; % time in seconds that a given field is displayed for
 isPrimary = true; % are we currently displaying primary or test light?
 stepModes = [20 5 1]; % Possible step sizes (relative to adjustment_length)
 matches = []; % Output array with subject matches
-matchPositions = []; % Positions o matches in the adjustment array 
+matchPositions = []; % Positions o matches in the adjustment array
 
 % Initial position in primary, test, and step size arrays
 primaryPos = 1;
@@ -198,8 +204,8 @@ while(stillLooping)
                 case 'GP:North' % Scale up test intensity
                     testPos = testPos + stepModes(stepModePos);
                     if testPos > test_length
-                        Snd('Play',sin(0:5000)/50); 
-                        fprintf('User reached upper test limit \n'); 
+                        Snd('Play',sin(0:5000)/50);
+                        fprintf('User reached upper test limit \n');
                         testPos = test_length;
                     end
                     fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
@@ -208,7 +214,7 @@ while(stillLooping)
                     testPos = testPos - stepModes(stepModePos);
                     if testPos < 1
                         Snd('Play',sin(0:5000)/50);
-                        fprintf('User reached lower test limit \n'); 
+                        fprintf('User reached lower test limit \n');
                         testPos = 1;
                     end
                     fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
@@ -217,7 +223,7 @@ while(stillLooping)
                     primaryPos = primaryPos + stepModes(stepModePos);
                     if primaryPos > primaries_length
                         Snd('Play',sin(0:5000)/50);
-                        fprintf('User reached upper primary limit \n'); 
+                        fprintf('User reached upper primary limit \n');
                         primaryPos = primaries_length;
                     end
                     fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
@@ -226,7 +232,7 @@ while(stillLooping)
                     primaryPos = primaryPos - stepModes(stepModePos);
                     if primaryPos < 1
                         Snd('Play',sin(0:5000)/50);
-                        fprintf('User reached lower primary limit \n'); 
+                        fprintf('User reached lower primary limit \n');
                         primaryPos = 1;
                     end
                     fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
@@ -235,14 +241,14 @@ while(stillLooping)
         end
     end
     % Display white light for one second between iterations
-    nowTime = mglGetSecs; 
-    while(mglGetSecs < nowTime + 1) 
-        ol.setAll(true);
-    end 
+    %     nowTime = mglGetSecs;
+    %     while(mglGetSecs < nowTime + 1)
+    %         ol.setAll(true);
+    %     end
     isPrimary = ~isPrimary; % Switch from primary to test
 end
 
-GLW_CloseAnnularStimulus(); 
+%GLW_CloseAnnularStimulus();
 
 % Save matches
 save(fileLoc, 'matches', 'matchPositions', 'p1', 'p2', 'test', 'cal',...

@@ -50,8 +50,8 @@ spectroRadiometerOBJ.setOptions(...
 
 %% Set up initial files
 ol = OneLight();
-numMatches = length(theData.matches); 
-[spdLength, ~] = size(theData.primarySpdPredicted); 
+[numMatches, ~] = size(theData.matches); 
+[spdLength, ~] = size(theData.primarySpdsPredicted); 
 measuredPrimarySpds = zeros(spdLength, numMatches); 
 measuredTestSpds = zeros(spdLength, numMatches); 
 
@@ -59,15 +59,15 @@ measuredTestSpds = zeros(spdLength, numMatches);
  
 for i = 1:numMatches
     % Display primary on OL, measure with radiometer
-    ol.setMirrors(squeeze(theData.primaryStartStops(i,1,:))',...
-            squeeze(theData.primaryStartStops(i,2,:))');
+    ol.setMirrors(squeeze(theData.primaryStartStops(theData.matchPositions(i,2),1,:))',...
+            squeeze(theData.primaryStartStops(theData.matchPositions(i,2),2,:))');
     pause(0.1);
     primaryMeas = spectroRadiometerOBJ.measure;
     measuredPrimarySpds(:,i) = primaryMeas;  
     
     % Display test on OL, measure with radiometer
-    ol.setMirrors(squeeze(theData.testStartStops(i,1,:))',...
-            squeeze(theData.testStartStops(i,2,:))');
+    ol.setMirrors(squeeze(theData.testStartStops(theData.matchPositions(i,1),1,:))',...
+            squeeze(theData.testStartStops(theData.matchPositions(i,1),2,:))');
     pause(0.1);
     testMeas = spectroRadiometerOBJ.measure;
     measuredTestSpds(:,i) = testMeas; 
@@ -75,7 +75,7 @@ end
 
 % Save data
 fName = [matchFile(1:end - 4), '_meas', '.mat']; 
-save(fName, 'testWls', 'measuredTestSpds', 'measuredPrimarySpds');
+save(fName, 'measuredTestSpds', 'measuredPrimarySpds');
 spectroRadiometerOBJ.shutDown;
 disp('Successfully played back matches'); 
 end 

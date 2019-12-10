@@ -35,7 +35,7 @@ if (isfield(theData,'p1') == 0 || isfield(theData,'p2') == 0  ||...
 end
 
 % Make directory for saving files 
-outputDir = fullfile(getpref('ForcedChoiceCM','rayleighAnalysisDir'), 'cone response plots', theData.subjectID);
+outputDir = fullfile(getpref('ForcedChoiceCM','rayleighAnalysisDir'), 'cone response plots', theData.subjectID, num2str(theData.sessionNum));
 if (~exist(outputDir,'dir'))
     mkdir(outputDir);
 end
