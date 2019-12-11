@@ -71,11 +71,12 @@ for i = 1:numMatches
     pause(0.1);
     testMeas = spectroRadiometerOBJ.measure;
     measuredTestSpds(:,i) = testMeas; 
+    
+    fprintf('Match %g completed\n', i); 
 end
 
 % Save data
 fName = [matchFile(1:end - 4), '_meas', '.mat']; 
 save(fName, 'measuredTestSpds', 'measuredPrimarySpds');
 spectroRadiometerOBJ.shutDown;
-disp('Successfully played back matches'); 
 end 

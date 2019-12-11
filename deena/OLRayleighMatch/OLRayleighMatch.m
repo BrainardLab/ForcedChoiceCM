@@ -145,7 +145,9 @@ if makeFigs
 end
 
 %% Set up projector
-%GLW_AnnularStimulusButtonBox();
+fprintf('Set up projector\n'); 
+GLW_AnnularStimulusButtonBox();
+fprintf('Projector ready. Starting display loop\n') 
 
 %% Display loop
 % Display parameters
@@ -163,7 +165,6 @@ stepModePos = 1; % Start with largest step size
 % Intialize OneLight and button box
 ol = OneLight;
 gamePad = GamePad();
-fprintf('Starting display loop \n');
 stillLooping = true;
 
 % Loop through primary and test light until the user presses a key
@@ -241,18 +242,20 @@ while(stillLooping)
         end
     end
     % Display white light for one second between iterations
-    %     nowTime = mglGetSecs;
-    %     while(mglGetSecs < nowTime + 1)
-    %         ol.setAll(true);
-    %     end
+        nowTime = mglGetSecs;
+        while(mglGetSecs < nowTime + 1)
+            ol.setAll(true);
+        end
     isPrimary = ~isPrimary; % Switch from primary to test
 end
 
-%GLW_CloseAnnularStimulus();
-
+GLW_CloseAnnularStimulus();
+ol.setAll(false); 
 % Save matches
-save(fileLoc, 'matches', 'matchPositions', 'p1', 'p2', 'test', 'cal',...
+if ~isempty(matches)
+    save(fileLoc, 'matches', 'matchPositions', 'p1', 'p2', 'test', 'cal',...
     'primarySpdsNominal', 'primarySpdsPredicted', 'testSpdsNominal',...
     'testSpdsPredicted', 'primaryStartStops', 'testStartStops',...
     'subjectID', 'sessionNum');
+end 
 end

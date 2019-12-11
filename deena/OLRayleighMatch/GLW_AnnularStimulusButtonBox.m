@@ -7,7 +7,7 @@
 %
 % 12/3/13  npc Wrote it.
 % 6/23/14  ms  Display an annulus.
-% 11/21/19 dce Modified to take input from button box instead of keypresses
+% 11/21/19 dce Modified to take inp«qqq'''ut from button box instead of keypresses
 
 % Background
 backgroundRGB = [1 1 1]; % Half-on
