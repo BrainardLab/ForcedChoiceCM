@@ -26,7 +26,7 @@ fixationCrossDiameter = 10;
 fixationCrossRGB = [1 0 0];
 
 % Define step sizes for the navigation
-fineStepSize = 1;
+fineStepSize = 5;
 coarseStepSize = 30;
 
 % Get information about the displays attached to our system.

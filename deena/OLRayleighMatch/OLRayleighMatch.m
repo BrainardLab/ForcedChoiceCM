@@ -145,14 +145,30 @@ if makeFigs
 end
 
 %% Set up projector
-fprintf('Set up projector\n'); 
-GLW_AnnularStimulusButtonBox();
-fprintf('Projector ready. Starting display loop\n') 
+fprintf('**** Set up projector ****\n'); 
+annulusFile = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),'OLAnnulusSettings.mat'); 
+if exist(annulusFile, 'file')
+    fprintf('\n'); 
+    fprintf(['[1]: Use existing annulus settings file ', annulusFile, '\n']);
+    fprintf('[2]: Reset annulus\n');
+    res = GetInput('Select option:', 'number', 1);
+    if res == 1 
+        annulusData = load(annulusFile); 
+        annulusData.win.open; 
+        annulusData.win.draw; 
+    else 
+        GLW_AnnularStimulusButtonBox(); 
+    end 
+else 
+    GLW_AnnularStimulusButtonBox(); 
+end 
+fprintf('\nProjector ready. Starting display loop\n') 
 
 %% Display loop
 % Display parameters
 delaySecs = 2; % time in seconds that a given field is displayed for
 isPrimary = true; % are we currently displaying primary or test light?
+whiteStopIndex = 700; % start stops index for brightness of white light 
 stepModes = [20 5 1]; % Possible step sizes (relative to adjustment_length)
 matches = []; % Output array with subject matches
 matchPositions = []; % Positions o matches in the adjustment array
@@ -241,10 +257,13 @@ while(stillLooping)
             end
         end
     end
-    % Display white light for one second between iterations
-        nowTime = mglGetSecs;
-        while(mglGetSecs < nowTime + 1)
-            ol.setAll(true);
+    % Display white light for one second on every other iteration
+        if ~isPrimary 
+            nowTime = mglGetSecs;
+            while(mglGetSecs < nowTime + 1)
+                ol.setMirrors(squeeze(whiteStopIndex * ones(1, numCols))',...
+                squeeze(whiteStopIndex * ones(1, numCols))');
+            end 
         end
     isPrimary = ~isPrimary; % Switch from primary to test
 end

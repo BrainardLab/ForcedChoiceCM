@@ -1,14 +1,13 @@
 try
-    win = GLWindow('windowID', length(mglDescribeDisplays));
-    win.close(); 
-catch e 
-        disp('An exception was raised');
-    
-    % Close the window if it was succesfully created.
-    if ~isempty(win)
-        win.close;
+    if exist('annulusData', 'var')
+        annulusData.win.close();
+    else
+        win = GLWindow('windowID', length(mglDescribeDisplays));
+        win.close();
     end
+catch e
+    disp('An exception was raised');
     
     % Send the error back to the Matlab command window.
     rethrow(e);
-end 
+end

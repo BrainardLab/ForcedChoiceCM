@@ -1,12 +1,13 @@
-halfOnStart = zeros(1, 1024);
-halfOnStop = zeros(1, 1024);
-for i = 1:1024
-    halfOnStart(i) = 384;
-    halfOnStop(i) = 384;
-end
+halfOnStart = 769 * ones(1, 1024);
+halfOnStop = 769 * ones(1, 1024);
+
 ol = OneLight;
-ol.setAll(false);
-pause(1);
-ol.setMirrors(squeeze(halfOnStart)', squeeze(halfOnStop)');
-pause(1);
+%ol.setMirrors(squeeze(halfOnStart)', squeeze(halfOnStop)');
 ol.setAll(true);
+pause(1);
+Snd('Play',sin(0:5000));
+ol.setMirrors(squeeze(710 * ones(1, 1024)'),...
+    squeeze(710 * ones(1, 1024)'));
+pause(1);
+Snd('Play',sin(0:5000));
+ol.setAll(false); 
