@@ -39,6 +39,9 @@ function matches = OLRayleighMatch(varargin)
 % History:
 %   xx/xx/19  dce  Wrote it.
 
+%% Close any stray figures
+close all;
+
 %% Parse input
 %
 % This currently sets the primary and test wavelengths.
@@ -68,30 +71,30 @@ end
 fullWidthHalfMax = 20;
 lambda = 0.001;
 
-% % Set up directory to save results into
-% subjectID = input('Enter subject ID: ');
-% sessionNum = input('Enter session number: ');
-% 
-% % Create directory named SubjectID for saving data, if it doesn't exist
-% outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),subjectID);
-% if (~exist(outputDir,'dir'))
-%     mkdir(outputDir);
-% end
-% 
-% % Create data file with name Subject ID_SessionNumber. Throw error if a
-% % file already exists with that name.
-% fileName = [subjectID, '_', num2str(sessionNum), '.mat'];
-% fileLoc = fullfile(outputDir,fileName);
-% if (exist(fileLoc, 'file'))
-%     error('Specified output file %s already exists', fileName);
-% end
+%% Set up directory to save results into
+subjectID = input('Enter subject ID: ');
+sessionNum = input('Enter session number: ');
+
+% Create directory named SubjectID for saving data, if it doesn't exist
+outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),subjectID);
+if (~exist(outputDir,'dir'))
+    mkdir(outputDir);
+end
+
+% Create data file with name Subject ID_SessionNumber. Throw error if a
+% file already exists with that name.
+fileName = [subjectID, '_', num2str(sessionNum), '.mat'];
+fileLoc = fullfile(outputDir,fileName);
+if (exist(fileLoc, 'file'))
+    error('Specified output file %s already exists', fileName);
+end
 
 % Scaling factors for intensity of primary and test lights. The two
 % primaries are each scaled from 0 to 1, and the arrays are set up so the
 % two scaling factors will always add up to 1. We start with primary2
 % scaled up to 1 and primary1 scaled down to 0.
 p1Scales = linspace(0,1,primaries_length);
-p2Scales = linspace(1,0,primaries_length);
+p2Scales = 1-p1Scales;
 testScales = linspace(0,1,test_length);
 
 %% Get the OneLight calibration structure
@@ -129,7 +132,7 @@ primary1IncrSpd = OLMaximizeSpd(cal, primary1IncrSpdRel,'lambda',lambda);
 primary2IncrSpdRel = OLMakeMonochromaticSpd(cal, p2, fullWidthHalfMax)/3;
 primary2IncrSpd = OLMaximizeSpd(cal, primary2IncrSpdRel,'lambda',lambda);
 
-% Get set of test lights, varying in intensity
+%% Get set of test lights, varying in intensity
 for i = 1:test_length
     testSpdsNominal(:,i) = (testScales(i) * testIncrSpd) + darkSpd;
     [testSettings(:,i),~,testSpdsPredicted(:,i)] = OLSpdToSettings(cal, testSpdsNominal(:,i), 'lambda', lambda);
@@ -138,7 +141,7 @@ for i = 1:test_length
     testStartStops(i,2,:) = testStop;
 end
 
-% Get set of primary lights, varying in relative contribution of two primaries
+%% Get set of primary lights, varying in relative contribution of two primaries
 for i = 1:primaries_length
     primarySpdsNominal(:,i) = (primaryScaleFactor*(p1Scales(i) * primary1IncrSpd) + (p2Scales(i) * primary2IncrSpd)) + darkSpd;
     [primarySettings(:,i),~,primarySpdsPredicted(:,i)] = OLSpdToSettings(cal, primarySpdsNominal(:,i), 'lambda', lambda);
@@ -178,18 +181,23 @@ end
 fprintf('\nProjector ready. Starting display loop\n') 
 
 %% Display loop
+%
 % Display parameters
-delaySecs = 2; % time in seconds that a given field is displayed for
-isPrimary = true; % are we currently displaying primary or test light?
-whiteStopIndex = 700; % start stops index for brightness of white light 
-stepModes = [20 5 1]; % Possible step sizes (relative to adjustment_length)
-matches = []; % Output array with subject matches
-matchPositions = []; % Positions o matches in the adjustment array
+delaySecs = 2;              % Time in seconds that a given field is displayed for
+isPrimary = true;           % Are we currently displaying primary or test light?
+whiteStopIndex = 700;       % Start stops index for brightness of white light 
+stepModes = [20 5 1];       % Possible step sizes (relative to adjustment_length)
+
+% Hold information
+matches = [];               % Output array with subject matches
+matchPositions = [];        % Positions of matches in the adjustment array
 
 % Initial position in primary, test, and step size arrays
+%
+% Start with largest step size
 primaryPos = 1;
 testPos = 1;
-stepModePos = 1; % Start with largest step size
+stepModePos = 1;
 
 % Intialize OneLight and button box
 ol = OneLight;
@@ -199,6 +207,7 @@ stillLooping = true;
 % Loop through primary and test light until the user presses a key
 while(stillLooping)
     nowTime = mglGetSecs;
+    
     % Display primary or test light
     if isPrimary
         Snd('Play',sin(0:5000));
@@ -270,24 +279,30 @@ while(stillLooping)
             end
         end
     end
+    
     % Display white light for one second on every other iteration
-        if ~isPrimary 
-            nowTime = mglGetSecs;
-            while(mglGetSecs < nowTime + 1)
-                ol.setMirrors(squeeze(whiteStopIndex * ones(1, numCols))',...
+    if ~isPrimary
+        nowTime = mglGetSecs;
+        while(mglGetSecs < nowTime + 1)
+            ol.setMirrors(squeeze(whiteStopIndex * ones(1, numCols))',...
                 squeeze(whiteStopIndex * ones(1, numCols))');
-            end 
         end
-    isPrimary = ~isPrimary; % Switch from primary to test
+    end
+    
+    % Switch from primary to test
+    isPrimary = ~isPrimary;
 end
 
-GLW_CloseAnnularStimulus();
-ol.setAll(false); 
-% Save matches
+%% Save matches
 if ~isempty(matches)
     save(fileLoc, 'matches', 'matchPositions', 'p1', 'p2', 'test', 'cal',...
     'primarySpdsNominal', 'primarySpdsPredicted', 'testSpdsNominal',...
     'testSpdsPredicted', 'primaryStartStops', 'testStartStops',...
     'subjectID', 'sessionNum');
 end 
+
+%% Close up
+GLW_CloseAnnularStimulus();
+ol.setAll(false); 
+
 end
