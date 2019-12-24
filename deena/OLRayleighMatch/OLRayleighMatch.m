@@ -39,6 +39,11 @@ function matches = OLRayleighMatch(varargin)
 % History:
 %   xx/xx/19  dce  Wrote it.
 
+%% DHB COMMENTS
+% This is looking good.  Probably want to explicitly control
+% the "white" stimulus displayed in the intervals, rather than
+% having it hard coded as white.
+
 %% Close any stray figures
 close all;
 
