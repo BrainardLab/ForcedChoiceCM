@@ -3,6 +3,7 @@
 
 % History:
 %   11/27/19  dhb  First more or less working version
+%   12/24/19  dhb  Edit to use new routine OLMaximizeSpd
 
 %% Clear
 clear; close all;
@@ -21,10 +22,14 @@ nScaleFactors = 100;
 %% Make nominal spd
 wls = cal.computed.pr650Wls;
 S = WlsToS(wls);
-testSpdNominal = OLMakeMonochromaticSpd(cal, testWl, fullWidthHalfMax);
+testSpdIncrRel = OLMakeMonochromaticSpd(cal, testWl, fullWidthHalfMax);
 
 %% Get the "dark" spd, that which comes out when primarys are at 0
 darkSpd = OLPrimaryToSpd(cal,zeros(size(cal.computed.D,2),1));
+
+%% Maximize the spd
+[maxTestSpdIncr,spdScaleFactor] = OLMaximizeSpd(cal,testSpdIncrRel, ...
+    'lambda', lambda, 'showPlot', true);
 
 %% Find primaries for a number scale factors
 %
@@ -35,34 +40,16 @@ darkSpd = OLPrimaryToSpd(cal,zeros(size(cal.computed.D,2),1));
 % Differential mode looks at the effect of the primaries
 % relative to the light that comes out when the input
 % is set to 0. For our purposes, this is what we want.
-primaryScales = linspace(0,maxScaleFactor,nScaleFactors);
+primaryScales = linspace(0,1,nScaleFactors);
 for ii = 1:length(primaryScales)
     primaryScale = primaryScales(ii);
-    [testPrimary,testSpdPredicted] = OLSpdToPrimary(cal, primaryScale*testSpdNominal+darkSpd, 'lambda', lambda, ...
+    [testPrimary,maxTestSpdIncrPredicted] = OLSpdToPrimary(cal, primaryScale*maxTestSpdIncr+darkSpd, 'lambda', lambda, ...
         'whichSpdToPrimaryMin', 'leastSquares', ...
         'verbose', false);
-    relativeRMSEError(ii) = sqrt(sum( ((testSpdPredicted-primaryScale*testSpdNominal)/mean(primaryScale*testSpdNominal)).^2 ) );
 end
 
-%% Find minimum error to determine a good maximum scale factor
-[minVal,index] = min(relativeRMSEError);
-
-% Find the largest scale factor where erros is less than tolerance
-% more than max
-targetVal = (1 + errorTolerance)*minVal;
-indices = find(relativeRMSEError < targetVal);
-useScales = primaryScales(indices);
-usePrimaryScale = max(useScales);
-
-% Plot of error versus scale factor
-figure; 
-hold on
-plot(primaryScales,relativeRMSEError,'+');
-xlabel('Scale factor');
-ylabel('Relative error');
-
-%% Use the final scale factor and plot nominal and predicted spds
-[testPrimary,testSpdPredicted] = OLSpdToPrimary(cal, usePrimaryScale*testSpdNominal+darkSpd, 'lambda', lambda, ...
+%% Use the max scale factor and plot nominal and predicted spds
+[testPrimary,maxTestSpdIncrPredicted] = OLSpdToPrimary(cal, maxTestSpdIncr+darkSpd, 'lambda', lambda, ...
         'whichSpdToPrimaryMin', 'leastSquares', ...
         'verbose', false);
     
@@ -70,12 +57,11 @@ ylabel('Relative error');
 % we actually think will reach the eye.
 figure;
 hold on
-plot(wls,testSpdPredicted,'r','LineWidth',4);
-plot(wls,usePrimaryScale*testSpdNominal+darkSpd,'k','LineWidth',2);
+plot(wls,maxTestSpdIncrPredicted,'r','LineWidth',4);
+plot(wls,maxTestSpdIncr+darkSpd,'k','LineWidth',2);
 xlabel('Wavelength (nm)');
 ylabel('Power');
 legend({'Predicted', 'Nominal'});
-title(sprintf('Scale factor: %0.4g',usePrimaryScale));
 
 %% Show how to get settings and starts/stops
 primarySettings = OLPrimaryToSettings(cal,testPrimary);
