@@ -32,6 +32,7 @@ function [predictedProportions] = qpPFFCCM(stimParamsVec,psiParamsVec,S,stimVect
 %     None.
 
 % 07/03/17  dhb  Wrote it
+% 01/02/20  dhb  Allow match parameters to vary
 
 %% Parse input
 p = inputParser;
@@ -67,7 +68,7 @@ predictedProportions = zeros(nStim,2);
 for ii = 1:nStim
     
     % Get stimulus parameters from stimParams vector
-    [testParams,comparison1Opponent,comparison2Opponent] = StimulusVecToParams(stimVectorType,stimParamsVec(ii,:),stimParamsStruct);
+    [testParams,matchApparatusParams,comparison1Opponent,comparison2Opponent] = StimulusVecToParams(stimVectorType,stimParamsVec(ii,:),stimParamsStruct);
     
     % Get reference spectrum.
     referenceSpd = adaptationSpd + testParams.testIntensity*testParams.unitTestSpectrum;
@@ -85,8 +86,8 @@ for ii = 1:nStim
     comparison1LMSRef = OpponentContrastToLMS(psiParamsStructRef.colorDiffParams,adaptationLMSRef,referenceOpponentRef+comparison1Opponent);
     comparison2LMSRef = OpponentContrastToLMS(psiParamsStructRef.colorDiffParams,adaptationLMSRef,referenceOpponentRef+comparison2Opponent);
     
-    [comparison1Primary,comparison1Spd] = FindMetamer(stimParamsStruct.matchApparatusParams,TRef,comparison1LMSRef);
-    [comparison2Primary,comparison2Spd] = FindMetamer(stimParamsStruct.matchApparatusParams,TRef,comparison2LMSRef);
+    [comparison1Primary,comparison1Spd] = FindMetamer(matchApparatusParams,TRef,comparison1LMSRef);
+    [comparison2Primary,comparison2Spd] = FindMetamer(matchApparatusParams,TRef,comparison2LMSRef);
     comparison1LMS = T*comparison1Spd;
     comparison2LMS = T*comparison2Spd;
     

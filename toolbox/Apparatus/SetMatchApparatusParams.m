@@ -1,8 +1,8 @@
-function matchParams = SetMatchParams(matchApparatusParams,matchParams)
-% Make match parameter structure match current setable values
+function matchApparatusParams = SetMatchApparatusParams(matchApparatusParams)
+% Make match apparaus parameter structure match current setable values
 %
 % Syntax:
-%    matchParams = SetMatchParams(matchApparatusParams,matchParams)
+%    matchApparatusParams = SetMatchApparatusParams(matchApparatusParams)
 %
 % Description:
 %    After the user mucks with certain fields, the structure needs to be
@@ -13,10 +13,9 @@ function matchParams = SetMatchParams(matchApparatusParams,matchParams)
 %
 % Inputs:
 %     matchApparatusParams           - Structure describing match apparatus.
-%     matchParams                     - Structure describing match stimulus.
 %
 % Outputs:
-%     matchParams                     - Structure describing match stimulus.
+%     matchApparatusParams           - Updated structure describing match stimulus.
 %
 % Optional key/value pairs:
 %     None.
@@ -30,22 +29,15 @@ function matchParams = SetMatchParams(matchApparatusParams,matchParams)
 % Examples:
 %{
     S = [400 1 301];
-    matchApparatusParams = DefaultMatchApparatusParams('monochromatic',S);
-    matchParams = DefaultMatchParams(matchApparatusParams)
-    matchParams.primary = [0.2 0.7 0.3]';
-    matchParams = SetMatchParams(matchApparatusParams,matchParams)
+    matchApparatusParams = DefaultMatchApparatusParams('rayleigh',S);
+    matchApparatusParams.primaryWavelength1 = 490;
+    matchApparatusParams = SetMatchApparatusParams(matchApparatusParams)
 %}
 
-% Check
-if (~strcmp(matchParams.type,matchApparatusParams.type))
-    error('Type mismatch between apparatus and stimulus structures');
-end
-
 %% Do the right thing according to type
-switch (matchParams.type)
+switch (matchApparatusParams.type)
     case 'monochromatic'
-        % Update
-        matchParams.spectrum = matchApparatusParams.primaryBasis*matchParams.primary;
+        error('Have not implemented this for type ''monochrmatic'' yet');
 
     case 'rayleigh'
                   
@@ -60,8 +52,6 @@ switch (matchParams.type)
         
         matchApparatusParams.primaryBasis = [matchApparatusParams.unitPrimarySpectrum1 ... 
             matchApparatusParams.unitPrimarySpectrum2];
-        
-        matchParams.spectrum = matchApparatusParams.primaryBasis*matchParams.primary;
 
     otherwise
         error('Unknown apparatus parameters type passed.');

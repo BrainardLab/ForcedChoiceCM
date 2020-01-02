@@ -22,7 +22,7 @@ paramsOK = true;
 
 switch (type)
     case 'basic'
-        [testParams,comparison1Opponent,comparison2Opponent] = StimulusVecToParams(type,stimParamsVec,stimParamsStruct);
+        [~,~,comparison1Opponent,comparison2Opponent] = StimulusVecToParams(type,stimParamsVec,stimParamsStruct);
         
         % Only go in one opponent direction in each comparison
         index1 = find(comparison1Opponent == 0);

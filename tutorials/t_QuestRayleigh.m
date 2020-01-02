@@ -69,7 +69,7 @@ qpPFFun = @(stimParamsVec,psiParamsVec) qpPFFCCM(stimParamsVec,psiParamsVec,S,st
 
 % This can be slow, so best is to precompute and then load on individual
 % runs.
-stimParamsDomainList = {540:10:670, -0.09:0.03:0.09, -0.09:0.03:0.09, 0, -0.09:0.03:0.09, -0.09:0.03:0.09, 0};
+stimParamsDomainList = {540:10:650, 510:10:540, 650:10:680, -0.09:0.03:0.09, -0.09:0.03:0.09, 0, -0.09:0.03:0.09, -0.09:0.03:0.09, 0};
 psiParamsDomainList = {0, 0, -20:5:20, -20:5:20, 0, -4:1:4, -4:1:4, 0, 0.02};
 %psiParamsDomainList = {0, 0, 0, 0, 0, -4:1:4,-4:1:4, 0, 0.02};
 psiParamsLabels = {'Lens Density', 'Macular Pigment Density', 'L density', 'M density', 'S density', 'L lambda max', 'M lambda max', 'S lambda max', 'Noise'};
