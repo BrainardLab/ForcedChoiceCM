@@ -32,8 +32,8 @@ switch (type)
     case 'basic'
         x = zeros(1,9);
         x(1) = stimulusParams.testParams.testWavelength;
-        x(2) =  matchApparatusParams.primaryWavelength1;
-        x(3) =  matchApparatusParams.primaryWavelength2;
+        x(2) =  stimulusParams.matchApparatusParams.primaryWavelength1;
+        x(3) =  stimulusParams.matchApparatusParams.primaryWavelength2;
         x(4:6) = comparison1Opponent';
         x(7:9) = comparison2Opponent';
         
