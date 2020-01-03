@@ -40,9 +40,8 @@ function [testParams,matchApparatusParams,comparison1Opponent,comparison2Opponen
 
 switch (type)
     case 'basic'
-        testParams = stimulusParams.testParams;
-        testParams.testWavelength = x(1);
-        testParams = SetTestParams(testParams);
+        stimulusParams.testParams.testWavelength = x(1);
+        testParams = SetTestParams(stimulusParams.testParams);
         
         stimulusParams.matchApparatusParams.primaryWavelength1 = x(2);
         stimulusParams.matchApparatusParams.primaryWavelength2 = x(3);
