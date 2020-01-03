@@ -69,10 +69,13 @@ qpPFFun = @(stimParamsVec,psiParamsVec) qpPFFCCM(stimParamsVec,psiParamsVec,S,st
 
 % This can be slow, so best is to precompute and then load on individual
 % runs.
-stimParamsDomainList = {540:10:650, 510:10:540, 650:10:680, -0.09:0.03:0.09, -0.09:0.03:0.09, 0, -0.09:0.03:0.09, -0.09:0.03:0.09, 0};
+stimParamsDomainList = {540:30:660, 500:20:540, 660:20:700, -0.09:0.03:0.09, -0.09:0.03:0.09, 0, -0.09:0.03:0.09, -0.09:0.03:0.09, 0};
 psiParamsDomainList = {0, 0, -20:5:20, -20:5:20, 0, -4:1:4, -4:1:4, 0, 0.02};
 %psiParamsDomainList = {0, 0, 0, 0, 0, -4:1:4,-4:1:4, 0, 0.02};
 psiParamsLabels = {'Lens Density', 'Macular Pigment Density', 'L density', 'M density', 'S density', 'L lambda max', 'M lambda max', 'S lambda max', 'Noise'};
+
+% Marginalize?  Costs considerable time as domain grows.  Empty for not.
+marginalizeVector = [];
 
 USE_PRECOMPUTE = false;
 if (~USE_PRECOMPUTE)
@@ -85,7 +88,7 @@ if (~USE_PRECOMPUTE)
         'stimParamsDomainList',stimParamsDomainList, ...
         'psiParamsDomainList',psiParamsDomainList, ...
         'filterStimParamsDomainFun',@(stimParamsVec) qpFCCMStimDomainCheck(stimParamsVec,stimVecType,stimParamsStruct), ...
-        'marginalize', [3 4], ...
+        'marginalize', marginalizeVector, ...
         'verbose', true ...
         );
     elapsedTime = toc(startTime);
@@ -176,9 +179,11 @@ for ss = 1:nParamSets
             psiParamsFit{ss,rr}(1),psiParamsFit{ss,rr}(2),psiParamsFit{ss,rr}(3),psiParamsFit{ss,rr}(4), ...
             psiParamsFit{ss,rr}(5),psiParamsFit{ss,rr}(6),psiParamsFit{ss,rr}(7),psiParamsFit{ss,rr}(8),psiParamsFit{ss,rr}(9));
         
-        
     end
 end
+
+%% Save simulation
+save('simulatedData','-v7.3');
 
 %% Marginalize posterior to improve estimates of individual parameters.
 whichParamsToMarginalize = [1, 2, 3, 4, 5, 8, 9];
@@ -262,7 +267,7 @@ if (domainVlb(theParamIndex) < domainVub(theParamIndex))
     ylim([domainVlb(theParamIndex) domainVub(theParamIndex)]);
     plot([domainVlb(theParamIndex) domainVub(theParamIndex)],[domainVlb(theParamIndex) domainVub(theParamIndex)],'k','LineWidth',1);
     axis('square');
-    xlabel('Simulated');me
+    xlabel('Simulated');
     ylabel('Estimated');
     title(theParamName);
 end
