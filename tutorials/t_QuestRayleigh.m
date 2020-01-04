@@ -233,15 +233,14 @@ if (domainVlb(theParamIndex) < domainVub(theParamIndex))
     title(theParamName);
 end
 
-theParamIndex = 7;
-theParamName = 'M Lambda Max Shift';
+theParamIndex = 3;
+theParamName = 'L Density';
 if (domainVlb(theParamIndex) < domainVub(theParamIndex))
     figure; clf; hold on
     for ss = 1:nParamSets
         for rr = 1:nRunsPerParamSet
             plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsFit{ss,rr}(theParamIndex),'ro','MarkerFaceColor','r','MarkerSize',8);
             plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsQuest{ss,rr}(theParamIndex),'bo','MarkerFaceColor','b','MarkerSize',8);
-            plot(simulatedPsiParamsVecCell{ss}(theParamIndex),marginalPsiParamsQuest{ss,rr}(2),'go','MarkerFaceColor','g','MarkerSize',4);
         end
     end
     xlim([domainVlb(theParamIndex) domainVub(theParamIndex)]);
@@ -253,14 +252,15 @@ if (domainVlb(theParamIndex) < domainVub(theParamIndex))
     title(theParamName);
 end
 
-theParamIndex = 3;
-theParamName = 'L Density';
+theParamIndex = 7;
+theParamName = 'M Lambda Max Shift';
 if (domainVlb(theParamIndex) < domainVub(theParamIndex))
     figure; clf; hold on
     for ss = 1:nParamSets
         for rr = 1:nRunsPerParamSet
             plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsFit{ss,rr}(theParamIndex),'ro','MarkerFaceColor','r','MarkerSize',8);
             plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsQuest{ss,rr}(theParamIndex),'bo','MarkerFaceColor','b','MarkerSize',8);
+            plot(simulatedPsiParamsVecCell{ss}(theParamIndex),marginalPsiParamsQuest{ss,rr}(2),'go','MarkerFaceColor','g','MarkerSize',4);
         end
     end
     xlim([domainVlb(theParamIndex) domainVub(theParamIndex)]);
@@ -291,7 +291,56 @@ if (domainVlb(theParamIndex) < domainVub(theParamIndex))
     title(theParamName);
 end
 
-%% Evaluate fits a little bit
+%% Evaluate some specific runs
+
+% Set which
+for ss = 1:nParamSets
+    for rr = 1:nRunsPerParamSet
+        
+        % Get the simuated psi parameters and fundamentals
+        simulatedPsiParamsVec = simulatedPsiParamsVecCell{ss};
+        simulatedParamsStruct = ObserverVecToParams('basic',simulatedPsiParamsVec,psiParamsStruct);
+        T_simulated = ComputeObserverFundamentals(simulatedParamsStruct.coneParams,S);
+        
+        % Get the fit psi parameters and fundamentals
+        psiParamsFitVec = psiParamsFit{ss,rr};
+        fitParamsStruct = ObserverVecToParams('basic',psiParamsFitVec,psiParamsStruct);
+        T_fit = ComputeObserverFundamentals(fitParamsStruct.coneParams,S);
+        
+        fundamentalsFig = figure; clf;
+        set(gcf,'Position',[50 420 2400 900]);
+        subplot(1,3,1); hold on
+        plot(SToWls(S),TRef(1,:),'k:','LineWidth',2);
+        plot(SToWls(S),T_simulated(1,:),'r','LineWidth',3);
+        %plot(SToWls(S),T_quest(1,:),'b:','LineWidth',2);
+        plot(SToWls(S),T_fit(1,:),'b','LineWidth',2);
+        xlabel('Wavelength (nm)');
+        ylabel('Fundamental');
+        title('L cone');
+        legend({'Reference', 'Simulated','Fit'});
+        
+        subplot(1,3,2); hold on
+        plot(SToWls(S),TRef(2,:),'k','LineWidth',3);
+        plot(SToWls(S),T_simulated(2,:),'r','LineWidth',3);
+        %plot(SToWls(S),T_quest(2,:),'b:','LineWidth',2);
+        plot(SToWls(S),T_fit(2,:),'b','LineWidth',2);
+        xlabel('Wavelength (nm)');
+        ylabel('Fundamental');
+        title('M cone');
+        legend({'Reference', 'Simulated','Fit'});
+        
+        subplot(1,3,3); hold on
+        plot(SToWls(S),TRef(3,:),'k','LineWidth',3);
+        plot(SToWls(S),T_simulated(3,:),'r','LineWidth',3);
+        %plot(SToWls(S),T_quest(3,:),'b:','LineWidth',2);
+        plot(SToWls(S),T_fit(3,:),'b','LineWidth',2);
+        xlabel('Wavelength (nm)');
+        ylabel('Fundamental');
+        title('S cone');
+        legend({'Reference', 'Simulated','Fit'});
+    end
+end
+
 %
 % Get stimulus counts
 % stimCounts = qpCounts(qpData(questData.trialData),questData.nOutcomes);
@@ -308,42 +357,12 @@ end
 % fprintf('\tMax likelihood fit:     %0.2f\n',logLikelihoodFit);
 
 % % Compute fundamentals
-% simulatedParamsStruct = ObserverVecToParams('basic',simulatedPsiParamsVec,psiParamsStruct);
+%
 % questParamsStruct = ObserverVecToParams('basic',psiParamsQuest,psiParamsStruct);
-% fitParamsStruct = ObserverVecToParams('basic',psiParamsFit,psiParamsStruct);
-% T_simulated = ComputeObserverFundamentals(simulatedParamsStruct.coneParams,S);
+%
+%
 % T_quest = ComputeObserverFundamentals(questParamsStruct.coneParams,S);
-% T_fit = ComputeObserverFundamentals(fitParamsStruct.coneParams,S);
 %
-% fundamentalsFig = figure; clf;
-% set(gcf,'Position',[50 420 2400 900]);
-% subplot(1,3,1); hold on
-% plot(SToWls(S),TRef(1,:),'k:','LineWidth',2);
-% plot(SToWls(S),T_simulated(1,:),'r','LineWidth',3);
-% %plot(SToWls(S),T_quest(1,:),'b:','LineWidth',2);
-% plot(SToWls(S),T_fit(1,:),'b','LineWidth',2);
-% xlabel('Wavelength (nm)');
-% ylabel('Fundamental');
-% title('L cone');
-% legend({'Reference', 'Simulated','Fit'});
 %
-% subplot(1,3,2); hold on
-% plot(SToWls(S),TRef(2,:),'k','LineWidth',3);
-% plot(SToWls(S),T_simulated(2,:),'r','LineWidth',3);
-% plot(SToWls(S),T_quest(2,:),'b:','LineWidth',2);
-% plot(SToWls(S),T_fit(2,:),'b','LineWidth',2);
-% xlabel('Wavelength (nm)');
-% ylabel('Fundamental');
-% title('M cone');
-% legend({'Reference', 'Simulated','Fit'});
-%
-% subplot(1,3,3); hold on
-% plot(SToWls(S),TRef(3,:),'k','LineWidth',3);
-% plot(SToWls(S),T_simulated(3,:),'r','LineWidth',3);
-% plot(SToWls(S),T_quest(3,:),'b:','LineWidth',2);
-% plot(SToWls(S),T_fit(3,:),'b','LineWidth',2);
-% xlabel('Wavelength (nm)');
-% ylabel('Fundamental');
-% title('S cone');
-% legend({'Reference', 'Simulated','Fit'});
+
 
