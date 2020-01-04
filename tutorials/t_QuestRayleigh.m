@@ -213,87 +213,105 @@ end
 
 %% Make plots of simulated versus estimated parameters
 theParamIndex = 6;
-theParamName = 'L Lambda Max Shift';
-if (domainVlb(theParamIndex) < domainVub(theParamIndex))
-    figure; clf; hold on
-    for ss = 1:nParamSets
-        for rr = 1:nRunsPerParamSet
-            plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsFit{ss,rr}(theParamIndex),'ro','MarkerFaceColor','r','MarkerSize',8);
-            plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsQuest{ss,rr}(theParamIndex),'bo','MarkerFaceColor','b','MarkerSize',8);
-            plot(simulatedPsiParamsVecCell{ss}(theParamIndex),marginalPsiParamsQuest{ss,rr}(1),'go','MarkerFaceColor','g','MarkerSize',4);
-            %plot(simulatedPsiParamsVecCell{ss}(theParamIndex),marginalPsiParamsQuest1{ss,rr},'kx','MarkerFaceColor','k','MarkerSize',8);
-        end
+figure; clf; hold on
+for ss = 1:nParamSets
+    for rr = 1:nRunsPerParamSet
+        plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsFit{ss,rr}(theParamIndex),'ro','MarkerFaceColor','r','MarkerSize',8);
+        plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsQuest{ss,rr}(theParamIndex),'bo','MarkerFaceColor','b','MarkerSize',8);
+        plot(simulatedPsiParamsVecCell{ss}(theParamIndex),marginalPsiParamsQuest{ss,rr}(1),'go','MarkerFaceColor','g','MarkerSize',4);
+        %plot(simulatedPsiParamsVecCell{ss}(theParamIndex),marginalPsiParamsQuest1{ss,rr},'kx','MarkerFaceColor','k','MarkerSize',8);
     end
-    xlim([domainVlb(theParamIndex) domainVub(theParamIndex)]);
-    ylim([domainVlb(theParamIndex) domainVub(theParamIndex)]);
-    plot([domainVlb(theParamIndex) domainVub(theParamIndex)],[domainVlb(theParamIndex) domainVub(theParamIndex)],'k','LineWidth',1);
-    axis('square');
-    xlabel('Simulated');
-    ylabel('Estimated');
-    title(theParamName);
 end
+xlim([domainVlb(theParamIndex) domainVub(theParamIndex)]);
+ylim([domainVlb(theParamIndex) domainVub(theParamIndex)]);
+plot([domainVlb(theParamIndex) domainVub(theParamIndex)],[domainVlb(theParamIndex) domainVub(theParamIndex)],'k','LineWidth',1);
+axis('square');
+xlabel('Simulated Lambda Max Shift');
+ylabel('Estimated Max Shift');
+title('L Cones');
 
 theParamIndex = 3;
-theParamName = 'L Density';
-if (domainVlb(theParamIndex) < domainVub(theParamIndex))
-    figure; clf; hold on
-    for ss = 1:nParamSets
-        for rr = 1:nRunsPerParamSet
-            plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsFit{ss,rr}(theParamIndex),'ro','MarkerFaceColor','r','MarkerSize',8);
-            plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsQuest{ss,rr}(theParamIndex),'bo','MarkerFaceColor','b','MarkerSize',8);
-        end
+figure; clf; hold on
+for ss = 1:nParamSets
+    for rr = 1:nRunsPerParamSet
+        plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsFit{ss,rr}(theParamIndex),'ro','MarkerFaceColor','r','MarkerSize',8);
+        plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsQuest{ss,rr}(theParamIndex),'bo','MarkerFaceColor','b','MarkerSize',8);
     end
-    xlim([domainVlb(theParamIndex) domainVub(theParamIndex)]);
-    ylim([domainVlb(theParamIndex) domainVub(theParamIndex)]);
-    plot([domainVlb(theParamIndex) domainVub(theParamIndex)],[domainVlb(theParamIndex) domainVub(theParamIndex)],'k','LineWidth',1);
-    axis('square');
-    xlabel('Simulated');
-    ylabel('Estimated');
-    title(theParamName);
 end
+xlim([domainVlb(theParamIndex) domainVub(theParamIndex)]);
+ylim([domainVlb(theParamIndex) domainVub(theParamIndex)]);
+plot([domainVlb(theParamIndex) domainVub(theParamIndex)],[domainVlb(theParamIndex) domainVub(theParamIndex)],'k','LineWidth',1);
+axis('square');
+xlabel('Simulated Density Shift');
+ylabel('Estimated Density Shift');
+title('L Cones');
+
+theParamIndex1 = 6; theParamIndex2 = 3;
+figure; clf; hold on
+for ss = 1:nParamSets
+    for rr = 1:nRunsPerParamSet
+        plot(simulatedPsiParamsVecCell{ss}(theParamIndex1)-psiParamsFit{ss,rr}(theParamIndex1), ...
+             simulatedPsiParamsVecCell{ss}(theParamIndex2)-psiParamsFit{ss,rr}(theParamIndex2),'ro','MarkerFaceColor','r','MarkerSize',8);
+        
+    end
+end
+xlim([-4 4]);
+ylim([-40 40]);
+xlabel('Lambda-max delta error');
+ylabel('Density delta error');
+title('L cones');
 
 theParamIndex = 7;
-theParamName = 'M Lambda Max Shift';
-if (domainVlb(theParamIndex) < domainVub(theParamIndex))
-    figure; clf; hold on
-    for ss = 1:nParamSets
-        for rr = 1:nRunsPerParamSet
-            plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsFit{ss,rr}(theParamIndex),'ro','MarkerFaceColor','r','MarkerSize',8);
-            plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsQuest{ss,rr}(theParamIndex),'bo','MarkerFaceColor','b','MarkerSize',8);
-            plot(simulatedPsiParamsVecCell{ss}(theParamIndex),marginalPsiParamsQuest{ss,rr}(2),'go','MarkerFaceColor','g','MarkerSize',4);
-        end
+figure; clf; hold on
+for ss = 1:nParamSets
+    for rr = 1:nRunsPerParamSet
+        plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsFit{ss,rr}(theParamIndex),'ro','MarkerFaceColor','r','MarkerSize',8);
+        plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsQuest{ss,rr}(theParamIndex),'bo','MarkerFaceColor','b','MarkerSize',8);
+        plot(simulatedPsiParamsVecCell{ss}(theParamIndex),marginalPsiParamsQuest{ss,rr}(2),'go','MarkerFaceColor','g','MarkerSize',4);
     end
-    xlim([domainVlb(theParamIndex) domainVub(theParamIndex)]);
-    ylim([domainVlb(theParamIndex) domainVub(theParamIndex)]);
-    plot([domainVlb(theParamIndex) domainVub(theParamIndex)],[domainVlb(theParamIndex) domainVub(theParamIndex)],'k','LineWidth',1);
-    axis('square');
-    xlabel('Simulated');
-    ylabel('Estimated');
-    title(theParamName);
 end
+xlim([domainVlb(theParamIndex) domainVub(theParamIndex)]);
+ylim([domainVlb(theParamIndex) domainVub(theParamIndex)]);
+plot([domainVlb(theParamIndex) domainVub(theParamIndex)],[domainVlb(theParamIndex) domainVub(theParamIndex)],'k','LineWidth',1);
+axis('square');
+xlabel('Simulated Lambda Max Shift');
+ylabel('Estimated Max Shift');
+title('M Cones');
 
 theParamIndex = 4;
-theParamName = 'M Density';
-if (domainVlb(theParamIndex) < domainVub(theParamIndex))
-    figure; clf; hold on
-    for ss = 1:nParamSets
-        for rr = 1:nRunsPerParamSet
-            plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsFit{ss,rr}(theParamIndex),'ro','MarkerFaceColor','r','MarkerSize',8);
-            plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsQuest{ss,rr}(theParamIndex),'bo','MarkerFaceColor','b','MarkerSize',8);
-        end
+figure; clf; hold on
+for ss = 1:nParamSets
+    for rr = 1:nRunsPerParamSet
+        plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsFit{ss,rr}(theParamIndex),'ro','MarkerFaceColor','r','MarkerSize',8);
+        plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsQuest{ss,rr}(theParamIndex),'bo','MarkerFaceColor','b','MarkerSize',8);
     end
-    xlim([domainVlb(theParamIndex) domainVub(theParamIndex)]);
-    ylim([domainVlb(theParamIndex) domainVub(theParamIndex)]);
-    plot([domainVlb(theParamIndex) domainVub(theParamIndex)],[domainVlb(theParamIndex) domainVub(theParamIndex)],'k','LineWidth',1);
-    axis('square');
-    xlabel('Simulated');
-    ylabel('Estimated');
-    title(theParamName);
 end
+xlim([domainVlb(theParamIndex) domainVub(theParamIndex)]);
+ylim([domainVlb(theParamIndex) domainVub(theParamIndex)]);
+plot([domainVlb(theParamIndex) domainVub(theParamIndex)],[domainVlb(theParamIndex) domainVub(theParamIndex)],'k','LineWidth',1);
+axis('square');
+xlabel('Simulated Density Shift');
+ylabel('Estimated Density Shift');
+title('M Cones');
+
+theParamIndex1 = 7; theParamIndex2 = 4;
+figure; clf; hold on
+for ss = 1:nParamSets
+    for rr = 1:nRunsPerParamSet
+        plot(simulatedPsiParamsVecCell{ss}(theParamIndex1)-psiParamsFit{ss,rr}(theParamIndex1), ...
+             simulatedPsiParamsVecCell{ss}(theParamIndex2)-psiParamsFit{ss,rr}(theParamIndex2),'ro','MarkerFaceColor','r','MarkerSize',8);
+        
+    end
+end
+xlim([-4 4]);
+ylim([-40 40]);
+xlabel('Lambda-max delta error');
+ylabel('Density delta error');
+title('M cones');
 
 %% Evaluate some specific runs
-
-% Set which
+fundamentalsFig = figure; clf;
+set(gcf,'Position',[50 420 1800 900]);
 for ss = 1:nParamSets
     for rr = 1:nRunsPerParamSet
         
@@ -307,41 +325,43 @@ for ss = 1:nParamSets
         fitParamsStruct = ObserverVecToParams('basic',psiParamsFitVec,psiParamsStruct);
         T_fit = ComputeObserverFundamentals(fitParamsStruct.coneParams,S);
         
-        fundamentalsFig = figure; clf;
-        set(gcf,'Position',[50 420 2400 900]);
-        subplot(1,3,1); hold on
+        figure(fundamentalsFig); clf;
+        subplot(1,2,1); hold on
         plot(SToWls(S),TRef(1,:),'k:','LineWidth',2);
         plot(SToWls(S),T_simulated(1,:),'r','LineWidth',3);
-        %plot(SToWls(S),T_quest(1,:),'b:','LineWidth',2);
         plot(SToWls(S),T_fit(1,:),'b','LineWidth',2);
         xlabel('Wavelength (nm)');
         ylabel('Fundamental');
-        title('L cone');
+        title({sprintf('L cone sim/fit params, l-max: %0.1f/%0.1f; density %0.1f/%0.1f', ...
+            simulatedPsiParamsVec(6),psiParamsFitVec(6),simulatedPsiParamsVec(3),psiParamsFitVec(3)) ; ' '});
         legend({'Reference', 'Simulated','Fit'});
         
-        subplot(1,3,2); hold on
-        plot(SToWls(S),TRef(2,:),'k','LineWidth',3);
+        subplot(1,2,2); hold on
+        plot(SToWls(S),TRef(2,:),'k:','LineWidth',2);
         plot(SToWls(S),T_simulated(2,:),'r','LineWidth',3);
-        %plot(SToWls(S),T_quest(2,:),'b:','LineWidth',2);
         plot(SToWls(S),T_fit(2,:),'b','LineWidth',2);
         xlabel('Wavelength (nm)');
         ylabel('Fundamental');
-        title('M cone');
+        title({sprintf('M cone sim/fit params, l-max: %0.1f/%0.1f; density %0.1f/%0.1f', ...
+            simulatedPsiParamsVec(7),psiParamsFitVec(7),simulatedPsiParamsVec(4),psiParamsFitVec(4)) ; ' '});
         legend({'Reference', 'Simulated','Fit'});
         
-        subplot(1,3,3); hold on
-        plot(SToWls(S),TRef(3,:),'k','LineWidth',3);
-        plot(SToWls(S),T_simulated(3,:),'r','LineWidth',3);
-        %plot(SToWls(S),T_quest(3,:),'b:','LineWidth',2);
-        plot(SToWls(S),T_fit(3,:),'b','LineWidth',2);
-        xlabel('Wavelength (nm)');
-        ylabel('Fundamental');
-        title('S cone');
-        legend({'Reference', 'Simulated','Fit'});
+        % subplot(1,3,3); hold on
+        % plot(SToWls(S),TRef(3,:),'k:','LineWidth',2);
+        % plot(SToWls(S),T_simulated(3,:),'r','LineWidth',3);
+        % plot(SToWls(S),T_fit(3,:),'b','LineWidth',2);
+        % xlabel('Wavelength (nm)');
+        % ylabel('Fundamental');
+        % title('S cone');
+        % legend({'Reference', 'Simulated','Fit'});
+        
+        drawnow;
+        pause;
+        commandwindow;
     end
 end
 
-%
+%%
 % Get stimulus counts
 % stimCounts = qpCounts(qpData(questData.trialData),questData.nOutcomes);
 %
