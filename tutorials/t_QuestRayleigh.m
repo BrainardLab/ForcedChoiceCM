@@ -211,6 +211,23 @@ for ss = 1:nParamSets
     end
 end
 
+%% Compute simulated and obtained fundamentals
+for ss = 1:nParamSets
+    for rr = 1:nRunsPerParamSet
+        % Get the simuated psi parameters and fundamentals
+        simulatedParamsStruct = ObserverVecToParams('basic',simulatedPsiParamsVecCell{ss},psiParamsStruct);
+        T_simulated{ss,rr} = ComputeObserverFundamentals(simulatedParamsStruct.coneParams,S);
+        
+        % Get the fit psi parameters and fundamentals
+        fitParamsStruct = ObserverVecToParams('basic',psiParamsFit{ss,rr},psiParamsStruct);
+        T_fit{ss,rr} = ComputeObserverFundamentals(fitParamsStruct.coneParams,S);
+        
+        Lsse(ss,rr) = sqrt(sum( (T_simulated{ss,rr}(1,:)-T_fit{ss,rr}(1,:)).^2 ));
+        Msse(ss,rr) = sqrt(sum( (T_simulated{ss,rr}(2,:)-T_fit{ss,rr}(2,:)).^2 ));
+        Ssse(ss,rr) = sqrt(sum( (T_simulated{ss,rr}(3,:)-T_fit{ss,rr}(3,:)).^2 ));
+    end
+end
+
 %% Make plots of simulated versus estimated parameters
 theParamIndex = 6;
 figure; clf; hold on
@@ -247,11 +264,13 @@ ylabel('Estimated Density Shift');
 title('L Cones');
 
 theParamIndex1 = 6; theParamIndex2 = 3;
+minMarkerSize = 1; maxMarkerSize = 16;
 figure; clf; hold on
 for ss = 1:nParamSets
     for rr = 1:nRunsPerParamSet
+        markerSize = minMarkerSize  + (maxMarkerSize - minMarkerSize)*Lsse(ss,rr)/(max([Lsse(:) ; Msse(:)])-min([Lsse(:) ; Msse(:)]));
         plot(simulatedPsiParamsVecCell{ss}(theParamIndex1)-psiParamsFit{ss,rr}(theParamIndex1), ...
-             simulatedPsiParamsVecCell{ss}(theParamIndex2)-psiParamsFit{ss,rr}(theParamIndex2),'ro','MarkerFaceColor','r','MarkerSize',8);
+             simulatedPsiParamsVecCell{ss}(theParamIndex2)-psiParamsFit{ss,rr}(theParamIndex2),'ro','MarkerFaceColor','r','MarkerSize',markerSize);
         
     end
 end
@@ -298,8 +317,9 @@ theParamIndex1 = 7; theParamIndex2 = 4;
 figure; clf; hold on
 for ss = 1:nParamSets
     for rr = 1:nRunsPerParamSet
+        markerSize = minMarkerSize  + (maxMarkerSize - minMarkerSize)*Msse(ss,rr)/(max([Lsse(:) ; Msse(:)])-min([Lsse(:) ; Msse(:)]));
         plot(simulatedPsiParamsVecCell{ss}(theParamIndex1)-psiParamsFit{ss,rr}(theParamIndex1), ...
-             simulatedPsiParamsVecCell{ss}(theParamIndex2)-psiParamsFit{ss,rr}(theParamIndex2),'ro','MarkerFaceColor','r','MarkerSize',8);
+             simulatedPsiParamsVecCell{ss}(theParamIndex2)-psiParamsFit{ss,rr}(theParamIndex2),'ro','MarkerFaceColor','r','MarkerSize',markerSize);
         
     end
 end
@@ -313,43 +333,32 @@ title('M cones');
 fundamentalsFig = figure; clf;
 set(gcf,'Position',[50 420 1800 900]);
 for ss = 1:nParamSets
-    for rr = 1:nRunsPerParamSet
-        
-        % Get the simuated psi parameters and fundamentals
-        simulatedPsiParamsVec = simulatedPsiParamsVecCell{ss};
-        simulatedParamsStruct = ObserverVecToParams('basic',simulatedPsiParamsVec,psiParamsStruct);
-        T_simulated = ComputeObserverFundamentals(simulatedParamsStruct.coneParams,S);
-        
-        % Get the fit psi parameters and fundamentals
-        psiParamsFitVec = psiParamsFit{ss,rr};
-        fitParamsStruct = ObserverVecToParams('basic',psiParamsFitVec,psiParamsStruct);
-        T_fit = ComputeObserverFundamentals(fitParamsStruct.coneParams,S);
-        
+    for rr = 1:nRunsPerParamSet  
         figure(fundamentalsFig); clf;
         subplot(1,2,1); hold on
         plot(SToWls(S),TRef(1,:),'k:','LineWidth',2);
-        plot(SToWls(S),T_simulated(1,:),'r','LineWidth',3);
-        plot(SToWls(S),T_fit(1,:),'b','LineWidth',2);
+        plot(SToWls(S),T_simulated{ss,rr}(1,:),'r','LineWidth',3);
+        plot(SToWls(S),T_fit{ss,rr}(1,:),'b','LineWidth',2);
         xlabel('Wavelength (nm)');
         ylabel('Fundamental');
-        title({sprintf('L cone sim/fit params, l-max: %0.1f/%0.1f; density %0.1f/%0.1f', ...
-            simulatedPsiParamsVec(6),psiParamsFitVec(6),simulatedPsiParamsVec(3),psiParamsFitVec(3)) ; ' '});
+        title({sprintf('L cone sim/fit params, l-max: %0.1f/%0.1f; density %0.1f/%0.1f, sse %0.4f', ...
+            simulatedPsiParamsVecCell{ss}(6),psiParamsFit{ss,rr}(6),simulatedPsiParamsVecCell{ss}(3),psiParamsFit{ss,rr}(3),Lsse(ss,rr)) ; ' '});
         legend({'Reference', 'Simulated','Fit'});
         
         subplot(1,2,2); hold on
         plot(SToWls(S),TRef(2,:),'k:','LineWidth',2);
-        plot(SToWls(S),T_simulated(2,:),'r','LineWidth',3);
-        plot(SToWls(S),T_fit(2,:),'b','LineWidth',2);
+        plot(SToWls(S),T_simulated{ss,rr}(2,:),'r','LineWidth',3);
+        plot(SToWls(S),T_fit{ss,rr}(2,:),'b','LineWidth',2);
         xlabel('Wavelength (nm)');
         ylabel('Fundamental');
-        title({sprintf('M cone sim/fit params, l-max: %0.1f/%0.1f; density %0.1f/%0.1f', ...
-            simulatedPsiParamsVec(7),psiParamsFitVec(7),simulatedPsiParamsVec(4),psiParamsFitVec(4)) ; ' '});
+        title({sprintf('M cone sim/fit params, l-max: %0.1f/%0.1f; density %0.1f/%0.1f, sse %0.4f', ...
+            simulatedPsiParamsVecCell{ss}(7),psiParamsFit{ss,rr}(7),simulatedPsiParamsVecCell{ss}(4),psiParamsFit{ss,rr}(4),Msse(ss,rr)) ; ' '});
         legend({'Reference', 'Simulated','Fit'});
         
         % subplot(1,3,3); hold on
         % plot(SToWls(S),TRef(3,:),'k:','LineWidth',2);
-        % plot(SToWls(S),T_simulated(3,:),'r','LineWidth',3);
-        % plot(SToWls(S),T_fit(3,:),'b','LineWidth',2);
+        % plot(SToWls(S),T_simulated{ss,rr}(3,:),'r','LineWidth',3);
+        % plot(SToWls(S),T_fit{ss,rr}(3,:),'b','LineWidth',2);
         % xlabel('Wavelength (nm)');
         % ylabel('Fundamental');
         % title('S cone');
