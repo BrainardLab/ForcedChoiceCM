@@ -77,7 +77,7 @@ psiParamsLabels = {'Lens Density', 'Macular Pigment Density', 'L density', 'M de
 % Marginalize?  Costs considerable time as domain grows.  Empty for not.
 marginalizeVector = [];
 
-USE_PRECOMPUTE = false;
+USE_PRECOMPUTE = true;
 if (~USE_PRECOMPUTE)
     fprintf('Initializing quest structure ...\n');
     
@@ -122,7 +122,7 @@ end
 rng('default'); rng(3008,'twister');
 nParamSets = 20;
 nRunsPerParamSet = 2;
-nTrials = 512;
+nTrials = 256;
 
 [domainVlb,domainVub] = qpGetBoundsFromDomainList(psiParamsDomainList);
 for ss = 1:nParamSets
@@ -278,7 +278,7 @@ xlim([-4 4]);
 ylim([-40 40]);
 xlabel('Lambda-max delta error');
 ylabel('Density delta error');
-title('L cones');
+title(sprintf('L cones, min sse: %0.4f; max sse %0.4f',min([Lsse(:) ; Msse(:)]),max([Lsse(:) ; Msse(:)])));
 
 theParamIndex = 7;
 figure; clf; hold on
@@ -327,7 +327,7 @@ xlim([-4 4]);
 ylim([-40 40]);
 xlabel('Lambda-max delta error');
 ylabel('Density delta error');
-title('M cones');
+title(sprintf('M cones, min sse: %0.4f; max sse %0.4f',min([Lsse(:) ; Msse(:)]),max([Lsse(:) ; Msse(:)])));
 
 %% Evaluate some specific runs
 fundamentalsFig = figure; clf;
