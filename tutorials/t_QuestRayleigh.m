@@ -234,8 +234,8 @@ figure; clf; hold on
 for ss = 1:nParamSets
     for rr = 1:nRunsPerParamSet
         plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsFit{ss,rr}(theParamIndex),'ro','MarkerFaceColor','r','MarkerSize',8);
-        plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsQuest{ss,rr}(theParamIndex),'bo','MarkerFaceColor','b','MarkerSize',8);
-        plot(simulatedPsiParamsVecCell{ss}(theParamIndex),marginalPsiParamsQuest{ss,rr}(1),'go','MarkerFaceColor','g','MarkerSize',4);
+        %plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsQuest{ss,rr}(theParamIndex),'bo','MarkerFaceColor','b','MarkerSize',8);
+        %plot(simulatedPsiParamsVecCell{ss}(theParamIndex),marginalPsiParamsQuest{ss,rr}(1),'go','MarkerFaceColor','g','MarkerSize',4);
         %plot(simulatedPsiParamsVecCell{ss}(theParamIndex),marginalPsiParamsQuest1{ss,rr},'kx','MarkerFaceColor','k','MarkerSize',8);
     end
 end
@@ -285,8 +285,8 @@ figure; clf; hold on
 for ss = 1:nParamSets
     for rr = 1:nRunsPerParamSet
         plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsFit{ss,rr}(theParamIndex),'ro','MarkerFaceColor','r','MarkerSize',8);
-        plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsQuest{ss,rr}(theParamIndex),'bo','MarkerFaceColor','b','MarkerSize',8);
-        plot(simulatedPsiParamsVecCell{ss}(theParamIndex),marginalPsiParamsQuest{ss,rr}(2),'go','MarkerFaceColor','g','MarkerSize',4);
+        %plot(simulatedPsiParamsVecCell{ss}(theParamIndex),psiParamsQuest{ss,rr}(theParamIndex),'bo','MarkerFaceColor','b','MarkerSize',8);
+        %plot(simulatedPsiParamsVecCell{ss}(theParamIndex),marginalPsiParamsQuest{ss,rr}(2),'go','MarkerFaceColor','g','MarkerSize',4);
     end
 end
 xlim([domainVlb(theParamIndex) domainVub(theParamIndex)]);
