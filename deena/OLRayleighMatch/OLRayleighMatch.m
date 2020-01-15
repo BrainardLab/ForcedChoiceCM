@@ -30,11 +30,14 @@ function matches = OLRayleighMatch(varargin)
 %              subject's matches (first column is test, second is primary)
 %
 % Optional key-value pairs:
-%    'p1'    - integer wavelength of the first primary light in nm. Default
-%              is 670.
-%    'p2'    - integer wavelength of the second primary light in nm.
-%              Default is 540.
-%    'test'  - integer wavelength of the test light in nm. Default is 580.
+%    'p1'        - integer wavelength of the first primary light in nm. 
+%                  Default is 670.
+%    'p2'        - integer wavelength of the second primary light in nm.
+%                  Default is 540.
+%    'test'      - integer wavelength of the test light in nm. Default is 
+%                  580.
+%    'plotSpds'  - logical indicating whether to make plots of nominal spds.
+%                  Default is false.
 
 % History:
 %   xx/xx/19  dce  Wrote it.
@@ -50,6 +53,7 @@ p = inputParser;
 p.addParameter('p1', 670, @(x) (isnumeric(x)));
 p.addParameter('p2', 540, @(x) (isnumeric(x)));
 p.addParameter('test', 580, @(x) (isnumeric(x)));
+p.addParameter('plotSpds', false, @(x) (islogical(x)));
 p.parse(varargin{:});
 p1 = p.Results.p1;
 p2 = p.Results.p2;
@@ -131,7 +135,7 @@ whiteSpdNominal = OLPrimaryToSpd(cal,whitePrimaries);
 whiteSettings = OLPrimaryToSettings(cal,whitePrimaries);
 [whiteStarts,whiteStops] = OLSettingsToStartsStops(cal,whiteSettings);
 
-% Get the "dark" spd, that which comes out when primarys are at 0
+%% Get the "dark" spd, that which comes out when primarys are at 0
 darkSpd = OLPrimaryToSpd(cal,zeros(size(cal.computed.D,2),1));
 
 %% Define desired spectrum for test and the two primary lights
@@ -165,8 +169,7 @@ for i = 1:primaries_length
 end
 
 %% Take a look at spectra (optional)
-makeFigs = true;
-if makeFigs
+if p.Results.plotSpds
     figure; clf; hold on
     OLplotSpdCheck(cal.computed.pr650Wls, testSpdsNominal);
     
@@ -176,10 +179,9 @@ end
 
 %% Set up projector
 fprintf('**** Set up projector ****\n'); 
-annulusFile = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),'projectorSettings','OLAnnulusSettings.mat'); 
+annulusFile = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'), 'projectorSettings','OLAnnulusSettings.mat'); 
 if exist(annulusFile, 'file')
-    fprintf('\n'); 
-    fprintf(['[1]: Use existing annulus settings file ', annulusFile, '\n']);
+    fprintf('[1]: Use existing annulus settings file\n');
     fprintf('[2]: Reset annulus\n');
     res = GetInput('Select option:', 'number', 1);
     if res == 1 
@@ -199,7 +201,6 @@ fprintf('\nProjector ready. Starting display loop\n')
 % Display parameters
 delaySecs = 2;              % Time in seconds that a given field is displayed for
 isPrimary = true;           % Are we currently displaying primary or test light?
-whiteStopIndex = 700;       % Start stops index for brightness of white light 
 stepModes = [20 5 1];       % Possible step sizes (relative to adjustment_length)
 
 % Hold information
@@ -311,7 +312,7 @@ if ~isempty(matches)
     save(fileLoc, 'matches', 'matchPositions', 'p1', 'p2', 'test', 'cal',...
     'primarySpdsNominal', 'primarySpdsPredicted', 'testSpdsNominal',...
     'testSpdsPredicted', 'primaryStartStops', 'testStartStops',...
-    'whitePrimaries', 'whiteSettings', 'whiteStarts', 'whiteStops', 'whitePrimaryNominal',...
+    'whitePrimaries', 'whiteSettings', 'whiteStarts', 'whiteStops', 'whiteSpdNominal',...
     'subjectID', 'sessionNum','annulusData');
 end 
 

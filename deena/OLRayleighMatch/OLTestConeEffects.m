@@ -1,4 +1,4 @@
-function OLTestConeEffects(fName)
+function OLTestConeEffects(fName, varargin)
 % Calculate cone effects of subjects' OL Rayleigh matches.
 %
 % Syntax:
@@ -18,10 +18,12 @@ function OLTestConeEffects(fName)
 %    saves three PDFs for each match in the match file
 %
 % Optional key-value pairs:
-%    none 
+%    'fType' - character array of file type. Default is '.tif' 
 
 % Example: OLTestConeEffefcts('/Users/melanopsin/Dropbox (Aguirre-Brainard Lab)/MELA_data/Experiments/ForcedChoiceCM/OLRayleighMatches/test/test_1.mat')
 
+
+%% Load data file, 
 theData = load(fName);
 if (isfield(theData,'p1') == 0 || isfield(theData,'p2') == 0  ||...
         isfield(theData,'test') == 0 || isfield(theData,'matches') == 0 ...
@@ -31,11 +33,20 @@ if (isfield(theData,'p1') == 0 || isfield(theData,'p2') == 0  ||...
         'testSpdsNominal') == 0|| isfield(theData, 'testSpdsPredicted') == 0 ...
         || isfield(theData,'primaryStartStops') == 0 || isfield(theData,...
         'testStartStops') == 0 || isfield(theData,'subjectID') == 0 || ...
-        isfield(theData, 'sessionNum') == 0)
+        isfield(theData, 'sessionNum') == 0 || isfield(theData, 'whitePrimaries' == 0)...
+        || isfield(theData, 'whiteSettings' == 0) || isfield(theData, 'whiteStarts' == 0)...
+        || isfield(theData, 'whiteStops' == 0) || isfield(theData, 'whiteSpdNominal' == 0) ...
+        || isfield(theData, 'annulusData' == 0))
     error('Data file does not contain required variables');
 end
 
-% Make directory for saving files 
+%% Parse key-value pairs 
+p = inputParser;
+p.addParameter('fType', '.tif', @(x) (ischar(x)));
+p.parse(varargin{:});
+fType = p.Results.fType; 
+
+%% Make directory for saving files 
 outputDir = fullfile(getpref('ForcedChoiceCM','rayleighAnalysisDir'), 'cone response plots', theData.subjectID, num2str(theData.sessionNum));
 if (~exist(outputDir,'dir'))
     mkdir(outputDir);
@@ -80,8 +91,8 @@ for i = 1:nMatches
     legend('Predicted', 'Nominal');
     theTitle = sprintf('Match %g nominal and predicted spds', i);
     % sgtitle(theTitle);
-    file = fullfile(outputDir, [theData.subjectID, '_', theTitle, '.pdf']); 
-    saveas(gcf, file); 
+    file = fullfile(outputDir, [theData.subjectID, '_', theTitle]); 
+    saveas(gcf, file, fType); 
     
     % Plots comparing test and match spds
     figure();
@@ -89,8 +100,8 @@ for i = 1:nMatches
     theTitle = sprintf('Match %g Spds', i);
     title(theTitle);
     legend({ 'test' 'primaries' });
-    file = fullfile(outputDir, [theData.subjectID, '_', theTitle, '.pdf']); 
-    saveas(gcf, file); 
+    file = fullfile(outputDir, [theData.subjectID, '_', theTitle]); 
+    saveas(gcf, file, fType); 
     
     % Plot cone effects
     figure();
@@ -103,7 +114,7 @@ for i = 1:nMatches
     theTitle = sprintf('Match %g Cone Responses', i);
     title(theTitle);
     legend('Test','Primaries');
-    file = fullfile(outputDir, [theData.subjectID, '_', theTitle, '.pdf']); 
-    saveas(gcf, file); 
+    file = fullfile(outputDir, [theData.subjectID, '_', theTitle]); 
+    saveas(gcf, file, fType); 
 end
 end
