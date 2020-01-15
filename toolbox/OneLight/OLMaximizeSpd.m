@@ -1,8 +1,8 @@
-function [maxSpdIncrRel,spdScaleFactor] = OLMaximizeSpd(cal,spdIncrRel,varargin)
+function [maxSpdIncrRel,spdScaleFactor, darkSpd] = OLMaximizeSpd(cal,spdIncrRel,varargin)
 % Maximize an incremental spectral power distribution, within OneLight gamut
 %
 % Synopsis:
-%    [maxSpdIncrRel,spdScaleFactor] = OLMaximizeSpd(cal,spdIncrRel)
+%    [maxSpdIncrRel,spdScaleFactor, darkSpd] = OLMaximizeSpd(cal,spdIncrRel)
 %
 % Description:
 %     Take in an inremental spd (to be added to OL dark spd) and figure out
