@@ -38,11 +38,7 @@ function matches = OLRayleighMatch(varargin)
 
 % History:
 %   xx/xx/19  dce  Wrote it.
-
-%% DHB COMMENTS
-% This is looking good.  Probably want to explicitly control
-% the "white" stimulus displayed in the intervals, rather than
-% having it hard coded as white.
+%   01/15/20  dce, dhb  Add control of white by specifying primaries.
 
 %% Close any stray figures
 close all;
@@ -122,6 +118,19 @@ primarySpdsPredicted = zeros(spdLength,primaries_length);
 primarySettings = zeros(settingsLength, primaries_length);
 primaryStartStops = zeros(primaries_length,2,numCols);
 
+%% Specify and initialize "white" light
+%
+% This is displayed between the times when subject is comparing
+% the primaries and test.
+%
+% The easiest way to set up something reasonable is to turn
+% the one light on to half of its max.  We could get fancier
+% later and explicitly provide a spectrum.
+whitePrimaries = 0.5*ones(settingsLength);
+whiteSpdNominal = OLPrimaryToSpd(cal,whitePrimaries);
+whiteSettings = OLPrimaryToSettings(cal,whitePrimaries);
+[whiteStarts,whiteStops] = OLSettingsToStartsStops(cal,whiteSettings);
+
 % Get the "dark" spd, that which comes out when primarys are at 0
 darkSpd = OLPrimaryToSpd(cal,zeros(size(cal.computed.D,2),1));
 
@@ -167,7 +176,7 @@ end
 
 %% Set up projector
 fprintf('**** Set up projector ****\n'); 
-annulusFile = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),'OLAnnulusSettings.mat'); 
+annulusFile = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),'projectorSettings','OLAnnulusSettings.mat'); 
 if exist(annulusFile, 'file')
     fprintf('\n'); 
     fprintf(['[1]: Use existing annulus settings file ', annulusFile, '\n']);
@@ -285,12 +294,11 @@ while(stillLooping)
         end
     end
     
-    % Display white light for one second on every other iteration
+    % Display "white" light for one second on every other iteration
     if ~isPrimary
         nowTime = mglGetSecs;
         while(mglGetSecs < nowTime + 1)
-            ol.setMirrors(squeeze(whiteStopIndex * ones(1, numCols))',...
-                squeeze(whiteStopIndex * ones(1, numCols))');
+            ol.setMirrors(whiteStarts,whiteStops);
         end
     end
     
@@ -303,7 +311,8 @@ if ~isempty(matches)
     save(fileLoc, 'matches', 'matchPositions', 'p1', 'p2', 'test', 'cal',...
     'primarySpdsNominal', 'primarySpdsPredicted', 'testSpdsNominal',...
     'testSpdsPredicted', 'primaryStartStops', 'testStartStops',...
-    'subjectID', 'sessionNum');
+    'whitePrimaries', 'whiteSettings', 'whiteStarts', 'whiteStops', 'whitePrimaryNominal',...
+    'subjectID', 'sessionNum','annulusData');
 end 
 
 %% Close up
