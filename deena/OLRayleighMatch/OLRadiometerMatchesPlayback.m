@@ -1,12 +1,12 @@
-% Program to play back OneLight Rayleigh matches and measure with
-% radiometer
 function OLRadiometerMatchesPlayback(matchFile)
+% Play back OneLight Rayleigh matches and measure with radiometer
+%
 % Syntax:
 %   OLRayleighMatch(matchFile)
 %
 % Description
 %    Takes in a file of user's Rayleigh matches on the OneLight. Plays
-%    these back and records using the radiometer 
+%    these back and records using the radiometer. 
 %
 % Inputs:
 %    matchfile  - character array of filename. Ends in .mat
@@ -56,8 +56,7 @@ measuredPrimarySpds = zeros(spdLength, numMatches);
 measuredTestSpds = zeros(spdLength, numMatches); 
 
 %% Loop through matches 
- 
-for i = 1:numMatches
+ for i = 1:numMatches
     % Display primary on OL, measure with radiometer
     ol.setMirrors(squeeze(theData.primaryStartStops(theData.matchPositions(i,2),1,:))',...
             squeeze(theData.primaryStartStops(theData.matchPositions(i,2),2,:))');

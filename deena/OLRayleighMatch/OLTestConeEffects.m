@@ -1,10 +1,11 @@
-% Calculates cone effects of subjects' OL Rayleigh matches
 function OLTestConeEffects(fName)
+% Calculate cone effects of subjects' OL Rayleigh matches.
+%
 % Syntax:
 %   OLTestConeEffects(fName)
 %
 % Description
-%    Takes in a file of user's Rayleigh matches on the OneLight. For each \
+%    Takes in a file of user's Rayleigh matches on the OneLight. For each 
 %    match, the program calculates and plots a comparison of nominal and
 %    predicted spds, a comparison of test and match predicted spds, and a
 %    bar graph of cone responses to the test and match lights. Figures are
