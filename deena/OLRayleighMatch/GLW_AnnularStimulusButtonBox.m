@@ -61,6 +61,7 @@ try
     gamePad = GamePad();
     
     % Display some information
+    disp('******** Set up a new annulus projection ********'); 
     disp('Press Back to exit');
     disp('Commands:');
     disp(['Press Start to toggle step size: coarse is ' num2str(coarseStepSize)...

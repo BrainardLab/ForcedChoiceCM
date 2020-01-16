@@ -9,9 +9,8 @@ function OLTestConeEffects(fName, varargin)
 %    by OLRayleighMatch). For each match, calculates and plots a comparison 
 %    of nominal and predicted spds, a comparison of test and match 
 %    predicted spds, and a bar graph of cone responses to the test and 
-%    match lights. Can also run to plot test/match cone responses based on 
-%    the radiometer playback of subject matches. Figures are saved in a 
-%    subject-specific folder.
+%    match lights. Figures are saved in a subject-specific
+%    folder.
 %
 % Inputs:
 %    fName      - character array of filename. Ends in .mat
@@ -124,8 +123,8 @@ for i = 1:nMatches
         file = fullfile(outputDir, [theData.subjectID, '_', theTitle]);
         saveas(gcf, file, fType);
     else
-        testCones(:,i) = T_cones * measData.measuredTestSpds(:, i);
-        primaryCones(:,i) = T_cones * measData.measuredPrimarySpds(:, i);
+        testCones(:,i) = T_cones * testSpdPredicted;
+        primaryCones(:,i) = T_cones * primarySpdPredicted;
     end
     
     % Plot cone effects
@@ -136,12 +135,7 @@ for i = 1:nMatches
     
     names ={'L'; 'M'; 'S' };
     set(gca,'xticklabel', names)
-    if measured 
-        category = 'Measured'; 
-    else 
-        category = 'Nominal'; 
-    end 
-    theTitle = [sprintf('Match %g Cone Responses: ', i), category]; 
+    theTitle = sprintf('Match %g Cone Responses', i);
     title(theTitle);
     legend('Test','Primaries');
     file = fullfile(outputDir, [theData.subjectID, '_', theTitle]);

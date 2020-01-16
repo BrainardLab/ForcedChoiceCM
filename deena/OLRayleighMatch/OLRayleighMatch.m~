@@ -128,8 +128,6 @@ numCols = cal.describe.numColMirrors;
 
 %% Initialize arrays for storing precomputed spectra
 % These will be cycled through in the adjustments.
-% Start-stop arrays hold start positions in the first column and stop
-% postions in the second column. 
 testSpdsNominal = zeros(spdLength,test_length);
 testSpdsPredicted = zeros(spdLength,test_length);
 testSettings = zeros(settingsLength,test_length);
@@ -172,22 +170,26 @@ primary2IncrSpd = OLMaximizeSpd(cal, primary2IncrSpdRel,'lambda',lambda);
 for i = 1:test_length
     testSpdsNominal(:,i) = (testScales(i) * testIncrSpd) + darkSpd;
     [testSettings(:,i),~,testSpdsPredicted(:,i)] = OLSpdToSettings(cal, testSpdsNominal(:,i), 'lambda', lambda);
-    [testStartStops(i,1,:),testStartStops(i,2,:)] = OLSettingsToStartsStops(cal, testSettings(:,i));
+    [testStartStops(i,1,:),testStop] = OLSettingsToStartsStops(cal, testSettings(:,i));
+    = testStart;
+     = testStop;
 end
 
 %% Get set of primary lights, varying in relative contribution of two primaries
 for i = 1:primaries_length
     primarySpdsNominal(:,i) = (primaryScaleFactor*(p1Scales(i) * primary1IncrSpd) + (p2Scales(i) * primary2IncrSpd)) + darkSpd;
     [primarySettings(:,i),~,primarySpdsPredicted(:,i)] = OLSpdToSettings(cal, primarySpdsNominal(:,i), 'lambda', lambda);
-    [primaryStartStops(i,1,:), primaryStartStops(i,2,:)] = OLSettingsToStartsStops(cal, primarySettings(:,i));
+    [primaryStart,primaryStop] = OLSettingsToStartsStops(cal, primarySettings(:,i));
+    primaryStartStops(i,1,:) = primaryStart;
+    primaryStartStops(i,2,:) = primaryStop;
 end
 
 %% Take a look at spectra (optional)
 if p.Results.plotSpds
-    figure; clf; hold on; title('Test'); 
+    figure; clf; hold on
     OLplotSpdCheck(cal.computed.pr650Wls, testSpdsNominal);
     
-    figure; clf; title('Primaries'); 
+    figure; clf;
     OLplotSpdCheck(cal.computed.pr650Wls, primarySpdsNominal);
 end
 
