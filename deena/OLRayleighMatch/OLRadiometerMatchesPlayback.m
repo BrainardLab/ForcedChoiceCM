@@ -61,9 +61,11 @@ measuredPrimarySpds = zeros(spdLength, numMatches);
 measuredTestSpds = zeros(spdLength, numMatches);
 
 %% Display and measure white light
+fprintf('Measuring white light...\n'); 
 ol.setMirrors(squeeze(theData.whiteStarts)', squeeze(theData.whiteStops)');
 pause(0.1);
 measuredWhite = spectroRadiometerOBJ.measure;
+fprintf('Successfully measured white light. Begin measuring matches\n'); 
 
 %% Loop through matches; display and measure each one
 for i = 1:numMatches

@@ -25,11 +25,12 @@ function OLTestConeEffects(fName, varargin)
 %                  from radiometer measurements (true) or nominal spd data
 %                  (false). Default is false.
 
-% Example: OLTestConeEffefcts('/Users/melanopsin/Dropbox (Aguirre-Brainard Lab)/MELA_data/Experiments/ForcedChoiceCM/OLRayleighMatches/test/test_1.mat')
+% Example: OLTestConeEffects('/Users/melanopsin/Dropbox (Aguirre-Brainard Lab)/MELA_data/Experiments/ForcedChoiceCM/OLRayleighMatches/test/test_1.mat')
 
 %% Parse input
+close all; 
 p = inputParser;
-p.addParameter('fType', '.tif', @(x) (ischar(x)));
+p.addParameter('fType', 'tiff', @(x) (ischar(x)));
 p.addParameter('measured', false, @(x) (islogical(x)));
 p.parse(varargin{:});
 fType = p.Results.fType;
@@ -55,6 +56,9 @@ end
 if measured
     fprintf('******** Loading radiometer file ********\n');
     measFile = [fName(1:end - 4), '_meas', '.mat'];
+    if ~exist(measFile, 'file')
+        error('Radiometer measurements not available'); 
+    end 
     measData = load(measFile);
     if (isfield(measData,'measuredTestSpds') == 0 ||...
             isfield(measData,'measuredPrimarySpds') == 0 ||...
@@ -110,7 +114,7 @@ for i = 1:nMatches
         plot(wls,primarySpdNominal,'k','LineWidth',2);
         title('Primaries');
         legend('Predicted', 'Nominal');
-        theTitle = sprintf('Match %g nominal and predicted spds', i);
+        theTitle = sprintf('Match %g Nominal and Predicted Spds', i);
         % sgtitle(theTitle);
         file = fullfile(outputDir, [theData.subjectID, '_', theTitle]);
         saveas(gcf, file, fType);
@@ -118,7 +122,7 @@ for i = 1:nMatches
         % Plots comparing test and match spds
         figure();
         plot(wls, testSpdPredicted, 'r', wls, primarySpdPredicted, 'b');
-        theTitle = sprintf('Match %g nominal Spds', i);
+        theTitle = sprintf('Match %g Nominal Spds', i);
         title(theTitle);
         legend({ 'test' 'primaries' });
         file = fullfile(outputDir, [theData.subjectID, '_', theTitle]);
@@ -141,7 +145,7 @@ for i = 1:nMatches
     else 
         category = 'Nominal'; 
     end 
-    theTitle = [sprintf('Match %g Cone Responses: ', i), category]; 
+    theTitle = sprintf('Match %g %s Cone Responses ', i, category); 
     title(theTitle);
     legend('Test','Primaries');
     file = fullfile(outputDir, [theData.subjectID, '_', theTitle]);

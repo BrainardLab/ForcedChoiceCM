@@ -26,8 +26,8 @@ function matches = OLRayleighMatch(varargin)
 %    None
 %
 % Outputs:
-%    Saves a .mat file titled by subject and session number, which includes 
-%    a record of subjects' matches and various experimental parameters. As 
+%    Saves a .mat file titled by subject and session number, which includes
+%    a record of subjects' matches and various experimental parameters. As
 %    of now, the file is only saved if the subject makes at least one
 %    match.
 %
@@ -129,7 +129,7 @@ numCols = cal.describe.numColMirrors;
 %% Initialize arrays for storing precomputed spectra
 % These will be cycled through in the adjustments.
 % Start-stop arrays hold start positions in the first column and stop
-% postions in the second column. 
+% postions in the second column.
 testSpdsNominal = zeros(spdLength,test_length);
 testSpdsPredicted = zeros(spdLength,test_length);
 testSettings = zeros(settingsLength,test_length);
@@ -148,13 +148,13 @@ primaryStartStops = zeros(primaries_length,2,numCols);
 % The easiest way to set up something reasonable is to turn
 % the OneLight on to half of its max.  We could get fancier
 % later and explicitly provide a spectrum.
-whitePrimaries = 0.5 * ones(settingsLength);
+whitePrimaries = 0.5 * ones(settingsLength, 1);
 whiteSpdNominal = OLPrimaryToSpd(cal, whitePrimaries);
 whiteSettings = OLPrimaryToSettings(cal, whitePrimaries);
 [whiteStarts, whiteStops] = OLSettingsToStartsStops(cal, whiteSettings);
 
 %% Get the "dark" spd, that which comes out when primarys are at 0
-darkSpd = OLPrimaryToSpd(cal,zeros(settingsLength));
+darkSpd = OLPrimaryToSpd(cal,zeros(settingsLength, 1));
 
 %% Define desired spectrum for test and the two primary lights
 %
@@ -184,12 +184,16 @@ end
 
 %% Take a look at spectra (optional)
 if p.Results.plotSpds
-    figure; clf; hold on; title('Test'); 
+    figure; clf; hold on; title('Test');
     OLplotSpdCheck(cal.computed.pr650Wls, testSpdsNominal);
     
-    figure; clf; title('Primaries'); 
+    figure; clf; title('Primaries');
     OLplotSpdCheck(cal.computed.pr650Wls, primarySpdsNominal);
 end
+
+%% Intialize OneLight and button box
+ol = OneLight;
+gamePad = GamePad();
 
 %% Set up projector
 fprintf('**** Set up projector ****\n');
@@ -197,16 +201,22 @@ annulusFile = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'), 'projectorSe
 if exist(annulusFile, 'file')
     fprintf('[1]: Use existing annulus settings file\n');
     fprintf('[2]: Reset annulus\n');
-    res = GetInput('Select option:', 'number', 1);
+    res = GetInput('Select option', 'number', 1);
     if res == 1
         annulusData = load(annulusFile);
         annulusData.win.open;
         annulusData.win.draw;
     else
+        ol.setMirrors(squeeze(primaryStartStops(1,1,:))',...
+            squeeze(primaryStartStops(1,2,:))');
         GLW_AnnularStimulusButtonBox();
+        annulusData = win;
     end
 else
+    ol.setMirrors(squeeze(primaryStartStops(1,1,:))',...
+        squeeze(primaryStartStops(1,2,:))');ol.setAll(false);
     GLW_AnnularStimulusButtonBox();
+    annulusData = win;
 end
 fprintf('\nProjector ready. Starting display loop\n')
 
@@ -227,12 +237,8 @@ primaryPos = 1;
 testPos = 1;
 stepModePos = 1;
 
-% Intialize OneLight and button box
-ol = OneLight;
-gamePad = GamePad();
-stillLooping = true;
-
 % Loop through primary and test light until the user presses a key
+stillLooping = true;
 while(stillLooping)
     nowTime = mglGetSecs;
     
@@ -311,7 +317,7 @@ while(stillLooping)
     % Display "white" light in between iterations. This light is displayed
     % for a short time between primary and test fields (isi) and for a
     % longer time between test and primary fields (iti).
-    currTime = mglGetSeconds;
+    currTime = mglGetSecs;
     if isPrimary
         delay = p.Results.isi;
     else
@@ -330,7 +336,7 @@ if ~isempty(matches)
     save(fileLoc, 'matches', 'matchPositions', 'p1', 'p2', 'test', 'cal',...
         'primarySpdsNominal', 'primarySpdsPredicted', 'testSpdsNominal',...
         'testSpdsPredicted', 'primaryStartStops', 'testStartStops',...
-        'whitePrimaries', 'whiteSettings', 'whiteStarts', 'whiteStops',... 
+        'whitePrimaries', 'whiteSettings', 'whiteStarts', 'whiteStops',...
         'whiteSpdNominal', 'subjectID', 'sessionNum','annulusData');
 end
 
