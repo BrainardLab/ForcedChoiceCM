@@ -196,28 +196,25 @@ ol = OneLight;
 gamePad = GamePad();
 
 %% Set up projector
-fprintf('**** Set up projector ****\n');
+fprintf('\n**** Set up projector ****\n');
 annulusFile = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'), 'projectorSettings','OLAnnulusSettings.mat');
 if exist(annulusFile, 'file')
     fprintf('[1]: Use existing annulus settings file\n');
     fprintf('[2]: Reset annulus\n');
     res = GetInput('Select option', 'number', 1);
-    if res == 1
-        annulusData = load(annulusFile);
-        annulusData.win.open;
-        annulusData.win.draw;
-    else
+    if res == 2
         ol.setMirrors(squeeze(primaryStartStops(1,1,:))',...
             squeeze(primaryStartStops(1,2,:))');
         GLW_AnnularStimulusButtonBox();
-        annulusData = win;
     end
 else
     ol.setMirrors(squeeze(primaryStartStops(1,1,:))',...
         squeeze(primaryStartStops(1,2,:))');ol.setAll(false);
     GLW_AnnularStimulusButtonBox();
-    annulusData = win;
 end
+annulusData = load(annulusFile);
+annulusData.win.open;
+annulusData.win.draw;
 fprintf('\nProjector ready. Starting display loop\n')
 
 %% Display loop
@@ -259,6 +256,7 @@ while(stillLooping)
         if (~isempty(key))
             switch(key.charCode)
                 case 'GP:Y' % Switch step size mode
+                    Snd('Play',sin(0:5000)/50);
                     stepModePos = stepModePos + 1;
                     if stepModePos > length(stepModes)
                         stepModePos = 1;
@@ -266,6 +264,7 @@ while(stillLooping)
                     fprintf('User switched step size to %g \n',...
                         (stepModes(stepModePos)/100.0));
                 case 'GP:B' % Subject found a match
+                    Snd('Play',sin(0:5000)/50);
                     fprintf('User found match at %g test, %g primary \n',...
                         testScales(testPos), p1Scales(primaryPos));
                     matches = [matches;...

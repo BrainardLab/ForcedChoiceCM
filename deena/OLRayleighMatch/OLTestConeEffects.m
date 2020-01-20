@@ -11,16 +11,17 @@ function OLTestConeEffects(fName, varargin)
 %    predicted spds, and a bar graph of cone responses to the test and 
 %    match lights. Can also run to plot test/match cone responses based on 
 %    the radiometer playback of subject matches. Figures are saved in a 
-%    subject-specific folder.
+%    subject and session-specific folder.
 %
 % Inputs:
 %    fName      - character array of filename. Ends in .mat
 %
 % Outputs:
-%    saves three PDFs for each match in the match file
+%    Saves three figures for each match in the match file. When a radiometer
+%    playback file is used, saves one ffigure for each match.  
 %
 % Optional key-value pairs:
-%    'fType'    - character array of file type. Default is '.tif'
+%    'fType'     - character array of file type. Default is '.tif'
 %    'measured'  - logical indicating whether to calculate cone effects
 %                  from radiometer measurements (true) or nominal spd data
 %                  (false). Default is false.
@@ -54,7 +55,7 @@ if (isfield(theData,'p1') == 0 || isfield(theData,'p2') == 0  ||...
 end
 
 if measured
-    fprintf('******** Loading radiometer file ********\n');
+    fprintf('\n******** Loading radiometer file ********\n');
     measFile = [fName(1:end - 4), '_meas', '.mat'];
     if ~exist(measFile, 'file')
         error('Radiometer measurements not available'); 
@@ -145,7 +146,7 @@ for i = 1:nMatches
     else 
         category = 'Nominal'; 
     end 
-    theTitle = sprintf('Match %g %s Cone Responses ', i, category); 
+    theTitle = sprintf('Match %g %s Cone Responses', i, category); 
     title(theTitle);
     legend('Test','Primaries');
     file = fullfile(outputDir, [theData.subjectID, '_', theTitle]);

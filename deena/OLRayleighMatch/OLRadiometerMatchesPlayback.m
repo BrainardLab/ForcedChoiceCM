@@ -65,7 +65,7 @@ fprintf('Measuring white light...\n');
 ol.setMirrors(squeeze(theData.whiteStarts)', squeeze(theData.whiteStops)');
 pause(0.1);
 measuredWhite = spectroRadiometerOBJ.measure;
-fprintf('Successfully measured white light. Begin measuring matches\n'); 
+fprintf('Successfully measured white light. Begin measuring matches...\n'); 
 
 %% Loop through matches; display and measure each one
 for i = 1:numMatches
@@ -83,11 +83,12 @@ for i = 1:numMatches
     testMeas = spectroRadiometerOBJ.measure;
     measuredTestSpds(:,i) = testMeas;
     
-    fprintf('Match %g completed\n', i);
+    fprintf('Match %g complete\n', i);
 end
 
-% Save data
+% Save data and close devices
 fName = [matchFile(1:end - 4), '_meas', '.mat'];
 save(fName, 'measuredTestSpds', 'measuredPrimarySpds', 'measuredWhite');
 spectroRadiometerOBJ.shutDown;
+ol.setAll(false); 
 end
