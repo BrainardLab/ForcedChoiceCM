@@ -225,7 +225,7 @@ fprintf('\nProjector ready. Starting display loop\n')
 isPrimary = true;           % Are we currently displaying primary or test light?
 stepModes = [20 5 1];       % Possible step sizes (relative to adjustment_length)
 primaryPositions = ...      % Positions in primary adjustment array to display
-    [1 100 10 90 20 80 30 70 40 50 60 95 5 85 15 75 25 65 35 55 45];
+    [1 101 11 91 21 81 31 71 41 51 61 96 6 86 16 76 26 66 36 56 46];
 
 % Hold information
 matches = [];               % Output array with subject matches
@@ -240,8 +240,14 @@ primaryPos = 1;  % Index for current location in primaryPositions array
 testPos = 34;    % Index for current test light position.
 % The anomaloscope defaults to 15/45, so we default to 33/100
 
-% Loop through primary and test light until the user presses a key
+% Loop control parameters
+%
+% After a subject makes a match, future matches are blocked until both the
+% primary and test lights have been displayed
 stillLooping = true;
+blockMatches = false;
+
+% Loop through primary and test light until the user presses a key
 while(stillLooping)
     nowTime = mglGetSecs;
     
@@ -250,12 +256,11 @@ while(stillLooping)
         Snd('Play',sin(0:5000));
         ol.setMirrors(squeeze(primaryStartStops(primaryPositions(primaryPos),1,:))',...
             squeeze(primaryStartStops(primaryPositions(primaryPos),2,:))');
-        fprintf('showing primary %g\n', (primaryPositions(primaryPos) -1));
     else
         Snd('Play',sin((0:5000)/100));
         ol.setMirrors(squeeze(testStartStops(testPos,1,:))',...
             squeeze(testStartStops(testPos,2,:))');
-        fprintf('showing test %g\n', (testPos - 1));
+        blockMatches = false;
     end
     
     % Until time limit runs out, check for user input
@@ -273,33 +278,51 @@ while(stillLooping)
                         (stepModes(stepModePos)/100.0));
                     
                 case 'GP:B' % Subject found a match
-                    Snd('Play',sin(0:5000)/50);
-                    fprintf('User found match at %g test, %g primary \n',...
-                        testScales(testPos), p1Scales(primaryPositions(primaryPos)));
-                    matches = [matches;...
-                        [testScales(testPos), p1Scales(primaryPositions(primaryPos))]];
-                    matchPositions = [matchPositions; [testPos, primaryPositions(primaryPos)]];
-                    % Move on to next primary in primaryPositions
-                    primaryPos = primaryPos +1;
-                    if primaryPos > length(primaryPositions)
-                        stillLooping = false;
-                        fprintf('\nFinished looping through primary lights\n');
+                    if ~blockMatches
+                        Snd('Play',sin(0:5000)/50);
+                        fprintf('User found match at %g test, %g primary \n',...
+                            testScales(testPos), p1Scales(primaryPositions(primaryPos)));
+                        matches = [matches; [testScales(testPos),...
+                            p1Scales(primaryPositions(primaryPos))]];
+                        matchPositions = [matchPositions; [testPos,...
+                            primaryPositions(primaryPos)]];
+                        % Move on to next primary in primaryPositions
+                        primaryPos = primaryPos +1;
+                        if primaryPos > length(primaryPositions)
+                            stillLooping = false;
+                            fprintf('\nFinished looping through primary lights\n');
+                        else
+                            % with switch at end of loop, this will lead
+                            % primary to be displayed on next iteration
+                            isPrimary = false;
+                            blockMatches = true;
+                        end
+                    else
+                        fprintf('Matching blocked\n');
                     end
                     
                 case 'GP:X' % Subject found a non-match
-                    Snd('Play',sin(0:5000)/50);
-                    fprintf('User found non-match at %g test, %g primary \n',...
-                        testScales(testPos), p1Scales(primaryPositions(primaryPos)));
-                    nonMatches = [nonMatches;...
-                        [testScales(testPos), p1Scales(primaryPositions(primaryPos))]];
-                    nonMatchPositions = [nonMatchPositions; [testPos, primaryPositions(primaryPos)]];
-                    % Move on to next primary in primaryPositions
-                    primaryPos = primaryPos +1;
-                    if primaryPos > length(primaryPositions)
-                        stillLooping = false;
-                        fprintf('\nFinished looping through primary lights\n');
+                    if ~ blockMatches
+                        Snd('Play',sin(0:5000)/50);
+                        fprintf('User found non-match at %g test, %g primary \n',...
+                            testScales(testPos), p1Scales(primaryPositions(primaryPos)));
+                        nonMatches = [nonMatches;...
+                            [testScales(testPos), p1Scales(primaryPositions(primaryPos))]];
+                        nonMatchPositions = [nonMatchPositions; [testPos, primaryPositions(primaryPos)]];
+                        % Move on to next primary in primaryPositions
+                        primaryPos = primaryPos +1;
+                        if primaryPos > length(primaryPositions)
+                            stillLooping = false;
+                            fprintf('\nFinished looping through primary lights\n');
+                        else
+                            % with switch at end of loop, this will lead
+                            % primary to be displayed on next iteration
+                            isPrimary = false;
+                            blockMatches = true;
+                        end
+                    else
+                        fprintf('Matching blocked\n');
                     end
-                    
                 case 'GP:A' % Quit
                     fprintf('User exited program \n');
                     stillLooping = false;
@@ -345,15 +368,13 @@ while(stillLooping)
 end
 
 %% Save matches
-if ~isempty(matches)
-    save(fileLoc, 'matches', 'matchPositions','nonMatches', ...
-        'nonMatchPositions', 'primaryPositions', 'p1', 'p2', 'test', 'cal',...
-        'primarySpdsNominal', 'primarySpdsPredicted', 'testSpdsNominal',...
-        'testSpdsPredicted', 'primaryStartStops', 'testStartStops',...
-        'whitePrimaries', 'whiteSettings', 'whiteStarts', 'whiteStops',...
-        'whiteSpdNominal', 'subjectID', 'sessionNum','annulusData',...
-        'sInterval', 'isi', 'iti');
-end
+save(fileLoc, 'matches', 'matchPositions','nonMatches', ...
+    'nonMatchPositions', 'primaryPositions', 'p1', 'p2', 'test', 'cal',...
+    'primarySpdsNominal', 'primarySpdsPredicted', 'testSpdsNominal',...
+    'testSpdsPredicted', 'primaryStartStops', 'testStartStops',...
+    'whitePrimaries', 'whiteSettings', 'whiteStarts', 'whiteStops',...
+    'whiteSpdNominal', 'subjectID', 'sessionNum','annulusData',...
+    'sInterval', 'isi', 'iti');
 
 %% Close up
 GLW_CloseAnnularStimulus();
