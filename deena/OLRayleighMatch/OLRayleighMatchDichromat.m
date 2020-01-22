@@ -1,24 +1,25 @@
-function matches = OLRayleighMatch(varargin)
-% Program to run a Rayleigh match experiment on the OneLight
+function matches = OLRayleighMatchDichromat(varargin)
+% Runs a OneLight Rayleigh match experiment modeled after the Oculus-HMC
+% anomaloscope
 %
 % Syntax:
-%   OLRayleighMatch
+%   OLRayleighMatchDichromat
 %
 % Description:
-%    Displays a mixture of two primary iights followed by a test light in
-%    alternation.
+%    Displays various mixtures of two primary lights followed by a test
+%    light in alternation.
+%
+%    Subjects are shown various ratios of two primary lights and use the
+%    directional pad to adjust the test light intensity and try to make a
+%    match. (Up increases the test intensity and down decreases the test
+%    intensity). For each trial, they can then respond either "match"
+%    (right 'B' button) or "no match possible" (left 'X' button).
 %
 %    Default wavelengths are 580 for test, 670 for p1, and 540 for
 %    p2, but these can also be entered by the user as key/value pairs.
 %
-%    Subjects can use the game pad's directional pad to adjust the
-%    intensity of the test light and the ratio of the two primaries to try
-%    and get the two fields to match:
-%       right moves the primary ratio towards p1 and left towards p2
-%       up increases the test intensity and down decreases the test intensity.
-%
-%    The subject can also use the top 'Y' button to toggle step size, the
-%    right 'B' button to record a match, and the bottom 'A' button to quit.
+%    The subject can also use the top 'Y' button to toggle step size and
+%    the bottom 'A' button to quit.
 %
 %    The routine prompts for subject and session info.
 %
@@ -27,9 +28,8 @@ function matches = OLRayleighMatch(varargin)
 %
 % Outputs:
 %    Saves a .mat file titled by subject and session number, which includes
-%    a record of subjects' matches and various experimental parameters. As
-%    of now, the file is only saved if the subject makes at least one
-%    match.
+%    a record of subjects' matches, non-matches, and various experimental
+%    parameters.
 %
 % Optional key-value pairs:
 %    'p1'        - integer wavelength of the first primary light in nm.
@@ -39,21 +39,19 @@ function matches = OLRayleighMatch(varargin)
 %    'test'      - integer wavelength of the test light in nm. Default is
 %                  580.
 %    'sInterval' - length of time that each stimulus is displayed for, in
-%                   s. Default is 1.5.
+%                   s. Default is 5 (like absolute mode on the anomaloscope).
 %    'isi'       - inter-stimulus interval for white light between primary
 %                  and test fields, in s. Default is 0.3.
 %    'iti'       - inter-trial interval for white light between test and
-%                  primary fields. Default is 1s.
+%                  primary fields. Default is 3 (like absolute mode on the
+%                  anomaloscope).
 %
 %
 %    'plotSpds'  - logical indicating whether to make plots of nominal spds.
 %                  Default is false.
 
 % History:
-%   xx/xx/19  dce       Wrote it.
-%   01/15/20  dce, dhb  Add control of white by specifying primaries.
-%   01/16/20  dce       Add control of stimulus length and inter-stimulus
-%                       intervals
+%   1/22/20  dce   - WWrote program, modified from OLRayleighMatch
 
 %% Close any stray figures
 close all;
@@ -65,9 +63,9 @@ p = inputParser;
 p.addParameter('p1', 670, @(x) (isnumeric(x)));
 p.addParameter('p2', 540, @(x) (isnumeric(x)));
 p.addParameter('test', 580, @(x) (isnumeric(x)));
-p.addParameter('sInterval', 1.5, @(x) (isnumeric(x)));
+p.addParameter('sInterval', 5, @(x) (isnumeric(x)));
 p.addParameter('isi', 0.3, @(x) (isnumeric(x)));
-p.addParameter('iti', 1, @(x) (isnumeric(x)));
+p.addParameter('iti', 3, @(x) (isnumeric(x)));
 p.addParameter('plotSpds', false, @(x) (islogical(x)));
 p.parse(varargin{:});
 
@@ -76,7 +74,7 @@ p2 = p.Results.p2;
 test = p.Results.test;
 sInterval = p.Results.sInterval;
 isi = p.Results.isi;
-iti = p.Results.iti;p1 = p.Results.p1;
+iti = p.Results.iti;
 
 %% Parameters
 %
@@ -115,7 +113,7 @@ end
 
 % Create data file with name subject ID_SessionNumber. Throw error if a
 % file already exists with that name.
-fileName = [subjectID, '_', num2str(sessionNum), '.mat'];
+fileName = [subjectID, '_dichromat_', num2str(sessionNum), '.mat'];
 fileLoc = fullfile(outputDir,fileName);
 if (exist(fileLoc, 'file'))
     error('Specified output file %s already exists', fileName);
@@ -226,17 +224,21 @@ fprintf('\nProjector ready. Starting display loop\n')
 % Display parameters
 isPrimary = true;           % Are we currently displaying primary or test light?
 stepModes = [20 5 1];       % Possible step sizes (relative to adjustment_length)
+primaryPositions = ...      % Positions in primary adjustment array to display
+    [1 100 10 90 20 80 30 70 40 50 60 95 5 85 15 75 25 65 35 55 45];
 
 % Hold information
 matches = [];               % Output array with subject matches
 matchPositions = [];        % Positions of matches in the adjustment array
 
+nonMatches = [];            % Output array with subject mismatches
+nonMatchPositions = [];     % Positions of non-matches in adjustment array
+
 % Initial position in primary, test, and step size arrays
-%
-% Start with largest step size
-primaryPos = 1;
-testPos = 1;
-stepModePos = 1;
+stepModePos = 1; % Start with largest step size
+primaryPos = 1;  % Index for current location in primaryPositions array
+testPos = 33;    % Index for current test light position.
+% The anomaloscope defaults to 15/45, so we default to 33/101
 
 % Loop through primary and test light until the user presses a key
 stillLooping = true;
@@ -246,8 +248,8 @@ while(stillLooping)
     % Display primary or test light
     if isPrimary
         Snd('Play',sin(0:5000));
-        ol.setMirrors(squeeze(primaryStartStops(primaryPos,1,:))',...
-            squeeze(primaryStartStops(primaryPos,2,:))');
+        ol.setMirrors(squeeze(primaryStartStops(primaryPositions(primaryPos),1,:))',...
+            squeeze(primaryStartStops(primaryPositions(primaryPos),2,:))');
     else
         Snd('Play',sin((0:5000)/100));
         ol.setMirrors(squeeze(testStartStops(testPos,1,:))',...
@@ -267,16 +269,39 @@ while(stillLooping)
                     end
                     fprintf('User switched step size to %g \n',...
                         (stepModes(stepModePos)/100.0));
+               
                 case 'GP:B' % Subject found a match
                     Snd('Play',sin(0:5000)/50);
                     fprintf('User found match at %g test, %g primary \n',...
-                        testScales(testPos), p1Scales(primaryPos));
+                        testScales(testPos), p1Scales(primaryPositions(primaryPos)));
                     matches = [matches;...
-                        [testScales(testPos), p1Scales(primaryPos)]];
-                    matchPositions = [matchPositions; [testPos, primaryPos]];
+                        [testScales(testPos), p1Scales(primaryPositions(primaryPos))]];
+                    matchPositions = [matchPositions; [testPos, primaryPositions(primaryPos)]];    
+                    % Move on to next primary in primaryPositions
+                    primaryPos = primaryPos +1;
+                    if primaryPos > length(primaryPositions)
+                        stillLooping = false;
+                        fprintf('\nFinished looping through primary lights\n');
+                    end
+                    
+                case 'GP:X' % Subject found a non-match
+                    Snd('Play',sin(0:5000)/50);
+                    fprintf('User found non-match at %g test, %g primary \n',...
+                        testScales(testPos), p1Scales(primaryPositions(primaryPos)));
+                    nonMatches = [nonMatches;...
+                        [testScales(testPos), p1Scales(primaryPositions(primaryPos))]];
+                    nonMatchPositions = [nonMatches; [testPos, primaryPositions(primaryPos)]];
+                    % Move on to next primary in primaryPositions
+                    primaryPos = primaryPos +1;
+                    if primaryPos > length(primaryPositions)
+                        stillLooping = false;
+                        fprintf('\nFinished looping through primary lights\n');
+                    end
+                    
                 case 'GP:A' % Quit
                     fprintf('User exited program \n');
                     stillLooping = false;
+                    
                 case 'GP:North' % Scale up test intensity
                     testPos = testPos + stepModes(stepModePos);
                     if testPos > test_length
@@ -285,7 +310,8 @@ while(stillLooping)
                         testPos = test_length;
                     end
                     fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
-                        testScales(testPos), p1Scales(primaryPos));
+                        testScales(testPos), p1Scales(primaryPositions(primaryPos)));
+                    
                 case 'GP:South' % Scale down test intensity
                     testPos = testPos - stepModes(stepModePos);
                     if testPos < 1
@@ -294,25 +320,7 @@ while(stillLooping)
                         testPos = 1;
                     end
                     fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
-                        testScales(testPos), p1Scales(primaryPos));
-                case 'GP:East' % Move towards p1
-                    primaryPos = primaryPos + stepModes(stepModePos);
-                    if primaryPos > primaries_length
-                        Snd('Play',sin(0:5000)/50);
-                        fprintf('User reached upper primary limit \n');
-                        primaryPos = primaries_length;
-                    end
-                    fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
-                        testScales(testPos), p1Scales(primaryPos));
-                case 'GP:West' % Move towards p2
-                    primaryPos = primaryPos - stepModes(stepModePos);
-                    if primaryPos < 1
-                        Snd('Play',sin(0:5000)/50);
-                        fprintf('User reached lower primary limit \n');
-                        primaryPos = 1;
-                    end
-                    fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
-                        testScales(testPos), p1Scales(primaryPos));
+                        testScales(testPos), p1Scales(primaryPositions(primaryPos)));
             end
         end
     end
@@ -336,11 +344,12 @@ end
 
 %% Save matches
 if ~isempty(matches)
-    save(fileLoc, 'matches', 'matchPositions', 'p1', 'p2', 'test', 'cal',...
+    save(fileLoc, 'matches', 'matchPositions','nonMatches', ...
+        'nonMatchPositions', 'primaryPositions', 'p1', 'p2', 'test', 'cal',...
         'primarySpdsNominal', 'primarySpdsPredicted', 'testSpdsNominal',...
         'testSpdsPredicted', 'primaryStartStops', 'testStartStops',...
         'whitePrimaries', 'whiteSettings', 'whiteStarts', 'whiteStops',...
-        'whiteSpdNominal', 'subjectID', 'sessionNum','annulusData'...
+        'whiteSpdNominal', 'subjectID', 'sessionNum','annulusData',...
         'sInterval', 'isi', 'iti');
 end
 
