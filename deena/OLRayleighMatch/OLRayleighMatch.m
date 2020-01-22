@@ -1,4 +1,4 @@
-function matches = OLRayleighMatch(varargin)
+function OLRayleighMatch(varargin)
 % Program to run a Rayleigh match experiment on the OneLight
 %
 % Syntax:
