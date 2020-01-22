@@ -26,7 +26,10 @@ function OLTestConeEffects(fName, varargin)
 %                  from radiometer measurements (true) or nominal spd data
 %                  (false). Default is false.
 
-% Example: OLTestConeEffects('/Users/melanopsin/Dropbox (Aguirre-Brainard Lab)/MELA_data/Experiments/ForcedChoiceCM/OLRayleighMatches/test/test_1.mat')
+% Example: OLTestConeEffects('/Users/melanopsin/Dropbox (Aguirre-Brainard Lab)/MELA_data/Experiments/ForcedChoiceCM/OLRayleighMatch/Deena/Deena_1.mat')
+% Example: OLTestConeEffects('/Users1/Dropbox (Aguirre-Brainard Lab)/MELA_data/Experiments/ForcedChoiceCM/OLRayleighMatch/Deena/Deena_1.mat')
+% Example: OLTestConeEffects('/Users1/Dropbox (Aguirre-Brainard Lab)/MELA_data/Experiments/ForcedChoiceCM/OLRayleighMatch/Deena/Deena_1.mat','measured',true)
+
 
 %% Parse input
 close all; 

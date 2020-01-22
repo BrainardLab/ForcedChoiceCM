@@ -11,7 +11,7 @@ p.parse(varargin{:});
 inc = p.Results.inc; 
 
 % Observer parameters
-fieldSizeDegs = 2;
+fieldSizeDegs = 10;
 observerAge = 32;
 pupilDiameterMM = 3;
 
