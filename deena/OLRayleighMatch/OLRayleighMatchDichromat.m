@@ -63,9 +63,9 @@ p = inputParser;
 p.addParameter('p1', 670, @(x) (isnumeric(x)));
 p.addParameter('p2', 540, @(x) (isnumeric(x)));
 p.addParameter('test', 580, @(x) (isnumeric(x)));
-p.addParameter('sInterval', 5, @(x) (isnumeric(x)));
+p.addParameter('sInterval', 1, @(x) (isnumeric(x)));
 p.addParameter('isi', 0.3, @(x) (isnumeric(x)));
-p.addParameter('iti', 3, @(x) (isnumeric(x)));
+p.addParameter('iti', 1, @(x) (isnumeric(x)));
 p.addParameter('plotSpds', false, @(x) (islogical(x)));
 p.parse(varargin{:});
 
@@ -237,8 +237,8 @@ nonMatchPositions = [];     % Positions of non-matches in adjustment array
 % Initial position in primary, test, and step size arrays
 stepModePos = 1; % Start with largest step size
 primaryPos = 1;  % Index for current location in primaryPositions array
-testPos = 33;    % Index for current test light position.
-% The anomaloscope defaults to 15/45, so we default to 33/101
+testPos = 34;    % Index for current test light position.
+% The anomaloscope defaults to 15/45, so we default to 33/100
 
 % Loop through primary and test light until the user presses a key
 stillLooping = true;
@@ -250,10 +250,12 @@ while(stillLooping)
         Snd('Play',sin(0:5000));
         ol.setMirrors(squeeze(primaryStartStops(primaryPositions(primaryPos),1,:))',...
             squeeze(primaryStartStops(primaryPositions(primaryPos),2,:))');
+        fprintf('showing primary %g\n', (primaryPositions(primaryPos) -1));
     else
         Snd('Play',sin((0:5000)/100));
         ol.setMirrors(squeeze(testStartStops(testPos,1,:))',...
             squeeze(testStartStops(testPos,2,:))');
+        fprintf('showing test %g\n', (testPos - 1));
     end
     
     % Until time limit runs out, check for user input
@@ -269,14 +271,14 @@ while(stillLooping)
                     end
                     fprintf('User switched step size to %g \n',...
                         (stepModes(stepModePos)/100.0));
-               
+                    
                 case 'GP:B' % Subject found a match
                     Snd('Play',sin(0:5000)/50);
                     fprintf('User found match at %g test, %g primary \n',...
                         testScales(testPos), p1Scales(primaryPositions(primaryPos)));
                     matches = [matches;...
                         [testScales(testPos), p1Scales(primaryPositions(primaryPos))]];
-                    matchPositions = [matchPositions; [testPos, primaryPositions(primaryPos)]];    
+                    matchPositions = [matchPositions; [testPos, primaryPositions(primaryPos)]];
                     % Move on to next primary in primaryPositions
                     primaryPos = primaryPos +1;
                     if primaryPos > length(primaryPositions)
@@ -290,7 +292,7 @@ while(stillLooping)
                         testScales(testPos), p1Scales(primaryPositions(primaryPos)));
                     nonMatches = [nonMatches;...
                         [testScales(testPos), p1Scales(primaryPositions(primaryPos))]];
-                    nonMatchPositions = [nonMatches; [testPos, primaryPositions(primaryPos)]];
+                    nonMatchPositions = [nonMatchPositions; [testPos, primaryPositions(primaryPos)]];
                     % Move on to next primary in primaryPositions
                     primaryPos = primaryPos +1;
                     if primaryPos > length(primaryPositions)
