@@ -73,7 +73,7 @@ if measured
 end
 
 %% Make directory for saving files
-outputDir = fullfile(getpref('ForcedChoiceCM','rayleighAnalysisDir'), 'cone response plots', theData.subjectID, num2str(theData.sessionNum));
+outputDir = fullfile(getpref('ForcedChoiceCM','rayleighAnalysisDir'), 'coneResponsePlots', theData.subjectID, num2str(theData.sessionNum));
 if (~exist(outputDir,'dir'))
     mkdir(outputDir);
 end
