@@ -39,11 +39,11 @@ function OLRayleighMatch(varargin)
 %    'test'      - integer wavelength of the test light in nm. Default is
 %                  580.
 %    'sInterval' - length of time that each stimulus is displayed for, in
-%                   s. Default is 1.5.
+%                   s. Default is 0.25.
 %    'isi'       - inter-stimulus interval for white light between primary
-%                  and test fields, in s. Default is 0.3.
+%                  and test fields, in s. Default is 0.25.
 %    'iti'       - inter-trial interval for white light between test and
-%                  primary fields. Default is 1s.
+%                  primary fields, in s. Default is 1.
 %
 %
 %    'plotSpds'  - logical indicating whether to make plots of nominal spds.
@@ -90,6 +90,9 @@ primaryScaleFactor = 1;
 if (primaryScaleFactor > 1)
     error('Do not set primaryScaleFactor greater than 1')
 end
+
+% Scaling factor for white light
+whiteScale = 0.05;
 
 % Spectrum-generating parameters
 fullWidthHalfMax = 20;
@@ -152,7 +155,7 @@ primaryStartStops = zeros(primaries_length,2,numCols);
 % The easiest way to set up something reasonable is to turn
 % the OneLight on to half of its max.  We could get fancier
 % later and explicitly provide a spectrum.
-whitePrimaries = 0.05 * ones(settingsLength, 1);
+whitePrimaries = whiteScale * ones(settingsLength, 1);
 whiteSpdNominal = OLPrimaryToSpd(cal, whitePrimaries);
 whiteSettings = OLPrimaryToSettings(cal, whitePrimaries);
 [whiteStarts, whiteStops] = OLSettingsToStartsStops(cal, whiteSettings);
@@ -224,118 +227,122 @@ fprintf('\nProjector ready. Starting display loop\n')
 %% Display loop
 %
 % Display parameters
-isPrimary = true;           % Are we currently displaying primary or test light?
-stepModes = [20 5 1];       % Possible step sizes (relative to adjustment_length)
+stepModes = [20 5 1];          % Possible step sizes (relative to adjustment_length)
+lightMode = ['p' 'w' 't' 'w']; % Possible light settings - primary, test, or white
+lightTimes = [sInterval isi sInterval iti]; % Times for each light settings
+
 
 % Hold information
 matches = [];               % Output array with subject matches
 matchPositions = [];        % Positions of matches in the adjustment array
 
-% Initial position in primary, test, and step size arrays
+% Initial position in primary, test, step size, and light mode arrays
 %
-% Start with largest step size
+% Start with largest step size and with the primary light
 primaryPos = 1;
 testPos = 1;
 stepModePos = 1;
+lightModePos = 1;
 
 % Loop through primary and test light until the user presses a key
 stillLooping = true;
 while(stillLooping)
     nowTime = mglGetSecs;
     
-    % Display primary or test light
-    if isPrimary
-        Snd('Play',sin(0:5000));
-        ol.setMirrors(squeeze(primaryStartStops(primaryPos,1,:))',...
-            squeeze(primaryStartStops(primaryPos,2,:))');
-    else
-        Snd('Play',sin((0:5000)/100));
-        ol.setMirrors(squeeze(testStartStops(testPos,1,:))',...
-            squeeze(testStartStops(testPos,2,:))');
+    % Display primary, test, or white light. The white light is displayed
+    % for a short time between primary and test lights and a long time
+    % between test and primary lights. 
+    switch lightMode(lightModePos)
+        case 'p'
+            ol.setMirrors(squeeze(primaryStartStops(primaryPos,1,:))',...
+                squeeze(primaryStartStops(primaryPos,2,:))');
+        case 't'
+            ol.setMirrors(squeeze(testStartStops(testPos,1,:))',...
+                squeeze(testStartStops(testPos,2,:))');
+        case 'w'
+            ol.setMirrors(whiteStarts,whiteStops);
     end
     
     % Until time limit runs out, check for user input
-    while(mglGetSecs < nowTime + sInterval)
+    while(mglGetSecs < nowTime + lightTimes(lightModePos))
         key = gamePad.getKeyEvent();
         if (~isempty(key))
             switch(key.charCode)
                 case 'GP:Y' % Switch step size mode
-                    Snd('Play',sin(0:5000)/50);
                     stepModePos = stepModePos + 1;
                     if stepModePos > length(stepModes)
                         stepModePos = 1;
                     end
+                    Snd('Play',sin((0:5000)/(20 * stepModePos)));
                     fprintf('User switched step size to %g \n',...
                         (stepModes(stepModePos)/100.0));
                 case 'GP:B' % Subject found a match
-                    Snd('Play',sin(0:5000)/50);
+                    Snd('Play',sin(0:5000));
                     fprintf('User found match at %g test, %g primary \n',...
                         testScales(testPos), p1Scales(primaryPos));
-                    % Save match 
+                    % Save match
                     matches = [matches;...
                         [testScales(testPos), p1Scales(primaryPos)]];
                     matchPositions = [matchPositions; [testPos, primaryPos]];
-                    % Randomize primary and test lights 
-                    primaryPos = randi(primaries_length); 
-                    testPos = randi(test_length); 
+                    
+                    % Randomize lights and set step size to largest
+                    primaryPos = randi(primaries_length);
+                    testPos = randi(test_length);
+                    stepModePos = 1;
                 case 'GP:A' % Quit
+                    Snd('Play',sin(0:5000));
                     fprintf('User exited program \n');
                     stillLooping = false;
                 case 'GP:North' % Scale up test intensity
                     testPos = testPos + stepModes(stepModePos);
                     if testPos > test_length
-                        Snd('Play',sin(0:5000)/50);
+                        Snd('Play',sin(0:5000));
                         fprintf('User reached upper test limit \n');
                         testPos = test_length;
                     end
+                    Snd('Play',sin(0:5000)/100);
                     fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
                         testScales(testPos), p1Scales(primaryPos));
                 case 'GP:South' % Scale down test intensity
                     testPos = testPos - stepModes(stepModePos);
                     if testPos < 1
-                        Snd('Play',sin(0:5000)/50);
+                        Snd('Play',sin(0:5000));
                         fprintf('User reached lower test limit \n');
                         testPos = 1;
                     end
+                    Snd('Play',sin(0:5000)/100);
                     fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
                         testScales(testPos), p1Scales(primaryPos));
                 case 'GP:East' % Move towards p1
                     primaryPos = primaryPos + stepModes(stepModePos);
                     if primaryPos > primaries_length
-                        Snd('Play',sin(0:5000)/50);
+                        Snd('Play',sin(0:5000));
                         fprintf('User reached upper primary limit \n');
                         primaryPos = primaries_length;
                     end
+                    Snd('Play',sin(0:5000)/100);
                     fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
                         testScales(testPos), p1Scales(primaryPos));
                 case 'GP:West' % Move towards p2
                     primaryPos = primaryPos - stepModes(stepModePos);
                     if primaryPos < 1
-                        Snd('Play',sin(0:5000)/50);
+                        Snd('Play',sin(0:5000));
                         fprintf('User reached lower primary limit \n');
                         primaryPos = 1;
                     end
+                    Snd('Play',sin(0:5000)/100);
                     fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
                         testScales(testPos), p1Scales(primaryPos));
             end
         end
     end
     
-    % Display "white" light in between iterations. This light is displayed
-    % for a short time between primary and test fields (isi) and for a
-    % longer time between test and primary fields (iti).
-    currTime = mglGetSecs;
-    if isPrimary
-        delay = isi;
-    else
-        delay = iti;
-    end
-    while (mglGetSecs < currTime + delay)
-        ol.setMirrors(whiteStarts,whiteStops);
-    end
     
-    % Switch from primary to test
-    isPrimary = ~isPrimary;
+    % Switch to the next light to display 
+    lightModePos = lightModePos + 1; 
+    if lightModePos > 4 
+        lightModePos = 1; 
+    end 
 end
 
 %% Save matches
@@ -351,5 +358,4 @@ end
 %% Close up
 GLW_CloseAnnularStimulus();
 ol.setAll(false);
-
 end

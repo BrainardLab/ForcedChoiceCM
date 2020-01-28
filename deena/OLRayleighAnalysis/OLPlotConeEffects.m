@@ -85,7 +85,7 @@ end
 if p.Results.average 
     theTitle = sprintf('Subject %s %s Average Cone Responses', subjectID, category);
 else 
-    theTitle = sprintf('Subject %s Match %g %s Cone Responses', subjectID, i, category);
+    theTitle = sprintf('Subject %s Session %g Match %g %s Cone Responses', subjectID, sessionNum, i, category);
 end 
 title(theTitle);
 
@@ -94,7 +94,7 @@ if p.Results.average
     errorbar(1:6, cones, err, err); 
 end 
 
-file = fullfile(outputDir, strrep(theTitle,' ', '_'));
+file = fullfile(outputDir, strrep(num2str(theTitle,' ', '_'));
 saveas(gcf, file, p.Results.fType);
 end 
 end
