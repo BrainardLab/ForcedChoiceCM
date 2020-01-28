@@ -65,8 +65,8 @@ p = inputParser;
 p.addParameter('p1', 670, @(x) (isnumeric(x)));
 p.addParameter('p2', 540, @(x) (isnumeric(x)));
 p.addParameter('test', 580, @(x) (isnumeric(x)));
-p.addParameter('sInterval', 1.5, @(x) (isnumeric(x)));
-p.addParameter('isi', 0.3, @(x) (isnumeric(x)));
+p.addParameter('sInterval', 0.25, @(x) (isnumeric(x)));
+p.addParameter('isi', 0.25, @(x) (isnumeric(x)));
 p.addParameter('iti', 1, @(x) (isnumeric(x)));
 p.addParameter('plotSpds', false, @(x) (islogical(x)));
 p.parse(varargin{:});
@@ -152,7 +152,7 @@ primaryStartStops = zeros(primaries_length,2,numCols);
 % The easiest way to set up something reasonable is to turn
 % the OneLight on to half of its max.  We could get fancier
 % later and explicitly provide a spectrum.
-whitePrimaries = 0.5 * ones(settingsLength, 1);
+whitePrimaries = 0.05 * ones(settingsLength, 1);
 whiteSpdNominal = OLPrimaryToSpd(cal, whitePrimaries);
 whiteSettings = OLPrimaryToSettings(cal, whitePrimaries);
 [whiteStarts, whiteStops] = OLSettingsToStartsStops(cal, whiteSettings);
@@ -330,7 +330,7 @@ while(stillLooping)
     else
         delay = iti;
     end
-    while(mglGetSecs < currTime + delay)
+    while (mglGetSecs < currTime + delay)
         ol.setMirrors(whiteStarts,whiteStops);
     end
     
