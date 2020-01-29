@@ -108,7 +108,7 @@ for i = 1:nMatches
     title(theTitle);
     
     file = fullfile(outputDir, strrep(theTitle,' ', '_'));
-    saveas(gcf, file, p.Results.fType);
+    % saveas(gcf, file, p.Results.fType);
 end
 end
 

@@ -90,7 +90,7 @@ if (primaryScaleFactor > 1)
 end
 
 % Scaling factor for white light
-whiteScale = 0.05;
+whiteScaleFactor = 0.05;
 
 % Spectrum-generating parameters
 fullWidthHalfMax = 20;
@@ -243,7 +243,8 @@ nonMatchPositions = [];     % Positions of non-matches in adjustment array
 lightModePos = 1; 
 stepModePos = 1; % Start with largest step size
 primaryPos = 1;  % Index for current location in primaryPositions array
-testPos = 34;    % Index for current test light position.
+testInitialPos = 34;
+testPos = testInitialPos; % Index for current test light position.
 % The anomaloscope defaults to 15/45, so we default to 33/100
 
 % Loop control parameters
@@ -282,7 +283,7 @@ while(stillLooping)
                     if stepModePos > length(stepModes)
                         stepModePos = 1;
                     end
-                    Snd('Play',sin((0:5000)/(20 * stepModePos)));
+                    Snd('Play',sin((0:5000) * stepModePos/ 20));
                     fprintf('User switched step size to %g \n',...
                         (stepModes(stepModePos)/100.0));
                     
@@ -299,11 +300,13 @@ while(stillLooping)
                         primaryPos = primaryPos +1;
                         if primaryPos > length(primaryPositions)
                             stillLooping = false;
+                            break;
                             fprintf('\nFinished looping through primary lights\n');
                         else
                             % With switch at end of loop, this will lead
                             % primary to be displayed on next iteration
                             lightModePos = 4; 
+                            testPos = testInitialPos; 
                             blockMatches = true;
                         end
                     else
@@ -327,6 +330,7 @@ while(stillLooping)
                             % With switch at end of loop, this will lead
                             % primary to be displayed on next iteration
                             lightModePos = 4; 
+                            testPos = testInitialPos;
                             blockMatches = true;
                         end
                     else
@@ -341,20 +345,22 @@ while(stillLooping)
                 case 'GP:North' % Scale up test intensity
                     testPos = testPos + stepModes(stepModePos);
                     if testPos > test_length
-                        Snd('Play',sin(0:5000)/100);
+                        Snd('Play',sin(0:5000));
                         fprintf('User reached upper test limit \n');
                         testPos = test_length;
                     end
+                    Snd('Play',sin(0:5000)/100);
                     fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
                         testScales(testPos), p1Scales(primaryPositions(primaryPos)));
                     
                 case 'GP:South' % Scale down test intensity
                     testPos = testPos - stepModes(stepModePos);
                     if testPos < 1
-                        Snd('Play',sin(0:5000)/100);
+                        Snd('Play',sin(0:5000));
                         fprintf('User reached lower test limit \n');
                         testPos = 1;
                     end
+                    Snd('Play',sin(0:5000)/100);
                     fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
                         testScales(testPos), p1Scales(primaryPositions(primaryPos)));
             end
