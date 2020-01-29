@@ -15,87 +15,100 @@ function OLPlotConeEffects(primaryCones, testCones, subjectID, sessionNum, varar
 %    primaryCones  - 3xn matrix with cone responses for primary lights,
 %                    where n is the number of matches. L cone responses are
 %                    stored in the first row, M in the second, and S in the
-%                    third. 
+%                    third.
 %    testCones     - 3xn matrix with cone responses for test lights, where
 %                    n is the number of matches. L cone responses are
 %                    stored in the first row, M in the second, and S in the
-%                    third. 
+%                    third.
 %
 % Outputs:
-%    Produces a plot comparing test and primary cone responses for each 
-%    match. When run with averaged data, produces one plot. 
+%    Produces a plot comparing test and primary cone responses for each
+%    match. When run with averaged data, produces one plot.
 %
 % Optional key-value pairs:
 %    'measured'  - logical indicating whether the cone effects were
-%                  calculated from radiometer measurements (true) or 
+%                  calculated from radiometer measurements (true) or
 %                  nominal spd data (false). Default is false.
 %    'average'   - logical indicating whether the provided cone responses
 %                  represent individual matches (false) or averages (true).
-%                  Default is false. 
-%    'err'       - 1x6 vector containing standard error for each cone for 
+%                  Default is false.
+%    'err'       - 1x6 vector containing standard error for each cone for
 %                  test and primary lights. Must input this if 'average' is
-%                  true. 
-%    'fType'    - character vector containing file type extension for 
-%                 saving results. Default is 'tiff'.  
+%                  true.
+%    'fType'    - character vector containing file type extension for
+%                 saving results. Default is 'tiff'.
 
-% History 
-%    1/22/20   dce  -Modified program from OLTestConeEffects   
+% History
+%    1/22/20   dce  -Modified program from OLTestConeEffects
 % Example: OLGetConeEffects('/Users/melanopsin/Dropbox (Aguirre-Brainard Lab)/MELA_data/Experiments/ForcedChoiceCM/OLRayleighMatches/test/test_1.mat')
 
 
-close all; 
+close all;
 
-% Parse input 
+% Parse input
 p = inputParser;
 p.addParameter('measured', false, @(x) (islogical(x)));
 p.addParameter('average', false, @(x) (islogical(x)));
-p.addParameter('err', 0, @(x) (isnumeric(x))); 
+p.addParameter('err', 0, @(x) (isnumeric(x)));
 p.addParameter('fType', 'tiff', @(x) (ischar(x)));
 p.parse(varargin{:});
 
-err = p.Results.err; 
+err = p.Results.err;
 
-% Create folder for saving figures 
-outputDir = fullfile(getpref('ForcedChoiceCM','rayleighAnalysisDir'), 'coneResponsePlots', subjectID, num2str(sessionNum));
+% Create folder for saving figures
+if p.Results.average
+    outputDir = fullfile(getpref('ForcedChoiceCM','rayleighAnalysisDir'), 'coneResponsePlots', subjectID, 'average');
+else
+    outputDir = fullfile(getpref('ForcedChoiceCM','rayleighAnalysisDir'), 'coneResponsePlots', subjectID, num2str(sessionNum));
+end
 if (~exist(outputDir,'dir'))
     mkdir(outputDir);
 end
 
-[~, nMatches] = size(primaryCones); 
+[~, nMatches] = size(primaryCones);
 for i = 1:nMatches
-
-% Make bar graph of cones
-figure();
-cones = [testCones(1,i), primaryCones(1,i); testCones(2,i),...
-    primaryCones(2,i); testCones(3,i), primaryCones(3,i)];
-bar(cones);
-
-% Add axis labels 
-names ={'L'; 'M'; 'S' };
-set(gca,'xticklabel', names)
-ylabel('Relative Response Intensity'); 
-legend('Test','Primaries');
-
-% Set plot title 
-if p.Results.measured
-    category = 'Measured';
-else
-    category = 'Nominal';
+    
+    % Make bar graph of cones
+    figure();
+    cones = [testCones(1,i), primaryCones(1,i); testCones(2,i),...
+        primaryCones(2,i); testCones(3,i), primaryCones(3,i)];
+    bar(cones);
+    hold on;
+    
+    % Add axis labels
+    names ={'L'; 'M'; 'S' };
+    set(gca,'xticklabel', names)
+    ylabel('Relative Response Intensity');
+    
+    % Set plot title
+    if p.Results.measured
+        category = 'Measured';
+    else
+        category = 'Nominal';
+    end
+    if p.Results.average
+        % Add error bars based on passed-in standard error. errCones lists 
+        % the cone responses in the order they are plotted, and errBarPos 
+        % contains x-axis positions for the error bars. 
+        errCones = [testCones(1,i), primaryCones(1,i), testCones(2,i),...
+            primaryCones(2,i), testCones(3,i), primaryCones(3,i)];
+        errBarPos = [0.85 1.15 1.85 2.15 2.85 3.15];
+        errorbar(errBarPos, errCones, err, err, 'k. ');
+        if sessionNum == 0
+            theTitle = sprintf('Subject %s %s Average Cone Responses', subjectID, category);
+            legend('Test','Primaries', 'Standard Error');
+        else
+            theTitle = sprintf('Subject %s Session %g %s Average Cone Responses', subjectID, sessionNum, category);
+            legend('Test','Primaries', 'Standard Error');
+        end
+    else
+        theTitle = sprintf('Subject %s Session %g Match %g %s Cone Responses', subjectID, sessionNum, i, category);
+        legend('Test','Primaries');
+    end
+    title(theTitle);
+    
+    file = fullfile(outputDir, strrep(theTitle,' ', '_'));
+    saveas(gcf, file, p.Results.fType);
 end
-if p.Results.average 
-    theTitle = sprintf('Subject %s %s Average Cone Responses', subjectID, category);
-else 
-    theTitle = sprintf('Subject %s Session %g Match %g %s Cone Responses', subjectID, sessionNum, i, category);
-end 
-title(theTitle);
-
-% If average, add error bars 
-if p.Results.average
-    errorbar(1:6, cones, err, err); 
-end 
-
-file = fullfile(outputDir, strrep(num2str(theTitle,' ', '_'));
-saveas(gcf, file, p.Results.fType);
-end 
 end
 
