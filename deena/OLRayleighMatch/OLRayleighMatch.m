@@ -18,7 +18,9 @@ function OLRayleighMatch(varargin)
 %       up increases the test intensity and down decreases the test intensity.
 %
 %    The subject can also use the top 'Y' button to toggle step size, the
-%    right 'B' button to record a match, and the bottom 'A' button to quit.
+%    right 'B' button to record a match, the left 'X' button to change the 
+%    order primary and test lights are displayed, and the bottom 'A' 
+%    button to quit.
 %
 %    The routine prompts for subject and session info.
 %
@@ -114,35 +116,41 @@ ol = OneLight;
 gamePad = GamePad();
 
 %% Set up projector
-fprintf('\n**** Set up projector ****\n');
-annulusFile = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'), 'projectorSettings','OLAnnulusSettings.mat');
-if exist(annulusFile, 'file')
-    fprintf('[1]: Use existing annulus settings file\n');
-    fprintf('[2]: Reset annulus\n');
-    res = GetInput('Select option', 'number', 1);
-    if res == 2
-        ol.setMirrors(squeeze(primaryStartStops(1,1,:))',...
-            squeeze(primaryStartStops(1,2,:))');
-        GLW_AnnularStimulusButtonBox();
-    end
-else
-    ol.setMirrors(squeeze(primaryStartStops(1,1,:))',...
-        squeeze(primaryStartStops(1,2,:))');ol.setAll(false);
-    GLW_AnnularStimulusButtonBox();
-end
-annulusData = load(annulusFile);
-annulusData.win.open;
-annulusData.win.draw;
-fprintf('\nProjector ready. Starting display loop\n')
+% fprintf('\n**** Set up projector ****\n');
+% annulusFile = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'), 'projectorSettings','OLAnnulusSettings.mat');
+% if exist(annulusFile, 'file')
+%     fprintf('[1]: Use existing annulus settings file\n');
+%     fprintf('[2]: Reset annulus\n');
+%     res = GetInput('Select option', 'number', 1);
+%     if res == 2
+%         ol.setMirrors(squeeze(primaryStartStops(1,1,:))',...
+%             squeeze(primaryStartStops(1,2,:))');
+%         GLW_AnnularStimulusButtonBox();
+%     end
+% else
+%     ol.setMirrors(squeeze(primaryStartStops(1,1,:))',...
+%         squeeze(primaryStartStops(1,2,:))');ol.setAll(false);
+%     GLW_AnnularStimulusButtonBox();
+% end
+% annulusData = load(annulusFile);
+% annulusData.win.open;
+% annulusData.win.draw;
+% fprintf('\nProjector ready. Starting display loop\n')
+annulusData = 0; % placeholder so program still runs 
 
 %% Display loop
 %
 % Display parameters
 stepModes = [20 5 1];          % Possible step sizes (relative to adjustment_length)
-lightMode = ['p' 'w' 't' 'w']; % Possible light settings - primary, test, or white
-lightModeRev = ['t' 'w' 'p' 'w']; % Switch test and primary order
 lightTimes = [sInterval isi sInterval iti]; % Times for each light settings
 
+% The experiment includes an option to switch the order that primary and
+% test lights are displayed. If rev is set to true, lights will be
+% displayed in the order specified by lightModeRev instead of the order
+% specified by lightMode
+rev = false;                    
+lightMode = ['p' 'w' 't' 'w']; % Possible light settings - primary, test, or white
+lightModeRev = ['t' 'w' 'p' 'w']; % Switch test and primary order
 
 % Hold information
 matches = [];               % Output array with subject matches
@@ -164,7 +172,12 @@ while(stillLooping)
     % Display primary, test, or white light. The white light is displayed
     % for a short time between primary and test lights and a long time
     % between test and primary lights. 
-    switch lightMode(lightModePos)
+    if rev 
+        lights = lightModeRev;
+    else 
+        lights = lightMode;
+    end 
+    switch lights(lightModePos)
         case 'p'
             ol.setMirrors(squeeze(primaryStartStops(primaryPos,1,:))',...
                 squeeze(primaryStartStops(primaryPos,2,:))');
@@ -205,6 +218,10 @@ while(stillLooping)
                     Snd('Play',sin(0:5000));
                     fprintf('User exited program \n');
                     stillLooping = false;
+                case 'GP:X' % Switch order of primary and test lights 
+                    rev = ~rev; 
+                    Snd('Play',sin(0:5000));
+                    fprintf('User switched order of primary and test lights');
                 case 'GP:North' % Scale up test intensity
                     testPos = testPos + stepModes(stepModePos);
                     if testPos > test_length
@@ -268,6 +285,6 @@ if ~isempty(matches)
 end
 
 %% Close up
-GLW_CloseAnnularStimulus();
+% GLW_CloseAnnularStimulus();
 ol.setAll(false);
 end
