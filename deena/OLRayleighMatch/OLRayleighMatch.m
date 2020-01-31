@@ -18,8 +18,8 @@ function OLRayleighMatch(varargin)
 %       up increases the test intensity and down decreases the test intensity.
 %
 %    The subject can also use the top 'Y' button to toggle step size, the
-%    right 'B' button to record a match, the left 'X' button to change the 
-%    order primary and test lights are displayed, and the bottom 'A' 
+%    right 'B' button to record a match, the left 'X' button to change the
+%    order primary and test lights are displayed, and the bottom 'A'
 %    button to quit.
 %
 %    The routine prompts for subject and session info.
@@ -84,14 +84,14 @@ if (p1 == 670 && p2 == 540 && test == 580)
         'precomputedStartStops', 'OLRayleighMatchDefaultSpectralSettings.mat');
     load(fName);
 else
-    file = sprintf('OLRayleighMatchSpectralSettings_%g_%g_%g.mat', p1, p2, test); 
+    file = sprintf('OLRayleighMatchSpectralSettings_%g_%g_%g.mat', p1, p2, test);
     fName = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
         'precomputedStartStops', file);
     if ~exist(fName, 'file')
-        OLRayleighMatchLightSettings(p1,p2,test); 
-    end 
+        OLRayleighMatchLightSettings(p1,p2,test);
+    end
     load(fName);
-end 
+end
 
 %% Set up directory for saving results
 subjectID = input('Enter subject ID: ');
@@ -136,7 +136,7 @@ gamePad = GamePad();
 % annulusData.win.open;
 % annulusData.win.draw;
 % fprintf('\nProjector ready. Starting display loop\n')
-annulusData = 0; % placeholder so program still runs 
+annulusData = 0; % placeholder so program still runs
 
 %% Display loop
 %
@@ -148,9 +148,10 @@ lightTimes = [sInterval isi sInterval iti]; % Times for each light settings
 % test lights are displayed. If rev is set to true, lights will be
 % displayed in the order specified by lightModeRev instead of the order
 % specified by lightMode
-rev = false;                    
+rev = false;
 lightMode = ['p' 'w' 't' 'w']; % Possible light settings - primary, test, or white
 lightModeRev = ['t' 'w' 'p' 'w']; % Switch test and primary order
+lightModeTest = ['t' 'w' 't' 'w'];
 
 % Hold information
 matches = [];               % Output array with subject matches
@@ -171,12 +172,13 @@ while(stillLooping)
     
     % Display primary, test, or white light. The white light is displayed
     % for a short time between primary and test lights and a long time
-    % between test and primary lights. 
-    if rev 
-        lights = lightModeRev;
-    else 
-        lights = lightMode;
-    end 
+    % between test and primary lights.
+        if rev
+            lights = lightModeRev;
+        else
+            lights = lightMode;
+        end
+    % lights = lightModeTest;
     switch lights(lightModePos)
         case 'p'
             ol.setMirrors(squeeze(primaryStartStops(primaryPos,1,:))',...
@@ -211,15 +213,15 @@ while(stillLooping)
                     matchPositions = [matchPositions; [testPos, primaryPos]];
                     
                     % Randomize lights and set step size to largest
-                    primaryPos = randi(primaries_length);
-                    testPos = randi(test_length);
-                    stepModePos = 1;
+                    % primaryPos = randi(primaries_length);
+                    % testPos = randi(test_length);
+                    % stepModePos = 1;
                 case 'GP:A' % Quit
                     Snd('Play',sin(0:5000));
                     fprintf('User exited program \n');
                     stillLooping = false;
-                case 'GP:X' % Switch order of primary and test lights 
-                    rev = ~rev; 
+                case 'GP:X' % Switch order of primary and test lights
+                    rev = ~rev;
                     Snd('Play',sin(0:5000));
                     fprintf('User switched order of primary and test lights');
                 case 'GP:North' % Scale up test intensity
@@ -267,11 +269,11 @@ while(stillLooping)
     end
     
     
-    % Switch to the next light to display 
-    lightModePos = lightModePos + 1; 
-    if lightModePos > 4 
-        lightModePos = 1; 
-    end 
+    % Switch to the next light to display
+    lightModePos = lightModePos + 1;
+    if lightModePos > 4
+        lightModePos = 1;
+    end
 end
 
 %% Save matches
