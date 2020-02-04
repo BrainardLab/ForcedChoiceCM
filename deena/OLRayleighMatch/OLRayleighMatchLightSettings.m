@@ -2,8 +2,8 @@ function OLRayleighMatchLightSettings(p1, p2, test)
 % Compute default lights for OLRayleighMatch experiment 
 %% Parameters
 % Length of scaling factor adjustment arrays
-primaries_length = 101;
-test_length = 101;
+primaries_length = 201;
+test_length = 201;
 
 % Scale primary mixture down from max available by
 % this factor.
@@ -99,7 +99,8 @@ if makePlots
     figure; clf; title('Primaries');
     OLplotSpdCheck(cal.computed.pr650Wls, primarySpdsNominal);
 end
-file = sprintf('OLRayleighMatchSpectralSettings_%g_%g_%g.mat', p1, p2, test);
+file = sprintf('OLRayleighMatchFineSpectralSettings'); 
+% file = sprintf('OLRayleighMatchSpectralSettings_%g_%g_%g.mat', p1, p2, test);
 save(fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
     'precomputedStartStops', file));
 end 

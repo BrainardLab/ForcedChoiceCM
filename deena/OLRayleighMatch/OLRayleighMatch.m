@@ -79,10 +79,10 @@ sInterval = p.Results.sInterval;
 isi = p.Results.isi;
 iti = p.Results.iti;p1 = p.Results.p1;
 
+% Find precomputed spectra, or compute if they do not exist
 if (p1 == 670 && p2 == 540 && test == 580)
     fName = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
-        'precomputedStartStops', 'OLRayleighMatchDefaultSpectralSettings.mat');
-    load(fName);
+        'precomputedStartStops', 'OLRayleighMatchFineSpectralSettings.mat');
 else
     file = sprintf('OLRayleighMatchSpectralSettings_%g_%g_%g.mat', p1, p2, test);
     fName = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
@@ -90,8 +90,27 @@ else
     if ~exist(fName, 'file')
         OLRayleighMatchLightSettings(p1,p2,test);
     end
-    load(fName);
 end
+
+% Load light settings and save needed variables locally
+lightSettings = load(fName); 
+
+cal = lightSettings.cal; 
+primarySpdsNominal = lightSettings.primarySpdsNominal;
+primarySpdsPredicted = lightSettings.primarySpdsPredicted; 
+testSpdsNominal = lightSettings.testSpdsNominal;
+testSpdsPredicted = lightSettings.testSpdsPredicted; 
+primaryStartStops = lightSettings.primaryStartStops; 
+testStartStops = lightSettings.testStartStops;
+p1Scales = lightSettings.p1Scales; 
+testScales = lightSettings.testScales;
+whitePrimaries = lightSettings.whitePrimaries; 
+whiteSettings = lightSettings.whiteSettings;
+whiteStarts = lightSettings.whiteStarts; 
+whiteStops = lightSettings.whiteStops; 
+whiteSpdNominal = lightSettings.whiteSpdNominal; 
+primaries_length = lightSettings.primaries_length; 
+test_length = lightSettings.test_length; 
 
 %% Set up directory for saving results
 subjectID = input('Enter subject ID: ');
@@ -116,32 +135,33 @@ ol = OneLight;
 gamePad = GamePad();
 
 %% Set up projector
-% fprintf('\n**** Set up projector ****\n');
-% annulusFile = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'), 'projectorSettings','OLAnnulusSettings.mat');
-% if exist(annulusFile, 'file')
-%     fprintf('[1]: Use existing annulus settings file\n');
-%     fprintf('[2]: Reset annulus\n');
-%     res = GetInput('Select option', 'number', 1);
-%     if res == 2
-%         ol.setMirrors(squeeze(primaryStartStops(1,1,:))',...
-%             squeeze(primaryStartStops(1,2,:))');
-%         GLW_AnnularStimulusButtonBox();
-%     end
-% else
-%     ol.setMirrors(squeeze(primaryStartStops(1,1,:))',...
-%         squeeze(primaryStartStops(1,2,:))');ol.setAll(false);
-%     GLW_AnnularStimulusButtonBox();
-% end
-% annulusData = load(annulusFile);
-% annulusData.win.open;
-% annulusData.win.draw;
-% fprintf('\nProjector ready. Starting display loop\n')
-annulusData = 0; % placeholder so program still runs
+fprintf('\n**** Set up projector ****\n');
+annulusFile = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'), 'projectorSettings','OLAnnulusSettings.mat');
+if exist(annulusFile, 'file')
+    fprintf('[1]: Use existing annulus settings file\n');
+    fprintf('[2]: Reset annulus\n');
+    res = GetInput('Select option', 'number', 1);
+    if res == 2
+        ol.setMirrors(squeeze(primaryStartStops(1,1,:))',...
+            squeeze(primaryStartStops(1,2,:))');
+        GLW_AnnularStimulusButtonBox();
+    end
+else
+    ol.setMirrors(squeeze(primaryStartStops(1,1,:))',...
+        squeeze(primaryStartStops(1,2,:))');ol.setAll(false);
+    GLW_AnnularStimulusButtonBox();
+end
+annulusData = load(annulusFile);
+annulusData.win.open;
+annulusData.win.draw;
+fprintf('\nProjector ready. Starting display loop\n')
 
 %% Display loop
 %
 % Display parameters
-stepModes = [20 5 1];          % Possible step sizes (relative to adjustment_length)
+% Possible step sizes (relative to adjustment_length)
+stepModes = [floor(primaries_length/5), floor(primaries_length/20),...
+    floor(primaries_length/100), floor(primaries_length/200)];  
 lightTimes = [sInterval isi sInterval iti]; % Times for each light settings
 
 % The experiment includes an option to switch the order that primary and
@@ -151,7 +171,7 @@ lightTimes = [sInterval isi sInterval iti]; % Times for each light settings
 rev = false;
 lightMode = ['p' 'w' 't' 'w']; % Possible light settings - primary, test, or white
 lightModeRev = ['t' 'w' 'p' 'w']; % Switch test and primary order
-lightModeTest = ['t' 'w' 't' 'w'];
+% lightModeTest = ['t' 'w' 't' 'w'];
 
 % Hold information
 matches = [];               % Output array with subject matches
@@ -202,7 +222,7 @@ while(stillLooping)
                     end
                     Snd('Play',sin((0:5000)* stepModePos / 20));
                     fprintf('User switched step size to %g \n',...
-                        (stepModes(stepModePos)/100.0));
+                        (stepModes(stepModePos)/ (primaries_length -1)));
                 case 'GP:B' % Subject found a match
                     Snd('Play',sin(0:5000));
                     fprintf('User found match at %g test, %g primary \n',...
@@ -223,7 +243,7 @@ while(stillLooping)
                 case 'GP:X' % Switch order of primary and test lights
                     rev = ~rev;
                     Snd('Play',sin(0:5000));
-                    fprintf('User switched order of primary and test lights');
+                    fprintf('User switched order of primary and test lights\n');
                 case 'GP:North' % Scale up test intensity
                     testPos = testPos + stepModes(stepModePos);
                     if testPos > test_length
@@ -283,10 +303,10 @@ if ~isempty(matches)
         'testSpdsPredicted', 'primaryStartStops', 'testStartStops',...
         'whitePrimaries', 'whiteSettings', 'whiteStarts', 'whiteStops',...
         'whiteSpdNominal', 'subjectID', 'sessionNum','annulusData', ...
-        'sInterval', 'isi', 'iti');
+        'sInterval', 'isi', 'iti', 'primaries_length', 'test_length');
 end
 
 %% Close up
-% GLW_CloseAnnularStimulus();
+GLW_CloseAnnularStimulus();
 ol.setAll(false);
 end
