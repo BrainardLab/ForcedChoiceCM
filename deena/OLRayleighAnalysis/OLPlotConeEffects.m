@@ -33,15 +33,14 @@ function OLPlotConeEffects(primaryCones, testCones, subjectID, sessionNum, varar
 %                  represent individual matches (false) or averages (true).
 %                  Default is false.
 %    'err'       - 1x6 vector containing standard error for each cone for
-%                  test and primary lights. Must input this if 'average' is
-%                  true.
-%    'fType'    - character vector containing file type extension for
-%                 saving results. Default is 'tiff'.
+%                  test and primary lights. Only displayed if 'average' is
+%                  true. Default is zeros(1,6).
+%    'fType'     - character vector containing file type extension for
+%                  saving results. Default is 'tiff'.
 
 % History
 %    1/22/20   dce  -Modified program from OLTestConeEffects
 % Example: OLGetConeEffects('/Users/melanopsin/Dropbox (Aguirre-Brainard Lab)/MELA_data/Experiments/ForcedChoiceCM/OLRayleighMatches/test/test_1.mat')
-
 
 close all;
 
@@ -49,7 +48,7 @@ close all;
 p = inputParser;
 p.addParameter('measured', false, @(x) (islogical(x)));
 p.addParameter('average', false, @(x) (islogical(x)));
-p.addParameter('err', 0, @(x) (isnumeric(x)));
+p.addParameter('err', zeros(1,6), @(x) (isnumeric(x)));
 p.addParameter('fType', 'tiff', @(x) (ischar(x)));
 p.parse(varargin{:});
 

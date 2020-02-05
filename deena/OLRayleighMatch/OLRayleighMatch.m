@@ -92,23 +92,23 @@ else
 end
 
 % Load light settings and save needed variables locally
-lightSettings = load(fName); 
+lightSettings = load(fName);
 
-cal = lightSettings.cal; 
+cal = lightSettings.cal;
 primarySpdsNominal = lightSettings.primarySpdsNominal;
-primarySpdsPredicted = lightSettings.primarySpdsPredicted; 
+primarySpdsPredicted = lightSettings.primarySpdsPredicted;
 testSpdsNominal = lightSettings.testSpdsNominal;
-testSpdsPredicted = lightSettings.testSpdsPredicted; 
-primaryStartStops = lightSettings.primaryStartStops; 
+testSpdsPredicted = lightSettings.testSpdsPredicted;
+primaryStartStops = lightSettings.primaryStartStops;
 testStartStops = lightSettings.testStartStops;
-p1Scales = lightSettings.p1Scales; 
+p1Scales = lightSettings.p1Scales;
 testScales = lightSettings.testScales;
-whitePrimaries = lightSettings.whitePrimaries; 
+whitePrimaries = lightSettings.whitePrimaries;
 whiteSettings = lightSettings.whiteSettings;
-whiteStarts = lightSettings.whiteStarts; 
-whiteStops = lightSettings.whiteStops; 
-whiteSpdNominal = lightSettings.whiteSpdNominal; 
-adjustment_length = lightSettings.adjustment_length; 
+whiteStarts = lightSettings.whiteStarts;
+whiteStops = lightSettings.whiteStops;
+whiteSpdNominal = lightSettings.whiteSpdNominal;
+adjustment_length = lightSettings.adjustment_length;
 
 %% Set up directory for saving results
 subjectID = input('Enter subject ID: ');
@@ -159,7 +159,7 @@ fprintf('\nProjector ready. Starting display loop\n')
 % Display parameters
 % Possible step sizes (relative to adjustment_length)
 stepModes = [floor(adjustment_length/5), floor(adjustment_length/20),...
-    floor(adjustment_length/100), floor(adjustment_length/200)];  
+    floor(adjustment_length/100), floor(adjustment_length/200)];
 lightTimes = [sInterval isi sInterval iti]; % Times for each light settings
 
 % The experiment includes an option to switch the order that primary and
@@ -171,7 +171,7 @@ lightMode = ['p' 'w' 't' 'w']; % Possible light settings - primary, test, or whi
 lightModeRev = ['t' 'w' 'p' 'w']; % Switch test and primary order
 % lightModeTest = ['t' 'w' 't' 'w']; % Show only test light with white in between
 
-% Data-storing arrays 
+% Data-storing arrays
 matches = [];               % Output array with subject matches
 matchPositions = [];        % Positions of matches in the adjustment array
 
@@ -191,12 +191,12 @@ while(stillLooping)
     % Display primary, test, or white light. The white light is displayed
     % for a short time between primary and test lights and a long time
     % between test and primary lights.
-        if rev
-            lights = lightModeRev;
-        else
-            lights = lightMode;
-        end
-    % lights = lightModeTest;
+    if rev
+        lights = lightModeRev;
+    else
+        lights = lightMode;
+    end
+%     % lights = lightModeTest;
     switch lights(lightModePos)
         case 'p'
             ol.setMirrors(squeeze(primaryStartStops(primaryPos,1,:))',...
@@ -232,8 +232,8 @@ while(stillLooping)
                     matchPositions = [matchPositions; [testPos, primaryPos]];
                     
                     % Randomize lights and set step size to largest
-                    primaryPos = randi(primaries_length);
-                    testPos = randi(test_length);
+                    primaryPos = randi(adjustment_length);
+                    testPos = randi(adjustment_length);
                     stepModePos = 1;
                     
                 case 'GP:A' % Quit
@@ -248,10 +248,10 @@ while(stillLooping)
                     
                 case 'GP:North' % Scale up test intensity
                     testPos = testPos + stepModes(stepModePos);
-                    if testPos > test_length
+                    if testPos > adjustment_length
                         Snd('Play',sin(0:5000));
                         fprintf('User reached upper test limit \n');
-                        testPos = test_length;
+                        testPos = adjustment_length;
                     end
                     Snd('Play',sin(0:5000)/100);
                     fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
@@ -292,11 +292,9 @@ while(stillLooping)
             end
         end
     end
-    
-    
     % Switch to the next light to display
     lightModePos = lightModePos + 1;
-    if lightModePos > length(light)
+    if lightModePos > length(lights)
         lightModePos = 1;
     end
 end

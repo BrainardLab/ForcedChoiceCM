@@ -120,7 +120,7 @@ if makePlots
     OLplotSpdCheck(cal.computed.pr650Wls, primarySpdsNominal);
 end
 % file = sprintf('OLRayleighMatchFineSpectralSettings'); 
-% file = sprintf('OLRayleighMatchSpectralSettings_%g_%g_%g.mat', p1, p2, test);
+file = sprintf('OLRayleighMatchSpectralSettings_%g_%g_%g.mat', p1, p2, test);
 save(fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
     'precomputedStartStops', file));
 end 
