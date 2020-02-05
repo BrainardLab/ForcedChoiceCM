@@ -28,7 +28,6 @@ function [primaryCones, testCones] = OLGetConeEffects(fName, varargin)
 %                  from radiometer measurements (true) or nominal spd data
 %                  (false). Default is false.
 
-
 % History 
 %    1/22/20   dce  -Modified program from OLTestConeEffects   
 % Example: OLGetConeEffects('/Users/melanopsin/Dropbox (Aguirre-Brainard Lab)/MELA_data/Experiments/ForcedChoiceCM/OLRayleighMatches/test/test_1.mat')

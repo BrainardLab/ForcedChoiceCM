@@ -30,5 +30,4 @@ T_cones = EnergyToQuanta(S, ...
 for ii = 1:size(T_cones,1)
     T_cones(ii,:) = T_cones(ii,:)/max(T_cones(ii,:));
 end
-
 end 

@@ -19,7 +19,7 @@ function OLRayleighMatch(varargin)
 %
 %    The subject can also use the top 'Y' button to toggle step size, the
 %    right 'B' button to record a match, the left 'X' button to change the
-%    order primary and test lights are displayed, and the bottom 'A'
+%    order that primary and test lights are displayed, and the bottom 'A'
 %    button to quit.
 %
 %    The routine prompts for subject and session info.
@@ -47,15 +47,14 @@ function OLRayleighMatch(varargin)
 %    'iti'       - inter-trial interval for white light between test and
 %                  primary fields, in s. Default is 1.
 %
-%
-%    'plotSpds'  - logical indicating whether to make plots of nominal spds.
-%                  Default is false.
 
 % History:
 %   xx/xx/19  dce       Wrote it.
 %   01/15/20  dce, dhb  Add control of white by specifying primaries.
 %   01/16/20  dce       Add control of stimulus length and inter-stimulus
 %                       intervals
+%   02/4/20   dce       Separated light spectrum computations to a
+%                       different file
 
 %% Close any stray figures
 close all;
@@ -109,8 +108,7 @@ whiteSettings = lightSettings.whiteSettings;
 whiteStarts = lightSettings.whiteStarts; 
 whiteStops = lightSettings.whiteStops; 
 whiteSpdNominal = lightSettings.whiteSpdNominal; 
-primaries_length = lightSettings.primaries_length; 
-test_length = lightSettings.test_length; 
+adjustment_length = lightSettings.adjustment_length; 
 
 %% Set up directory for saving results
 subjectID = input('Enter subject ID: ');
@@ -160,8 +158,8 @@ fprintf('\nProjector ready. Starting display loop\n')
 %
 % Display parameters
 % Possible step sizes (relative to adjustment_length)
-stepModes = [floor(primaries_length/5), floor(primaries_length/20),...
-    floor(primaries_length/100), floor(primaries_length/200)];  
+stepModes = [floor(adjustment_length/5), floor(adjustment_length/20),...
+    floor(adjustment_length/100), floor(adjustment_length/200)];  
 lightTimes = [sInterval isi sInterval iti]; % Times for each light settings
 
 % The experiment includes an option to switch the order that primary and
@@ -171,9 +169,9 @@ lightTimes = [sInterval isi sInterval iti]; % Times for each light settings
 rev = false;
 lightMode = ['p' 'w' 't' 'w']; % Possible light settings - primary, test, or white
 lightModeRev = ['t' 'w' 'p' 'w']; % Switch test and primary order
-% lightModeTest = ['t' 'w' 't' 'w'];
+% lightModeTest = ['t' 'w' 't' 'w']; % Show only test light with white in between
 
-% Hold information
+% Data-storing arrays 
 matches = [];               % Output array with subject matches
 matchPositions = [];        % Positions of matches in the adjustment array
 
@@ -222,7 +220,8 @@ while(stillLooping)
                     end
                     Snd('Play',sin((0:5000)* stepModePos / 20));
                     fprintf('User switched step size to %g \n',...
-                        (stepModes(stepModePos)/ (primaries_length -1)));
+                        (stepModes(stepModePos)/ (adjustment_length - 1)));
+                    
                 case 'GP:B' % Subject found a match
                     Snd('Play',sin(0:5000));
                     fprintf('User found match at %g test, %g primary \n',...
@@ -233,17 +232,20 @@ while(stillLooping)
                     matchPositions = [matchPositions; [testPos, primaryPos]];
                     
                     % Randomize lights and set step size to largest
-                    % primaryPos = randi(primaries_length);
-                    % testPos = randi(test_length);
-                    % stepModePos = 1;
+                    primaryPos = randi(primaries_length);
+                    testPos = randi(test_length);
+                    stepModePos = 1;
+                    
                 case 'GP:A' % Quit
                     Snd('Play',sin(0:5000));
                     fprintf('User exited program \n');
                     stillLooping = false;
+                    
                 case 'GP:X' % Switch order of primary and test lights
                     rev = ~rev;
                     Snd('Play',sin(0:5000));
                     fprintf('User switched order of primary and test lights\n');
+                    
                 case 'GP:North' % Scale up test intensity
                     testPos = testPos + stepModes(stepModePos);
                     if testPos > test_length
@@ -254,6 +256,7 @@ while(stillLooping)
                     Snd('Play',sin(0:5000)/100);
                     fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
                         testScales(testPos), p1Scales(primaryPos));
+                    
                 case 'GP:South' % Scale down test intensity
                     testPos = testPos - stepModes(stepModePos);
                     if testPos < 1
@@ -264,16 +267,18 @@ while(stillLooping)
                     Snd('Play',sin(0:5000)/100);
                     fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
                         testScales(testPos), p1Scales(primaryPos));
+                    
                 case 'GP:East' % Move towards p1
                     primaryPos = primaryPos + stepModes(stepModePos);
-                    if primaryPos > primaries_length
+                    if primaryPos > adjustment_length
                         Snd('Play',sin(0:5000));
                         fprintf('User reached upper primary limit \n');
-                        primaryPos = primaries_length;
+                        primaryPos = adjustment_length;
                     end
                     Snd('Play',sin(0:5000)/100);
                     fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
                         testScales(testPos), p1Scales(primaryPos));
+                    
                 case 'GP:West' % Move towards p2
                     primaryPos = primaryPos - stepModes(stepModePos);
                     if primaryPos < 1
@@ -291,7 +296,7 @@ while(stillLooping)
     
     % Switch to the next light to display
     lightModePos = lightModePos + 1;
-    if lightModePos > 4
+    if lightModePos > length(light)
         lightModePos = 1;
     end
 end
@@ -303,7 +308,7 @@ if ~isempty(matches)
         'testSpdsPredicted', 'primaryStartStops', 'testStartStops',...
         'whitePrimaries', 'whiteSettings', 'whiteStarts', 'whiteStops',...
         'whiteSpdNominal', 'subjectID', 'sessionNum','annulusData', ...
-        'sInterval', 'isi', 'iti', 'primaries_length', 'test_length');
+        'sInterval', 'isi', 'iti', 'adjustment_length');
 end
 
 %% Close up

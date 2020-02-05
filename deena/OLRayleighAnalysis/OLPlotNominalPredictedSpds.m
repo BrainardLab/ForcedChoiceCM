@@ -72,7 +72,7 @@ for i = 1:nMatches
     
     legend('Predicted', 'Nominal');
     theTitle = sprintf('Match %g Nominal and Predicted Spds', i);
-    sgtitle(theTitle);
+    % sgtitle(theTitle);
     file = fullfile(outputDir, [theData.subjectID, '_', strrep(theTitle,' ', '_')]);
     saveas(gcf, file, 'tiff');
     

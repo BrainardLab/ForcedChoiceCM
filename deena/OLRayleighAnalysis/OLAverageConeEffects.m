@@ -35,8 +35,6 @@ function OLAverageConeEffects(subjectID, varargin)
 
 % Example: OLGetConeEffects('/Users/melanopsin/Dropbox (Aguirre-Brainard Lab)/MELA_data/Experiments/ForcedChoiceCM/OLRayleighMatches/test/test_1.mat')
 
-
-
 close all;
 p = inputParser;
 p.addParameter('sessionNum', 0, @(x) (isnumeric(x)));

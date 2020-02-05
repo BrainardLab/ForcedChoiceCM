@@ -1,9 +1,31 @@
 function OLRayleighMatchLightSettings(p1, p2, test)
-% Compute default lights for OLRayleighMatch experiment 
+% Compute spectra to display for OLRayleighMatch experiment 
+% Syntax:
+%   OLRayleighMatch
+%
+% Description:
+%    Given two primary wavelengths and a test wavelength, computes a range
+%    of precomputed spectra to be displayed with various mixtures of the
+%    primary lights and various intensities of the test lights. These
+%    results are saved as OneLight start/stops arrays which can be used to
+%    run a Rayleigh matching experiment. 
+%
+%
+% Inputs:
+%    'p1'        - integer wavelength of the first primary light in nm.
+%    'p2'        - integer wavelength of the second primary light in nm.
+%    'test'      - integer wavelength of the test light in nm. 
+%
+% Outputs:
+%    Saves a .mat file which includes computed spds, start/stops data,
+%    white light, and other experimental parameters.
+
+% History:
+%   02/4/20    dce       Separated from OLRayleighMatch
+
 %% Parameters
 % Length of scaling factor adjustment arrays
-primaries_length = 201;
-test_length = 201;
+adjustment_length = 201;
 
 % Scale primary mixture down from max available by
 % this factor.
@@ -23,9 +45,9 @@ lambda = 0.001;
 % primaries are each scaled from 0 to 1, and the arrays are set up so the
 % two scaling factors will always add up to 1. We start with primary2
 % scaled up to 1 and primary1 scaled down to 0.
-p1Scales = linspace(0,1,primaries_length);
+p1Scales = linspace(0,1,adjustment_length);
 p2Scales = 1-p1Scales;
-testScales = linspace(0,1,test_length);
+testScales = linspace(0,1,adjustment_length);
 %% Get the OneLight calibration structure
 %
 % Use it to set some device related parameters.
@@ -38,15 +60,15 @@ numCols = cal.describe.numColMirrors;
 % These will be cycled through in the adjustments.
 % Start-stop arrays hold start positions in the first column and stop
 % postions in the second column.
-testSpdsNominal = zeros(spdLength,test_length);
-testSpdsPredicted = zeros(spdLength,test_length);
-testSettings = zeros(settingsLength,test_length);
-testStartStops = zeros(test_length,2,numCols);
+testSpdsNominal = zeros(spdLength,adjustment_length);
+testSpdsPredicted = zeros(spdLength,adjustment_length);
+testSettings = zeros(settingsLength,adjustment_length);
+testStartStops = zeros(adjustment_length,2,numCols);
 
-primarySpdsNominal = zeros(spdLength, primaries_length);
-primarySpdsPredicted = zeros(spdLength,primaries_length);
-primarySettings = zeros(settingsLength, primaries_length);
-primaryStartStops = zeros(primaries_length,2,numCols);
+primarySpdsNominal = zeros(spdLength, adjustment_length);
+primarySpdsPredicted = zeros(spdLength,adjustment_length);
+primarySettings = zeros(settingsLength, adjustment_length);
+primaryStartStops = zeros(adjustment_length,2,numCols);
 
 %% Specify and initialize "white" light
 %
@@ -76,15 +98,13 @@ primary1IncrSpd = OLMaximizeSpd(cal, primary1IncrSpdRel,'lambda',lambda);
 primary2IncrSpdRel = OLMakeMonochromaticSpd(cal, p2, fullWidthHalfMax)/3;
 primary2IncrSpd = OLMaximizeSpd(cal, primary2IncrSpdRel,'lambda',lambda);
 
-%% Get set of test lights, varying in intensity
-for i = 1:test_length
+%% Get set of test lights varying in intensity and primary lights varying 
+%  in contribution of the two primaries
+for i = 1:adjustment_length
     testSpdsNominal(:,i) = (testScales(i) * testIncrSpd) + darkSpd;
     [testSettings(:,i),~,testSpdsPredicted(:,i)] = OLSpdToSettings(cal, testSpdsNominal(:,i), 'lambda', lambda);
     [testStartStops(i,1,:),testStartStops(i,2,:)] = OLSettingsToStartsStops(cal, testSettings(:,i));
-end
-
-%% Get set of primary lights, varying in relative contribution of two primaries
-for i = 1:primaries_length
+    
     primarySpdsNominal(:,i) = (primaryScaleFactor*(p1Scales(i) * primary1IncrSpd) + (p2Scales(i) * primary2IncrSpd)) + darkSpd;
     [primarySettings(:,i),~,primarySpdsPredicted(:,i)] = OLSpdToSettings(cal, primarySpdsNominal(:,i), 'lambda', lambda);
     [primaryStartStops(i,1,:), primaryStartStops(i,2,:)] = OLSettingsToStartsStops(cal, primarySettings(:,i));
@@ -99,7 +119,7 @@ if makePlots
     figure; clf; title('Primaries');
     OLplotSpdCheck(cal.computed.pr650Wls, primarySpdsNominal);
 end
-file = sprintf('OLRayleighMatchFineSpectralSettings'); 
+% file = sprintf('OLRayleighMatchFineSpectralSettings'); 
 % file = sprintf('OLRayleighMatchSpectralSettings_%g_%g_%g.mat', p1, p2, test);
 save(fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
     'precomputedStartStops', file));
