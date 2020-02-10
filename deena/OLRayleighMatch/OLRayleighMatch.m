@@ -83,7 +83,7 @@ if (p1 == 670 && p2 == 540 && test == 580)
     fName = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
         'precomputedStartStops', 'OLRayleighMatchFineSpectralSettings.mat');
 else
-    file = sprintf('OLRayleighMatchSpectralSettings_%g_%g_%g.mat', p1, p2, test);
+    file = sprintf('OLRayleighMatchFineSpectralSettings_%g_%g_%g.mat', p1, p2, test);
     fName = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
         'precomputedStartStops', file);
     if ~exist(fName, 'file')
@@ -153,6 +153,7 @@ annulusData = load(annulusFile);
 annulusData.win.open;
 annulusData.win.draw;
 fprintf('\nProjector ready. Starting display loop\n')
+% annulusData = 0; 
 
 %% Display loop
 %
