@@ -46,7 +46,9 @@ function OLRayleighMatch(varargin)
 %                  and test fields, in s. Default is 0.25.
 %    'iti'       - inter-trial interval for white light between test and
 %                  primary fields, in s. Default is 1.
-%
+%    'foveal'    - logical indicating whether we are making foveal matches,
+%                  in which case the annulus is not turned on. Default is
+%                  false.
 
 % History:
 %   xx/xx/19  dce       Wrote it.
@@ -69,6 +71,7 @@ p.addParameter('test', 580, @(x) (isnumeric(x)));
 p.addParameter('sInterval', 0.25, @(x) (isnumeric(x)));
 p.addParameter('isi', 0.25, @(x) (isnumeric(x)));
 p.addParameter('iti', 1, @(x) (isnumeric(x)));
+p.addParameter('foveal', false, @(x) (islogical(x)));
 p.parse(varargin{:});
 
 p1 = p.Results.p1;
@@ -77,6 +80,7 @@ test = p.Results.test;
 sInterval = p.Results.sInterval;
 isi = p.Results.isi;
 iti = p.Results.iti;p1 = p.Results.p1;
+foveal = p.Results.foveal;
 
 % Find precomputed spectra, or compute if they do not exist
 if (p1 == 670 && p2 == 540 && test == 580)
@@ -132,28 +136,31 @@ end
 ol = OneLight;
 gamePad = GamePad();
 
-%% Set up projector
-fprintf('\n**** Set up projector ****\n');
-annulusFile = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'), 'projectorSettings','OLAnnulusSettings.mat');
-if exist(annulusFile, 'file')
-    fprintf('[1]: Use existing annulus settings file\n');
-    fprintf('[2]: Reset annulus\n');
-    res = GetInput('Select option', 'number', 1);
-    if res == 2
+%% Set up projector (if not making foveal matches)
+% Set annulusData so the program will save even if annulus is not used
+annulusData = 0;
+if ~foveal
+    fprintf('\n**** Set up projector ****\n');
+    annulusFile = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'), 'projectorSettings','OLAnnulusSettings.mat');
+    if exist(annulusFile, 'file')
+        fprintf('[1]: Use existing annulus settings file\n');
+        fprintf('[2]: Reset annulus\n');
+        res = GetInput('Select option', 'number', 1);
+        if res == 2
+            ol.setMirrors(squeeze(primaryStartStops(1,1,:))',...
+                squeeze(primaryStartStops(1,2,:))');
+            GLW_AnnularStimulusButtonBox();
+        end
+    else
         ol.setMirrors(squeeze(primaryStartStops(1,1,:))',...
-            squeeze(primaryStartStops(1,2,:))');
+            squeeze(primaryStartStops(1,2,:))');ol.setAll(false);
         GLW_AnnularStimulusButtonBox();
     end
-else
-    ol.setMirrors(squeeze(primaryStartStops(1,1,:))',...
-        squeeze(primaryStartStops(1,2,:))');ol.setAll(false);
-    GLW_AnnularStimulusButtonBox();
+    annulusData = load(annulusFile);
+    annulusData.win.open;
+    annulusData.win.draw;
+    fprintf('\nProjector ready. Starting display loop\n')
 end
-annulusData = load(annulusFile);
-annulusData.win.open;
-annulusData.win.draw;
-fprintf('\nProjector ready. Starting display loop\n')
-% annulusData = 0; 
 
 %% Display loop
 %
@@ -197,7 +204,7 @@ while(stillLooping)
     else
         lights = lightMode;
     end
-%     % lights = lightModeTest;
+    %     % lights = lightModeTest;
     switch lights(lightModePos)
         case 'p'
             ol.setMirrors(squeeze(primaryStartStops(primaryPos,1,:))',...
@@ -219,7 +226,9 @@ while(stillLooping)
                     if stepModePos > length(stepModes)
                         stepModePos = 1;
                     end
-                    Snd('Play',sin((0:5000)* stepModePos / 20));
+                    for i = 1:stepModePos
+                        Snd('Play',sin(0:5000));
+                    end 
                     fprintf('User switched step size to %g \n',...
                         (stepModes(stepModePos)/ (adjustment_length - 1)));
                     
@@ -242,9 +251,14 @@ while(stillLooping)
                     fprintf('User exited program \n');
                     stillLooping = false;
                     
-                case 'GP:X' % Switch order of primary and test lights
+                 % Switch order of primary and test lights. One beep means
+                 % primary is now first, two beeps means test is first. 
+                case 'GP:X' 
                     rev = ~rev;
-                    Snd('Play',sin(0:5000));
+                    Snd('Play',sin(0:5000)/ 20);
+                    if rev 
+                       Snd('Play',sin(0:5000)/ 20);  
+                    end 
                     fprintf('User switched order of primary and test lights\n');
                     
                 case 'GP:North' % Scale up test intensity
@@ -307,10 +321,12 @@ if ~isempty(matches)
         'testSpdsPredicted', 'primaryStartStops', 'testStartStops',...
         'whitePrimaries', 'whiteSettings', 'whiteStarts', 'whiteStops',...
         'whiteSpdNominal', 'subjectID', 'sessionNum','annulusData', ...
-        'sInterval', 'isi', 'iti', 'adjustment_length');
+        'sInterval', 'isi', 'iti', 'adjustment_length', 'foveal');
 end
 
 %% Close up
-GLW_CloseAnnularStimulus();
+if ~foveal
+    GLW_CloseAnnularStimulus();
+end
 ol.setAll(false);
 end

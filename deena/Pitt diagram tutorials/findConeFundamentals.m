@@ -1,17 +1,24 @@
 % Returns cone fundamentals for an observer. Takes in a 3 x 1 vector of
-% lambda max and a 3 x 1 vector of optical density variation, and an
-% optional key value pair of 'increment', an integer for the distance in nm
-% between wavelength samplings (default is 1).  
+% lambda max and a 3 x 1 vector of optical density variation. Optional
+% key-value pairs include'increment', an integer for the distance in nm
+% between wavelength samplings (default is 1); and 'foveal', which 
+% indicates whether the observer is making matches with the fovea (true) or 
+% the periphery (false) - (default is false).  
 
 function T_cones = findConeFundamentals(lambdaMaxes, dphotopigments, varargin)
 % Parse input
 p = inputParser;
 p.addParameter('inc', 1, @(x) (isnumeric(x)));
+p.addParameter('foveal', false, @(x) (islogical(x))); 
 p.parse(varargin{:});
 inc = p.Results.inc; 
 
 % Observer parameters
-fieldSizeDegs = 10;
+if p.Results.foveal
+    fieldSizeDegs = 2;
+else 
+    fieldSizeDegs = 10; 
+end 
 observerAge = 32;
 pupilDiameterMM = 3;
 

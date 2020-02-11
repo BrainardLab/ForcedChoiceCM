@@ -80,7 +80,8 @@ inc = wls(2) - wls(1);
 % Generate standard cone fundamentals for observer
 lambdaMaxes = [558.9 530.3 420.7]';     % Normal trichromat    
 dphotopigments = [0 0 0]';
-T_cones = findConeFundamentals(lambdaMaxes, dphotopigments, 'inc', inc);
+T_cones = findConeFundamentals(lambdaMaxes, dphotopigments, 'inc', inc,...
+    'foveal', theData.foveal); 
 
 % Initialize arrays
 primaryCones = zeros(3, nMatches);
@@ -92,7 +93,6 @@ for i = 1:nMatches
         % Calculate effects of the spectra on cones
         testSpdPredicted = theData.testSpdsPredicted(:,theData.matchPositions(i,1));
         testCones(:,i) = T_cones * testSpdPredicted;
-        
         primarySpdPredicted = theData.primarySpdsPredicted(:,theData.matchPositions(i,2));
         primaryCones(:,i) = T_cones * primarySpdPredicted;
     else
