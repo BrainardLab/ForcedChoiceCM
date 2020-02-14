@@ -55,6 +55,7 @@ testScales = linspace(0,1,adjustment_length);
 cal = OLGetCalibrationStructure;
 [spdLength,settingsLength] = size(cal.computed.pr650M);
 numCols = cal.describe.numColMirrors;
+wls = cal.computed.pr650Wls;
 
 %% Initialize arrays for storing precomputed spectra
 % These will be cycled through in the adjustments.

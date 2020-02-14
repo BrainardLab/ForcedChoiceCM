@@ -7,5 +7,7 @@ hold on;
 for i = 1:col
     plot(wls,spds(:,i));
 end
+xlabel('Wavelength(nm)');
+ylabel('Power');
 hold off; 
 end 

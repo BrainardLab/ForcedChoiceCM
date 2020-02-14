@@ -30,7 +30,7 @@ function [primaryCones, testCones] = OLGetConeEffects(fName, varargin)
 
 % History 
 %    1/22/20   dce  -Modified program from OLTestConeEffects   
-% Example: OLGetConeEffects('/Users/melanopsin/Dropbox (Aguirre-Brainard Lab)/MELA_data/Experiments/ForcedChoiceCM/OLRayleighMatches/test/test_1.mat')
+% Example: OLGetConeEffects('/Users/melanopsin/Dropbox (Aguirre-Brainard Lab)/MELA_data/Experiments/ForcedChoiceCM/OLRayleighMatch/test/test_1.mat')
 
 %% Parse input
 close all; 

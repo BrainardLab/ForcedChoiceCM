@@ -49,6 +49,9 @@ function OLRayleighMatch(varargin)
 %    'foveal'    - logical indicating whether we are making foveal matches,
 %                  in which case the annulus is not turned on. Default is
 %                  false.
+%    'noWhite'   - logical indicating to run  a version of the experiment
+%                  where the lights  are displayed one after the other
+%                  without white in between. Default is false.
 
 % History:
 %   xx/xx/19  dce       Wrote it.
@@ -57,7 +60,7 @@ function OLRayleighMatch(varargin)
 %                       intervals
 %   02/4/20   dce       Separated light spectrum computations to a
 %                       different file
-
+%   02/14/20  dce       Made option to show matches without white light
 %% Close any stray figures
 close all;
 
@@ -72,6 +75,7 @@ p.addParameter('sInterval', 0.25, @(x) (isnumeric(x)));
 p.addParameter('isi', 0.25, @(x) (isnumeric(x)));
 p.addParameter('iti', 1, @(x) (isnumeric(x)));
 p.addParameter('foveal', false, @(x) (islogical(x)));
+p.addParameter('noWhite', false, @(x) (islogical(x)));
 p.parse(varargin{:});
 
 p1 = p.Results.p1;
@@ -81,6 +85,7 @@ sInterval = p.Results.sInterval;
 isi = p.Results.isi;
 iti = p.Results.iti;p1 = p.Results.p1;
 foveal = p.Results.foveal;
+noWhite = p.Results.noWhite;
 
 % Find precomputed spectra, or compute if they do not exist
 if (p1 == 670 && p2 == 540 && test == 580)
@@ -168,16 +173,33 @@ end
 % Possible step sizes (relative to adjustment_length)
 stepModes = [floor(adjustment_length/5), floor(adjustment_length/20),...
     floor(adjustment_length/100), floor(adjustment_length/200)];
-lightTimes = [sInterval isi sInterval iti]; % Times for each light settings
 
 % The experiment includes an option to switch the order that primary and
 % test lights are displayed. If rev is set to true, lights will be
 % displayed in the order specified by lightModeRev instead of the order
 % specified by lightMode
 rev = false;
-lightMode = ['p' 'w' 't' 'w']; % Possible light settings - primary, test, or white
-lightModeRev = ['t' 'w' 'p' 'w']; % Switch test and primary order
-% lightModeTest = ['t' 'w' 't' 'w']; % Show only test light with white in between
+if noWhite
+    lightMode = ['p', 't'];
+    lightModeRev = ['t', 'p'];
+    lightTimes = [iti sInterval];
+else
+    lightMode = ['p' 'w' 't' 'w']; % Possible light settings - primary, test, or white
+    lightModeRev = ['t' 'w' 'p' 'w']; % Switch test and primary order
+    lightTimes = [sInterval isi sInterval iti]; % Times for each setting
+    % lightModeTest = ['t' 'w' 't' 'w']; % Show only test light with white in between
+end
+
+% Settings for ideal match. These were derived from the findNominalMatch
+% script.
+ideal = false;
+if foveal
+    pIdealIndex = 194;
+    tIdealIndex = 13;
+else
+    pIdealIndex = 195;
+    tIdealIndex = 12;
+end
 
 % Data-storing arrays
 matches = [];               % Output array with subject matches
@@ -204,14 +226,26 @@ while(stillLooping)
     else
         lights = lightMode;
     end
-    %     % lights = lightModeTest;
+    if noWhite && (lightModePos == 2)
+        Snd('Play',sin(0:5000));
+    end
     switch lights(lightModePos)
         case 'p'
-            ol.setMirrors(squeeze(primaryStartStops(primaryPos,1,:))',...
-                squeeze(primaryStartStops(primaryPos,2,:))');
+            if ideal
+                ol.setMirrors(squeeze(primaryStartStops(pIdealIndex,1,:))',...
+                    squeeze(primaryStartStops(pIdealIndex,2,:))');
+            else
+                ol.setMirrors(squeeze(primaryStartStops(primaryPos,1,:))',...
+                    squeeze(primaryStartStops(primaryPos,2,:))');
+            end
         case 't'
-            ol.setMirrors(squeeze(testStartStops(testPos,1,:))',...
-                squeeze(testStartStops(testPos,2,:))');
+            if ideal
+                ol.setMirrors(squeeze(testStartStops(tIdealIndex,1,:))',...
+                    squeeze(testStartStops(tIdealIndex,2,:))');
+            else
+                ol.setMirrors(squeeze(testStartStops(testPos,1,:))',...
+                    squeeze(testStartStops(testPos,2,:))');
+            end
         case 'w'
             ol.setMirrors(whiteStarts,whiteStops);
     end
@@ -228,7 +262,7 @@ while(stillLooping)
                     end
                     for i = 1:stepModePos
                         Snd('Play',sin(0:5000));
-                    end 
+                    end
                     fprintf('User switched step size to %g \n',...
                         (stepModes(stepModePos)/ (adjustment_length - 1)));
                     
@@ -251,15 +285,19 @@ while(stillLooping)
                     fprintf('User exited program \n');
                     stillLooping = false;
                     
-                 % Switch order of primary and test lights. One beep means
-                 % primary is now first, two beeps means test is first. 
-                case 'GP:X' 
+                    % Switch order of primary and test lights. One beep means
+                    % primary is now first, two beeps means test is first.
+                case 'GP:X'
                     rev = ~rev;
                     Snd('Play',sin(0:5000)/ 20);
-                    if rev 
-                       Snd('Play',sin(0:5000)/ 20);  
-                    end 
+                    if rev
+                        Snd('Play',sin(0:5000)/ 20);
+                    end
                     fprintf('User switched order of primary and test lights\n');
+                    
+                case'GP:Back' %Switch to showing ideal match
+                    ideal = ~ ideal;
+                    Snd('Play',sin(0:5000));
                     
                 case 'GP:North' % Scale up test intensity
                     testPos = testPos + stepModes(stepModePos);
@@ -307,6 +345,12 @@ while(stillLooping)
             end
         end
     end
+    
+    % In mode without white light, play sound before switching
+    if noWhite && (lightModePos == 2) 
+        Snd('Play',sin(0:5000));
+    end
+    
     % Switch to the next light to display
     lightModePos = lightModePos + 1;
     if lightModePos > length(lights)
