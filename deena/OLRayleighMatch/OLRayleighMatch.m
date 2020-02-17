@@ -194,11 +194,11 @@ end
 % script.
 ideal = false;
 if foveal
-    pIdealIndex = 194;
-    tIdealIndex = 13;
-else
-    pIdealIndex = 195;
+    pIdealIndex = 198;
     tIdealIndex = 12;
+else
+    pIdealIndex = 199;
+    tIdealIndex = 10;
 end
 
 % Data-storing arrays

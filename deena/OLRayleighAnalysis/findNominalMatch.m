@@ -1,6 +1,8 @@
 % Load light settings
 fName = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
-    'precomputedStartStops', 'OLRayleighMatchFineSpectralSettings.mat');
+    'precomputedStartStops', 'OLRayleighMatchFineSpectralSettings_670_560_600.mat');
+% fName = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
+%     'precomputedStartStops', 'OLRayleighMatchFineSpectralSettings.mat');
 lightSettings = load(fName);
 
 % Generate standard cone fundamentals for observer. We will start with the
@@ -30,7 +32,7 @@ pIndex = 0;
 for i = 1:spdCol
     for j = 1:spdCol
         err  = (testConeEffects(i,1) - primaryConeEffects(j,1) )^2 + ...
-            (testConeEffects(i,2) - primaryConeEffects(j,2))^2 + ...
+            (testConeEffects(i,2) - primaryConeEffects(j,2))^2 +...
             (testConeEffects(i,3) - primaryConeEffects(j,3)) ^2;
         if err < minErr
             minErr = err;
