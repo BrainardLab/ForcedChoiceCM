@@ -11,7 +11,7 @@ lambdaMaxes = [558.9 530.3 420.7]';     % Normal trichromat
 dphotopigments = [0 0 0]';
 inc = 2;
 T_cones = findConeFundamentals(lambdaMaxes, dphotopigments, 'inc', inc,...
-    'foveal', true);
+    'foveal', false);
 
 % Initialize arrays
 [spdRow, spdCol] = size(lightSettings.testSpdsPredicted);
