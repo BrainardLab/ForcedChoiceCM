@@ -69,8 +69,8 @@ close all;
 % This currently sets the primary and test wavelengths.
 p = inputParser;
 p.addParameter('p1', 670, @(x) (isnumeric(x)));
-p.addParameter('p2', 540, @(x) (isnumeric(x)));
-p.addParameter('test', 580, @(x) (isnumeric(x)));
+p.addParameter('p2', 560, @(x) (isnumeric(x)));
+p.addParameter('test', 600, @(x) (isnumeric(x)));
 p.addParameter('sInterval', 0.25, @(x) (isnumeric(x)));
 p.addParameter('isi', 0.25, @(x) (isnumeric(x)));
 p.addParameter('iti', 1, @(x) (isnumeric(x)));

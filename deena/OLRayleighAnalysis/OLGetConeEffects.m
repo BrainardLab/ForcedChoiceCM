@@ -78,7 +78,8 @@ wls = theData.cal.computed.pr650Wls;
 inc = wls(2) - wls(1);
 
 % Generate standard cone fundamentals for observer
-lambdaMaxes = [558.9 530.3 420.7]';     % Normal trichromat    
+% lambdaMaxes = [558.9 530.3 420.7]';     % Normal trichromat  
+lambdaMaxes = [562 530.3 420.7]';
 dphotopigments = [0 0 0]';
 T_cones = findConeFundamentals(lambdaMaxes, dphotopigments, 'inc', inc,...
     'foveal', theData.foveal); 

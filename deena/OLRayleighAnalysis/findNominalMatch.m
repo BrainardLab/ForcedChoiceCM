@@ -11,7 +11,7 @@ lambdaMaxes = [558.9 530.3 420.7]';     % Normal trichromat
 dphotopigments = [0 0 0]';
 inc = 2;
 T_cones = findConeFundamentals(lambdaMaxes, dphotopigments, 'inc', inc,...
-    'foveal', false);
+    'foveal', true);
 
 % Initialize arrays
 [spdRow, spdCol] = size(lightSettings.testSpdsPredicted);
@@ -61,8 +61,8 @@ ol = OneLight;
 for i = 1:10
     ol.setMirrors(squeeze(lightSettings.primaryStartStops(pIndex,1,:))',...
         squeeze(lightSettings.primaryStartStops(pIndex,2,:))');
-    pause(1);
-    ol.setMirrors(squeeze(lightSettings.testStartStops(pIndex,1,:))',...
-        squeeze(lightSettings.testStartStops(pIndex,2,:))');
-    pause(1); 
+    pause(0.5);
+    ol.setMirrors(squeeze(lightSettings.testStartStops(tIndex,1,:))',...
+        squeeze(lightSettings.testStartStops(tIndex,2,:))');
+    pause(0.5); 
 end

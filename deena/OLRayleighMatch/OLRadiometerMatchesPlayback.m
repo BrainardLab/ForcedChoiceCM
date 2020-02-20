@@ -69,6 +69,23 @@ pause(0.1);
 measuredWhite = spectroRadiometerOBJ.measure;
 fprintf('Successfully measured white light. Begin measuring matches...\n'); 
 
+%% Measure ideal spectrum 
+if theData.foveal
+    pIdealIndex = 198;
+    tIdealIndex = 12;
+else
+    pIdealIndex = 199;
+    tIdealIndex = 10;
+end
+fprintf('Measuring ideal light...\n'); 
+ol.setMirrors(squeeze(theData.primaryStartStops(pIdealIndex,1,:))',...
+    squeeze(theData.primaryStartStops(pIdealIndex,2,:))');
+pause(0.1);
+measuredWhite = spectroRadiometerOBJ.measure;
+
+ol.setMirrors(squeeze(theData.testStartStops(tIdealIndex,1,:))',...
+    squeeze(theData.testStartStops(tIdealIndex,2,:))');
+
 %% Loop through matches; display and measure each one
 for i = 1:numMatches
     % Display primary on OL, measure with radiometer

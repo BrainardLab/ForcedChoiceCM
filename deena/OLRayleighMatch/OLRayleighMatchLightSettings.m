@@ -112,13 +112,13 @@ for i = 1:adjustment_length
 end
 
 %% Take a look at spectra (optional)
-makePlots = false; 
+makePlots = true; 
 if makePlots
     figure; clf; hold on; title('Test');
-    OLplotSpdCheck(cal.computed.pr650Wls, testSpdsNominal);
+    OLplotSpdCheck(cal.computed.pr650Wls, testSpdsPredicted);
     
     figure; clf; title('Primaries');
-    OLplotSpdCheck(cal.computed.pr650Wls, primarySpdsNominal);
+    OLplotSpdCheck(cal.computed.pr650Wls, primarySpdsPredicted);
 end
 % file = sprintf('OLRayleighMatchFineSpectralSettings'); 
 file = sprintf('OLRayleighMatchFineSpectralSettings_%g_%g_%g.mat', p1, p2, test);
