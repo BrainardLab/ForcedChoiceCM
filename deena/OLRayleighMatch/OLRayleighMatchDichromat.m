@@ -7,15 +7,17 @@ function matches = OLRayleighMatchDichromat(varargin)
 %
 % Description:
 %    Displays various mixtures of two primary lights followed by a test
-%    light in alternation.
+%    light in alternation. An option exists to display a white light
+%    between the lights as well.
 %
-%    Subjects are shown various ratios of two primary lights and use the
-%    directional pad to adjust the test light intensity and try to make a
-%    match. (Up increases the test intensity and down decreases the test
-%    intensity). For each trial, they can then respond either "match"
-%    (right 'B' button) or "no match possible" (left 'X' button).
+%    Subjects are shown a series of set primary or test lights and use the
+%    directional pad to adjust the other light and try to make a match.
+%    "Up" increases the test intensity/amount of p2, and "down" decreases
+%    the test intensity/amount of p2. For each trial, the subject can then
+%    respond either "match" (right 'B' button) or "no match possible"
+%    (left 'X' button).
 %
-%    Default wavelengths are 580 for test, 670 for p1, and 540 for
+%    Default wavelengths are 600 for test, 670 for p1, and 560 for
 %    p2, but these can also be entered by the user as key/value pairs.
 %
 %    The subject can also use the top 'Y' button to toggle step size and
@@ -32,26 +34,30 @@ function matches = OLRayleighMatchDichromat(varargin)
 %    parameters.
 %
 % Optional key-value pairs:
-%    'p1'        - integer wavelength of the first primary light in nm.
-%                  Default is 670.
-%    'p2'        - integer wavelength of the second primary light in nm.
-%                  Default is 540.
-%    'test'      - integer wavelength of the test light in nm. Default is
-%                  580.
-%    'sInterval' - length of time that each stimulus is displayed for, in
-%                   s. Default is 0.25 (like absolute mode on the anomaloscope).
-%    'isi'       - inter-stimulus interval for white light between primary
-%                  and test fields, in s. Default is 0.25.
-%    'iti'       - inter-trial interval for white light between test and
-%                  primary fields, in s. Default is 1 (absolute mode on the
-%                  anomaloscope is 3).
-%
-%
-%    'plotSpds'  - logical indicating whether to make plots of nominal spds.
-%                  Default is false.
+%    'p1'           - integer wavelength of the first primary light in nm.
+%                     Default is 670.
+%    'p2'           - integer wavelength of the second primary light in nm.
+%                     Default is 540.
+%    'test'         - integer wavelength of the test light in nm. Default is
+%                     580.
+%    'sInterval'    - length of time in s that the short stimulus is displayed
+%                     for (or both stimuli when white light is used). Default
+%                     is 0.25.
+%    'lInterval'    - length of time in s that the long stimulus is displayed
+%                     for (or the iti white light if it is used). Default is
+%                     1.
+%    'foveal'       - logical indicating whether we are making foveal matches,
+%                     in which case the annulus is not turned on. Default is
+%                     false.
+%    'setPrimaries' - logical indicating to run a version of the experiment
+%                     where the primary lights are set and the user adjusts
+%                     the test light, rather than the other way around.
+%                     Default is false.
 
 % History:
-%   1/22/20  dce   - WWrote program, modified from OLRayleighMatch
+%   1/22/20  dce   - Wrote program, modified from OLRayleighMatch
+%   2/27/20  dce   - Made revisions to program to bring it in line with
+%                    OLRayleighMatch.
 
 %% Close any stray figures
 close all;
@@ -61,48 +67,21 @@ close all;
 % This currently sets the primary and test wavelengths.
 p = inputParser;
 p.addParameter('p1', 670, @(x) (isnumeric(x)));
-p.addParameter('p2', 540, @(x) (isnumeric(x)));
-p.addParameter('test', 580, @(x) (isnumeric(x)));
+p.addParameter('p2', 560, @(x) (isnumeric(x)));
+p.addParameter('test', 600, @(x) (isnumeric(x)));
 p.addParameter('sInterval', 0.25, @(x) (isnumeric(x)));
-p.addParameter('isi', 0.25, @(x) (isnumeric(x)));
-p.addParameter('iti', 1, @(x) (isnumeric(x)));
-p.addParameter('plotSpds', false, @(x) (islogical(x)));
+p.addParameter('lInterval', 1, @(x) (isnumeric(x)));
+p.addParameter('foveal', true, @(x) (islogical(x)));
+p.addParameter('setPrimaries', false, @(x) (islogical(x)));
 p.parse(varargin{:});
 
 p1 = p.Results.p1;
 p2 = p.Results.p2;
 test = p.Results.test;
 sInterval = p.Results.sInterval;
-isi = p.Results.isi;
-iti = p.Results.iti;
-
-%% Parameters
-%
-% Length of scaling factor adjustment arrays
-primaries_length = 101;
-test_length = 101;
-
-% Scale primary mixture down from max available by
-% this factor.
-primaryScaleFactor = 1;
-if (primaryScaleFactor > 1)
-    error('Do not set primaryScaleFactor greater than 1')
-end
-
-% Scaling factor for white light
-whiteScaleFactor = 0.05;
-
-% Spectrum-generating parameters
-fullWidthHalfMax = 20;
-lambda = 0.001;
-
-% Scaling factors for intensity of primary and test lights. The two
-% primaries are each scaled from 0 to 1, and the arrays are set up so the
-% two scaling factors will always add up to 1. We start with primary2
-% scaled up to 1 and primary1 scaled down to 0.
-p1Scales = linspace(0,1,primaries_length);
-p2Scales = 1-p1Scales;
-testScales = linspace(0,1,test_length);
+lInterval = p.Results.lInterval;
+foveal = p.Results.foveal;
+setPrimaries = p.Results.setPrimaries;
 
 %% Set up directory for saving results
 subjectID = input('Enter subject ID: ');
@@ -122,130 +101,93 @@ if (exist(fileLoc, 'file'))
     error('Specified output file %s already exists', fileName);
 end
 
-
-%% Get the OneLight calibration structure
-%
-% Use it to set some device related parameters.
-% numCols is number of mirrors in each OL column
-cal = OLGetCalibrationStructure;
-[spdLength,settingsLength] = size(cal.computed.pr650M);
-numCols = cal.describe.numColMirrors;
-
-%% Initialize arrays for storing precomputed spectra
-% These will be cycled through in the adjustments.
-% Start-stop arrays hold start positions in the first column and stop
-% postions in the second column.
-testSpdsNominal = zeros(spdLength,test_length);
-testSpdsPredicted = zeros(spdLength,test_length);
-testSettings = zeros(settingsLength,test_length);
-testStartStops = zeros(test_length,2,numCols);
-
-primarySpdsNominal = zeros(spdLength, primaries_length);
-primarySpdsPredicted = zeros(spdLength,primaries_length);
-primarySettings = zeros(settingsLength, primaries_length);
-primaryStartStops = zeros(primaries_length,2,numCols);
-
-%% Specify and initialize "white" light
-%
-% This is displayed between the times when subject is comparing
-% the primaries and test.
-%
-% The easiest way to set up something reasonable is to turn
-% the OneLight on to half of its max.  We could get fancier
-% later and explicitly provide a spectrum.
-whitePrimaries = whiteScaleFactor * ones(settingsLength, 1);
-whiteSpdNominal = OLPrimaryToSpd(cal, whitePrimaries);
-whiteSettings = OLPrimaryToSettings(cal, whitePrimaries);
-[whiteStarts, whiteStops] = OLSettingsToStartsStops(cal, whiteSettings);
-
-%% Get the "dark" spd, that which comes out when primarys are at 0
-darkSpd = OLPrimaryToSpd(cal,zeros(settingsLength, 1));
-
-%% Define desired spectrum for test and the two primary lights
-%
-% Our code above defines the spectral shape of these.  Here we
-% figure out what the most intense version of that shape is,
-% that we can get on the OL.
-testIncrSpdRel = OLMakeMonochromaticSpd(cal, test, fullWidthHalfMax);
-testIncrSpd = OLMaximizeSpd(cal,testIncrSpdRel,'lambda',lambda);
-primary1IncrSpdRel = OLMakeMonochromaticSpd(cal, p1, fullWidthHalfMax);
-primary1IncrSpd = OLMaximizeSpd(cal, primary1IncrSpdRel,'lambda',lambda);
-primary2IncrSpdRel = OLMakeMonochromaticSpd(cal, p2, fullWidthHalfMax)/3;
-primary2IncrSpd = OLMaximizeSpd(cal, primary2IncrSpdRel,'lambda',lambda);
-
-%% Get set of test lights, varying in intensity
-for i = 1:test_length
-    testSpdsNominal(:,i) = (testScales(i) * testIncrSpd) + darkSpd;
-    [testSettings(:,i),~,testSpdsPredicted(:,i)] = OLSpdToSettings(cal, testSpdsNominal(:,i), 'lambda', lambda);
-    [testStartStops(i,1,:),testStartStops(i,2,:)] = OLSettingsToStartsStops(cal, testSettings(:,i));
+%% Find light settings
+% Find precomputed spectra, or compute if they do not exist
+file = sprintf('OLRayleighMatchFineSpectralSettings_%g_%g_%g.mat', p1, p2, test);
+fName = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
+    'precomputedStartStops', file);
+if ~exist(fName, 'file')
+    OLRayleighMatchLightSettings(p1,p2,test);
 end
 
-%% Get set of primary lights, varying in relative contribution of two primaries
-for i = 1:primaries_length
-    primarySpdsNominal(:,i) = (primaryScaleFactor*(p1Scales(i) * primary1IncrSpd) + (p2Scales(i) * primary2IncrSpd)) + darkSpd;
-    [primarySettings(:,i),~,primarySpdsPredicted(:,i)] = OLSpdToSettings(cal, primarySpdsNominal(:,i), 'lambda', lambda);
-    [primaryStartStops(i,1,:), primaryStartStops(i,2,:)] = OLSettingsToStartsStops(cal, primarySettings(:,i));
-end
+% Load light settings and save needed variables locally
+lightSettings = load(fName);
 
-%% Take a look at spectra (optional)
-if p.Results.plotSpds
-    figure; clf; hold on; title('Test');
-    OLplotSpdCheck(cal.computed.pr650Wls, testSpdsNominal);
-    
-    figure; clf; title('Primaries');
-    OLplotSpdCheck(cal.computed.pr650Wls, primarySpdsNominal);
-end
+cal = lightSettings.cal;
+primarySpdsNominal = lightSettings.primarySpdsNominal;
+primarySpdsPredicted = lightSettings.primarySpdsPredicted;
+testSpdsNominal = lightSettings.testSpdsNominal;
+testSpdsPredicted = lightSettings.testSpdsPredicted;
+primaryStartStops = lightSettings.primaryStartStops;
+testStartStops = lightSettings.testStartStops;
+p1Scales = lightSettings.p1Scales;
+testScales = lightSettings.testScales;
+adjustment_length = lightSettings.adjustment_length;
 
 %% Intialize OneLight and button box
 ol = OneLight;
 gamePad = GamePad();
 
-%% Set up projector
-fprintf('\n**** Set up projector ****\n');
-annulusFile = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'), 'projectorSettings','OLAnnulusSettings.mat');
-if exist(annulusFile, 'file')
-    fprintf('[1]: Use existing annulus settings file\n');
-    fprintf('[2]: Reset annulus\n');
-    res = GetInput('Select option', 'number', 1);
-    if res == 2
+%% Set up projector (if not making foveal matches)
+%% Set up projector (if not making foveal matches)
+% Set annulusData so the program will save even if annulus is not used
+annulusData = 0;
+if ~foveal
+    fprintf('\n**** Set up projector ****\n');
+    annulusFile = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
+        'projectorSettings','OLAnnulusSettings.mat');
+    if exist(annulusFile, 'file')
+        fprintf('[1]: Use existing annulus settings file\n');
+        fprintf('[2]: Reset annulus\n');
+        res = GetInput('Select option', 'number', 1);
+        if res == 2
+            ol.setMirrors(squeeze(primaryStartStops(1,1,:))',...
+                squeeze(primaryStartStops(1,2,:))');
+            GLW_AnnularStimulusButtonBox();
+        end
+    else
         ol.setMirrors(squeeze(primaryStartStops(1,1,:))',...
-            squeeze(primaryStartStops(1,2,:))');
+            squeeze(primaryStartStops(1,2,:))');ol.setAll(false);
         GLW_AnnularStimulusButtonBox();
     end
-else
-    ol.setMirrors(squeeze(primaryStartStops(1,1,:))',...
-        squeeze(primaryStartStops(1,2,:))');ol.setAll(false);
-    GLW_AnnularStimulusButtonBox();
+    annulusData = load(annulusFile);
+    annulusData.win.open;
+    annulusData.win.draw;
+    fprintf('\nProjector ready. Starting display loop\n')
 end
-annulusData = load(annulusFile);
-annulusData.win.open;
-annulusData.win.draw;
-fprintf('\nProjector ready. Starting display loop\n')
 
 %% Display loop
-%
 % Display parameters
-isPrimary = true;           % Are we currently displaying primary or test light?
-stepModes = [20 5 1];       % Possible step sizes (relative to adjustment_length)
-lightMode = ['p' 'w' 't' 'w']; % Possible light settings - primary, test, or white
-lightTimes = [sInterval isi sInterval iti]; % Times for each light settings
-primaryPositions = ...      % Positions in primary adjustment array to display
-    [1 101 11 91 21 81 31 71 41 51 61 96 6 86 16 76 26 66 36 56 46];
+% Possible step sizes (relative to adjustment_length)
+stepModes = [floor(adjustment_length/5), floor(adjustment_length/20),...
+    floor(adjustment_length/100), floor(adjustment_length/200)];
 
-% Hold information
+% The experiment includes an option to switch the order that primary and
+% test lights are displayed. If rev is set to true, lights will be
+% displayed in the order specified by lightModeRev instead of the order
+% specified by lightMode
+rev = false;
+lightMode = ['p' 't']; % Possible light settings - primary, test, or white
+lightModeRev = ['t' 'p']; % Switch test and primary order
+lightTimes = [lInterval sInterval]; % Times for each setting
+
+% Set indices for values of controlled light
+fixedPositions = [1 201 21 181 41 161 61 141 81 121 101 191 11 171 31,...
+    151 51 131 71 111 91];
+fixedPositionPos = 1;
+
+% Data-storing arrays
 matches = [];               % Output array with subject matches
 matchPositions = [];        % Positions of matches in the adjustment array
 
 nonMatches = [];            % Output array with subject mismatches
 nonMatchPositions = [];     % Positions of non-matches in adjustment array
 
-% Initial position in light mode, step size, primary, and test arrays 
-lightModePos = 1; 
-stepModePos = 1; % Start with largest step size
-primaryPos = 1;  % Index for current location in primaryPositions array
-testInitialPos = 34;
-testPos = testInitialPos; % Index for current test light position.
-% The anomaloscope defaults to 15/45, so we default to 33/100
+% Initial position in light mode, step size, primary, and test arrays
+primaryPos = 1;
+testPos = 1;
+stepModePos = 1;
+lightModePos = 1;
 
 % Loop control parameters
 %
@@ -258,21 +200,29 @@ blockMatches = false;
 while(stillLooping)
     nowTime = mglGetSecs;
     
-    % Display primary, test, or white light. The white light is displayed
-    % for a short time between primary and test lights and a long time
-    % between test and primary lights. 
-    switch lightMode(lightModePos)
+    % Update light positions based on selected indices
+    if setPrimaries
+        primaryPos = fixedPositions(fixedPositionsPos);
+    else
+        testPos = fixedPositions(fixedPositionPos);
+    end
+    
+    if rev
+        lights = lightModeRev;
+    else
+        lights = lightModePos;
+    end
+    
+    % Display primary or test light.
+    switch lights(lightModePos)
         case 'p'
-            ol.setMirrors(squeeze(primaryStartStops(primaryPositions(primaryPos),1,:))',...
-                squeeze(primaryStartStops(primaryPositions(primaryPos),2,:))');
+            ol.setMirrors(squeeze(primaryStartStops(primaryPos,1,:))',...
+                squeeze(primaryStartStops(primaryPos,2,:))');
         case 't'
             ol.setMirrors(squeeze(testStartStops(testPos,1,:))',...
                 squeeze(testStartStops(testPos,2,:))');
-            blockMatches = false; 
-        case 'w'
-            ol.setMirrors(whiteStarts,whiteStops);
     end
-  
+    
     % Until time limit runs out, check for user input
     while(mglGetSecs < nowTime + lightTimes(lightModePos))
         key = gamePad.getKeyEvent();
@@ -283,30 +233,41 @@ while(stillLooping)
                     if stepModePos > length(stepModes)
                         stepModePos = 1;
                     end
-                    Snd('Play',sin((0:5000) * stepModePos/ 20));
+                    for i = 1:stepModePos
+                        Snd('Play',sin(0:5000));
+                    end
                     fprintf('User switched step size to %g \n',...
-                        (stepModes(stepModePos)/100.0));
+                        (stepModes(stepModePos)/ (adjustment_length - 1)));
                     
                 case 'GP:B' % Subject found a match
                     if ~blockMatches
                         Snd('Play',sin(0:5000));
                         fprintf('User found match at %g test, %g primary \n',...
-                            testScales(testPos), p1Scales(primaryPositions(primaryPos)));
+                            testScales(testPos), p1Scales(primaryPos));
                         matches = [matches; [testScales(testPos),...
-                            p1Scales(primaryPositions(primaryPos))]];
+                            p1Scales(primaryPos)]];
                         matchPositions = [matchPositions; [testPos,...
-                            primaryPositions(primaryPos)]];
-                        % Move on to next primary in primaryPositions
-                        primaryPos = primaryPos +1;
-                        if primaryPos > length(primaryPositions)
+                            primaryPos]];
+                        
+                        % Save data
+                        save(fileLoc, 'matches', 'matchPositions','nonMatches', ...
+                            'nonMatchPositions', 'primaryPositions', 'p1', 'p2', 'test', 'cal',...
+                            'primarySpdsNominal', 'primarySpdsPredicted', 'testSpdsNominal',...
+                            'testSpdsPredicted', 'primaryStartStops', 'testStartStops',...
+                            'subjectID', 'sessionNum','annulusData','sInterval', 'lInterval',...
+                            'foveal', 'setPrimaries');
+                        
+                        % Move on to next fixed light in fixedPositions
+                        fixedPositionsPos = fixedPositionsPos +1;
+                        if fixedPositionsPos > length(fixedPositions)
                             stillLooping = false;
                             break;
-                            fprintf('\nFinished looping through primary lights\n');
+                            fprintf('\nFinished looping through fixed lights\n');
                         else
                             % With switch at end of loop, this will lead
                             % primary to be displayed on next iteration
-                            lightModePos = 4; 
-                            testPos = testInitialPos; 
+                            primaryPos = 1;
+                            testPos = 1;
                             blockMatches = true;
                         end
                     else
@@ -317,20 +278,30 @@ while(stillLooping)
                     if ~ blockMatches
                         Snd('Play',sin(0:5000));
                         fprintf('User found non-match at %g test, %g primary \n',...
-                            testScales(testPos), p1Scales(primaryPositions(primaryPos)));
+                            testScales(testPos), p1Scales((primaryPos));
                         nonMatches = [nonMatches;...
-                            [testScales(testPos), p1Scales(primaryPositions(primaryPos))]];
-                        nonMatchPositions = [nonMatchPositions; [testPos, primaryPositions(primaryPos)]];
-                        % Move on to next primary in primaryPositions
-                        primaryPos = primaryPos +1;
-                        if primaryPos > length(primaryPositions)
+                            [testScales(testPos), p1Scales(primaryPos)]];
+                        nonMatchPositions = [nonMatchPositions; [testPos, primaryPos]];
+                        
+                        % Save data
+                        save(fileLoc, 'matches', 'matchPositions','nonMatches', ...
+                            'nonMatchPositions', 'primaryPositions', 'p1', 'p2', 'test', 'cal',...
+                            'primarySpdsNominal', 'primarySpdsPredicted', 'testSpdsNominal',...
+                            'testSpdsPredicted', 'primaryStartStops', 'testStartStops',...
+                            'subjectID', 'sessionNum','annulusData','sInterval', 'lInterval',...
+                            'foveal', 'setPrimaries');
+                        
+                        % Move on to next fixed light in fixedPositions
+                        fixedPositionsPos = fixedPositionsPos +1;
+                        if fixedPositionsPos > length(fixedPositions)
                             stillLooping = false;
-                            fprintf('\nFinished looping through primary lights\n');
+                            break;
+                            fprintf('\nFinished looping through fixed lights\n');
                         else
                             % With switch at end of loop, this will lead
                             % primary to be displayed on next iteration
-                            lightModePos = 4; 
-                            testPos = testInitialPos;
+                            primaryPos = 1;
+                            testPos = 1;
                             blockMatches = true;
                         end
                     else
@@ -342,23 +313,39 @@ while(stillLooping)
                     stillLooping = false;
                     Snd('Play',sin(0:5000));
                     
-                case 'GP:North' % Scale up test intensity
-                    testPos = testPos + stepModes(stepModePos);
-                    if testPos > test_length
+                case 'GP:North' % Scale up test intensity or p2 ratio
+                    if setPrimaries
+                        testPos = testPos + stepModes(stepModePos);
+                    else
+                        primaryPos = primaryPos + stepModes(stepModePos);
+                    end
+                    if testPos > adjustment_length || primaryPos > adjustment_length
                         Snd('Play',sin(0:5000));
-                        fprintf('User reached upper test limit \n');
-                        testPos = test_length;
+                        fprintf('User reached upper limit \n');
+                        if setPrimaries
+                            testPos = adjustment_length;
+                        else
+                            primaryPos = adjustment_length;
+                        end
                     end
                     Snd('Play',sin(0:5000)/100);
                     fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
                         testScales(testPos), p1Scales(primaryPositions(primaryPos)));
                     
-                case 'GP:South' % Scale down test intensity
-                    testPos = testPos - stepModes(stepModePos);
-                    if testPos < 1
+                case 'GP:South' % Scale down test intensity or p2 ratio
+                    if setPrimaries
+                        testPos = testPos + stepModes(stepModePos);
+                    else
+                        primaryPos = primaryPos + stepModes(stepModePos);
+                    end
+                    if testPos < 1 || primaryPos < 1
                         Snd('Play',sin(0:5000));
-                        fprintf('User reached lower test limit \n');
-                        testPos = 1;
+                        fprintf('User reached lower limit \n');
+                        if setPrimaries
+                            testPos = adjustment_length;
+                        else
+                            primaryPos = adjustment_length;
+                        end
                     end
                     Snd('Play',sin(0:5000)/100);
                     fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
@@ -367,24 +354,17 @@ while(stillLooping)
         end
     end
     
-    % Switch to the next light to display 
-    lightModePos = lightModePos + 1; 
-    if lightModePos > 4 
-        lightModePos = 1; 
-    end 
+    % Switch to the next light to display
+    lightModePos = lightModePos + 1;
+    if lightModePos > 4
+        lightModePos = 1;
+    end
 end
 
-%% Save matches
-save(fileLoc, 'matches', 'matchPositions','nonMatches', ...
-    'nonMatchPositions', 'primaryPositions', 'p1', 'p2', 'test', 'cal',...
-    'primarySpdsNominal', 'primarySpdsPredicted', 'testSpdsNominal',...
-    'testSpdsPredicted', 'primaryStartStops', 'testStartStops',...
-    'whitePrimaries', 'whiteSettings', 'whiteStarts', 'whiteStops',...
-    'whiteSpdNominal', 'subjectID', 'sessionNum','annulusData',...
-    'sInterval', 'isi', 'iti');
-
 %% Close up
-GLW_CloseAnnularStimulus();
+if ~foveal
+    GLW_CloseAnnularStimulus();
+end
 ol.setAll(false);
 
 end
