@@ -1,7 +1,7 @@
-load('/Users/melanopsin/Dropbox (Aguirre-Brainard Lab)/MELA_data/Experiments/ForcedChoiceCM/OLRayleighMatch/DEOrderSwitching.mat');
+load('/Users/melanopsin/Dropbox (Aguirre-Brainard Lab)/MELA_data/Experiments/ForcedChoiceCM/OLRayleighMatch/DE_23_ordered.mat');
 
 % Number of trials with test and primary first
-numPFirst = 6;
+numPFirst = 5;
 numTFirst = 5;
 
 % Find means and standard errors
@@ -42,4 +42,4 @@ names ={'L'; 'M'; 'S' };
 set(gca,'xticklabel', names)
 ylabel('Relative Response Intensity');
 legend('primary: primary first', 'primary: test first', 'test: primary first', 'test: test first');
-title('DE 15 Measured Cone Responses: Order Effect');
+title('DE 23 Measured Cone Responses: Order Effect');

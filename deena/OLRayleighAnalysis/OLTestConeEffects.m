@@ -1,5 +1,7 @@
 function OLTestConeEffects(fName, varargin)
-% Calculate cone effects of subjects' OL Rayleigh matches.
+% Calculate cone effects of subjects' OL Rayleigh matches. This is an old
+% version which has been superseded by OLGetConeEffects and
+% OLPlotConeEffects
 %
 % Syntax:
 %   OLTestConeEffects(fName, varargin)

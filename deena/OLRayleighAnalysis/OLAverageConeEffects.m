@@ -80,5 +80,5 @@ testSD = std(testCones, 1);
 
 err = [testSD(1), primarySD(1), testSD(2), primarySD(2), testSD(3), primarySD(3)] / sqrt(numMatches);
 
-% OLPlotConeEffects(primaryAverages', testAverages', subjectID, sessionNum, 'average', true, 'measured', p.Results.measured, 'err', err);
+OLPlotConeEffects(primaryAverages', testAverages', subjectID, sessionNum, 'average', true, 'measured', p.Results.measured, 'err', err);
 end

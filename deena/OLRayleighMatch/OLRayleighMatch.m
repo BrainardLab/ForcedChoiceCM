@@ -8,7 +8,7 @@ function OLRayleighMatch(varargin)
 %    Displays a mixture of two primary iights followed by a test light in
 %    alternation.
 %
-%    Default wavelengths are 580 for test, 670 for p1, and 540 for
+%    Default wavelengths are 600 for test, 670 for p1, and 560 for
 %    p2, but these can also be entered by the user as key/value pairs.
 %
 %    Subjects can use the game pad's directional pad to adjust the
@@ -19,8 +19,9 @@ function OLRayleighMatch(varargin)
 %
 %    The subject can also use the top 'Y' button to toggle step size, the
 %    right 'B' button to record a match, the left 'X' button to change the
-%    order that primary and test lights are displayed, and the bottom 'A'
-%    button to quit.
+%    order that primary and test lights are displayed, the bottom 'A'
+%    button to quit, and the 'Start' button to display an ideal match
+%    (based on measured data).
 %
 %    The routine prompts for subject and session info.
 %
@@ -30,8 +31,8 @@ function OLRayleighMatch(varargin)
 % Outputs:
 %    Saves a .mat file titled by subject and session number, which includes
 %    a record of subjects' matches and various experimental parameters. As
-%    of now, the file is only saved if the subject makes at least one
-%    match.
+%    of now, the file is saved after each match and is only saved if the 
+%    subject makes at least one match.
 %
 % Optional key-value pairs:
 %    'p1'        - integer wavelength of the first primary light in nm.
@@ -40,18 +41,18 @@ function OLRayleighMatch(varargin)
 %                  Default is 540.
 %    'test'      - integer wavelength of the test light in nm. Default is
 %                  580.
-%    'sInterval' - length of time that each stimulus is displayed for, in
-%                   s. Default is 0.25.
-%    'isi'       - inter-stimulus interval for white light between primary
-%                  and test fields, in s. Default is 0.25.
-%    'iti'       - inter-trial interval for white light between test and
-%                  primary fields, in s. Default is 1.
+%    'sInterval' - length of time in s that the short stimulus is displayed
+%                  for (or both stimuli when white light is used). Default
+%                  is 0.25.
+%    'lInterval' - length of time in s that the long stimulus is displayed
+%                  for (or the iti white light if it is used). Default is
+%                  1.
 %    'foveal'    - logical indicating whether we are making foveal matches,
 %                  in which case the annulus is not turned on. Default is
 %                  false.
-%    'noWhite'   - logical indicating to run  a version of the experiment
-%                  where the lights  are displayed one after the other
-%                  without white in between. Default is false.
+%    'white'     - logical indicating to run  a version of the experiment
+%                  where the lights  are displayed with white in between.
+%                  Default is false.
 
 % History:
 %   xx/xx/19  dce       Wrote it.
@@ -61,6 +62,8 @@ function OLRayleighMatch(varargin)
 %   02/4/20   dce       Separated light spectrum computations to a
 %                       different file
 %   02/14/20  dce       Made option to show matches without white light
+%   02/26/19  dce       Changed default settings to foveal and no white
+%                       light
 %% Close any stray figures
 close all;
 
@@ -72,32 +75,45 @@ p.addParameter('p1', 670, @(x) (isnumeric(x)));
 p.addParameter('p2', 560, @(x) (isnumeric(x)));
 p.addParameter('test', 600, @(x) (isnumeric(x)));
 p.addParameter('sInterval', 0.25, @(x) (isnumeric(x)));
-p.addParameter('isi', 0.25, @(x) (isnumeric(x)));
-p.addParameter('iti', 1, @(x) (isnumeric(x)));
-p.addParameter('foveal', false, @(x) (islogical(x)));
-p.addParameter('noWhite', false, @(x) (islogical(x)));
+p.addParameter('lInterval', 1, @(x) (isnumeric(x)));
+p.addParameter('foveal', true, @(x) (islogical(x)));
+p.addParameter('white', false, @(x) (islogical(x)));
 p.parse(varargin{:});
 
 p1 = p.Results.p1;
 p2 = p.Results.p2;
 test = p.Results.test;
 sInterval = p.Results.sInterval;
-isi = p.Results.isi;
-iti = p.Results.iti;p1 = p.Results.p1;
+lInterval = p.Results.lInterval;
 foveal = p.Results.foveal;
-noWhite = p.Results.noWhite;
+white = p.Results.white;
 
+
+%% Set up directory for saving results
+subjectID = input('Enter subject ID: ');
+sessionNum = input('Enter session number: ');
+
+% Create directory named subjectID for saving data, if it doesn't exist
+outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),subjectID);
+if (~exist(outputDir,'dir'))
+    mkdir(outputDir);
+end
+
+% Create data file with name subject ID_SessionNumber. Throw error if a
+% file already exists with that name.
+fileName = [subjectID, '_', num2str(sessionNum), '.mat'];
+fileLoc = fullfile(outputDir,fileName);
+if (exist(fileLoc, 'file'))
+    error('Specified output file %s already exists', fileName);
+end
+
+%% Find light settings
 % Find precomputed spectra, or compute if they do not exist
-if (p1 == 670 && p2 == 540 && test == 580)
-    fName = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
-        'precomputedStartStops', 'OLRayleighMatchFineSpectralSettings.mat');
-else
-    file = sprintf('OLRayleighMatchFineSpectralSettings_%g_%g_%g.mat', p1, p2, test);
-    fName = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
-        'precomputedStartStops', file);
-    if ~exist(fName, 'file')
-        OLRayleighMatchLightSettings(p1,p2,test);
-    end
+file = sprintf('OLRayleighMatchFineSpectralSettings_%g_%g_%g.mat', p1, p2, test);
+fName = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
+    'precomputedStartStops', file);
+if ~exist(fName, 'file')
+    OLRayleighMatchLightSettings(p1,p2,test);
 end
 
 % Load light settings and save needed variables locally
@@ -119,24 +135,6 @@ whiteStops = lightSettings.whiteStops;
 whiteSpdNominal = lightSettings.whiteSpdNominal;
 adjustment_length = lightSettings.adjustment_length;
 
-%% Set up directory for saving results
-subjectID = input('Enter subject ID: ');
-sessionNum = input('Enter session number: ');
-
-% Create directory named subjectID for saving data, if it doesn't exist
-outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),subjectID);
-if (~exist(outputDir,'dir'))
-    mkdir(outputDir);
-end
-
-% Create data file with name subject ID_SessionNumber. Throw error if a
-% file already exists with that name.
-fileName = [subjectID, '_', num2str(sessionNum), '.mat'];
-fileLoc = fullfile(outputDir,fileName);
-if (exist(fileLoc, 'file'))
-    error('Specified output file %s already exists', fileName);
-end
-
 %% Intialize OneLight and button box
 ol = OneLight;
 gamePad = GamePad();
@@ -146,7 +144,8 @@ gamePad = GamePad();
 annulusData = 0;
 if ~foveal
     fprintf('\n**** Set up projector ****\n');
-    annulusFile = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'), 'projectorSettings','OLAnnulusSettings.mat');
+    annulusFile = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
+        'projectorSettings','OLAnnulusSettings.mat');
     if exist(annulusFile, 'file')
         fprintf('[1]: Use existing annulus settings file\n');
         fprintf('[2]: Reset annulus\n');
@@ -179,26 +178,25 @@ stepModes = [floor(adjustment_length/5), floor(adjustment_length/20),...
 % displayed in the order specified by lightModeRev instead of the order
 % specified by lightMode
 rev = false;
-if noWhite
+if ~white
     lightMode = ['p', 't'];
     lightModeRev = ['t', 'p'];
-    lightTimes = [iti sInterval];
+    lightTimes = [lInterval sInterval];
 else
     lightMode = ['p' 'w' 't' 'w']; % Possible light settings - primary, test, or white
     lightModeRev = ['t' 'w' 'p' 'w']; % Switch test and primary order
-    lightTimes = [sInterval isi sInterval iti]; % Times for each setting
-    % lightModeTest = ['t' 'w' 't' 'w']; % Show only test light with white in between
+    lightTimes = [sInterval sInterval sInterval lInterval]; % Times for each setting
 end
 
 % Settings for ideal match. These were derived from the findNominalMatch
 % script.
 ideal = false;
 if foveal
-    pIdealIndex = 198;
-    tIdealIndex = 12;
+    pIdealIndex = 197;
+    tIdealIndex = 14;
 else
-    pIdealIndex = 199;
-    tIdealIndex = 10;
+    pIdealIndex = 198;
+    tIdealIndex = 13;
 end
 
 % Data-storing arrays
@@ -225,9 +223,6 @@ while(stillLooping)
         lights = lightModeRev;
     else
         lights = lightMode;
-    end
-    if noWhite && (lightModePos == 2)
-        Snd('Play',sin(0:5000));
     end
     switch lights(lightModePos)
         case 'p'
@@ -274,6 +269,14 @@ while(stillLooping)
                     matches = [matches;...
                         [testScales(testPos), p1Scales(primaryPos)]];
                     matchPositions = [matchPositions; [testPos, primaryPos]];
+                    save(fileLoc, 'matches', 'matchPositions', 'p1', 'p2',...
+                        'test', 'cal','primarySpdsNominal',...
+                        'primarySpdsPredicted', 'testSpdsNominal',...
+                        'testSpdsPredicted', 'primaryStartStops',...
+                        'testStartStops','whitePrimaries', 'whiteSettings',...
+                        'whiteStarts', 'whiteStops','whiteSpdNominal',...
+                        'subjectID', 'sessionNum','annulusData','sInterval',...
+                        'lInterval', 'adjustment_length', 'foveal');
                     
                     % Randomize lights and set step size to largest
                     primaryPos = randi(adjustment_length);
@@ -345,27 +348,12 @@ while(stillLooping)
             end
         end
     end
-    
-    % In mode without white light, play sound before switching
-    if noWhite && (lightModePos == 2) 
-        Snd('Play',sin(0:5000));
-    end
-    
+ 
     % Switch to the next light to display
     lightModePos = lightModePos + 1;
     if lightModePos > length(lights)
         lightModePos = 1;
     end
-end
-
-%% Save matches
-if ~isempty(matches)
-    save(fileLoc, 'matches', 'matchPositions', 'p1', 'p2', 'test', 'cal',...
-        'primarySpdsNominal', 'primarySpdsPredicted', 'testSpdsNominal',...
-        'testSpdsPredicted', 'primaryStartStops', 'testStartStops',...
-        'whitePrimaries', 'whiteSettings', 'whiteStarts', 'whiteStops',...
-        'whiteSpdNominal', 'subjectID', 'sessionNum','annulusData', ...
-        'sInterval', 'isi', 'iti', 'adjustment_length', 'foveal');
 end
 
 %% Close up
