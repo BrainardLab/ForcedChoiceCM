@@ -48,11 +48,11 @@ function matches = OLRayleighMatchDichromat(varargin)
 %                     1.
 %    'foveal'       - logical indicating whether we are making foveal matches,
 %                     in which case the annulus is not turned on. Default is
-%                     false.
+%                     true.
 %    'setPrimaries' - logical indicating to run a version of the experiment
 %                     where the primary lights are set and the user adjusts
 %                     the test light, rather than the other way around.
-%                     Default is false.
+%                     Default is true.
 
 % History:
 %   1/22/20  dce   - Wrote program, modified from OLRayleighMatch
@@ -72,7 +72,7 @@ p.addParameter('test', 600, @(x) (isnumeric(x)));
 p.addParameter('sInterval', 0.25, @(x) (isnumeric(x)));
 p.addParameter('lInterval', 1, @(x) (isnumeric(x)));
 p.addParameter('foveal', true, @(x) (islogical(x)));
-p.addParameter('setPrimaries', false, @(x) (islogical(x)));
+p.addParameter('setPrimaries', true, @(x) (islogical(x)));
 p.parse(varargin{:});
 
 p1 = p.Results.p1;
@@ -157,22 +157,27 @@ end
 
 %% Display loop
 % Display parameters
-% Possible step sizes (relative to adjustment_length)
+% Possible step sizes (relative to adjustment_length): 20%, 5%, 1%, and
+% 0.5% of total range
 stepModes = [floor(adjustment_length/5), floor(adjustment_length/20),...
     floor(adjustment_length/100), floor(adjustment_length/200)];
+% For the light that can be adjusted, initially set it to 1/3 maximal power
+initialAdjustedPos = floor(adjustment_length/3);
 
 % The experiment includes an option to switch the order that primary and
 % test lights are displayed. If rev is set to true, lights will be
 % displayed in the order specified by lightModeRev instead of the order
-% specified by lightMode
+% specified by lightMode. In the course of the experiment, this switching
+% happens once all the primary lights have been shown.
 rev = false;
 lightMode = ['p' 't']; % Possible light settings - primary and test
 lightModeRev = ['t' 'p']; % Switch test and primary order
 lightTimes = [lInterval sInterval]; % Times for each light - first light is shown for longer
 
-% Set indices for values of controlled light
-fixedPositions = [1 201 21 181 41 161 61 141 81 121 101 191 11 171 31,...
-    151 51 131 71 111 91];
+% Set indices for values of controlled light. These are tailored for an
+% adjustment length of 201 but can be updated as needed.
+fixedPositions = [1, 193, 28, 165, 55, 138, 83, 110, 179, 14, 151,...
+    41, 124, 69, 96];
 fixedPositionPos = 1;
 
 % Data-storing arrays
@@ -183,10 +188,16 @@ nonMatches = [];            % Output array with subject mismatches
 nonMatchPositions = [];     % Positions of non-matches in adjustment array
 
 % Initial position in light mode, step size, primary, and test arrays
-primaryPos = 1;
-testPos = 1;
 stepModePos = 1;
 lightModePos = 1;
+
+if setPrimaries
+    primaryPos = fixedPositions(fixedPositionPos);
+    testPos = initialAdjustedPos;
+else
+    testPos = fixedPositions(fixedPositionPos);
+    primaryPos = initialAdjustedPos;
+end
 
 % Loop control parameters
 %
@@ -199,13 +210,8 @@ blockMatches = false;
 while(stillLooping)
     nowTime = mglGetSecs;
     
-    % Update light positions based on selected indices
-    if setPrimaries
-        primaryPos = fixedPositions(fixedPositionPos);
-    else
-        testPos = fixedPositions(fixedPositionPos);
-    end
-    
+    % Define which light arrays we are selecting from, based on 
+    % settings at the current time point  
     if rev
         lights = lightModeRev;
     else
@@ -247,8 +253,6 @@ while(stillLooping)
                             p1Scales(primaryPos)]];
                         matchPositions = [matchPositions; [testPos,...
                             primaryPos]];
-                        lightModePos = 0; 
-                        
                         % Save data
                         save(fileLoc, 'matches', 'matchPositions','nonMatches', ...
                             'nonMatchPositions', 'fixedPositions', 'p1', 'p2', 'test', 'cal',...
@@ -256,23 +260,29 @@ while(stillLooping)
                             'testSpdsPredicted', 'primaryStartStops', 'testStartStops',...
                             'subjectID', 'sessionNum','annulusData','sInterval', 'lInterval',...
                             'foveal', 'setPrimaries');
-                        
                         % Move on to next fixed light in fixedPositions
+                        stepModePos = 1;
                         fixedPositionPos = fixedPositionPos + 1;
                         if fixedPositionPos <= length(fixedPositions)
-                            primaryPos = 1;
-                            testPos = 1;
+                            if setPrimaries
+                                primaryPos = fixedPositions(fixedPositionPos);
+                                testPos = initialAdjustedPos;
+                            else
+                                testPos = fixedPositions(fixedPositionPos);
+                                primaryPos = initialAdjustedPos;
+                            end
                             blockMatches = true;
                         else      % Reached end of fixed positions array
                             if ~rev  % Set up to do reverse matching
                                 fixedPositionPos = 1;
                                 rev = true;
                             else     % Close program
-                                break;
+                                stillLooping = false;
                                 fprintf('\nFinished looping through fixed lights\n');
                             end
                         end
-                        continue; 
+                        lightModePos = 0;
+                        break;
                     else
                         fprintf('Matching blocked\n');
                     end
@@ -285,8 +295,6 @@ while(stillLooping)
                         nonMatches = [nonMatches;...
                             [testScales(testPos), p1Scales(primaryPos)]];
                         nonMatchPositions = [nonMatchPositions; [testPos, primaryPos]];
-                        lightModePos = 0; 
-                        
                         % Save data
                         save(fileLoc, 'matches', 'matchPositions','nonMatches', ...
                             'nonMatchPositions', 'fixedPositions', 'p1', 'p2', 'test', 'cal',...
@@ -294,23 +302,29 @@ while(stillLooping)
                             'testSpdsPredicted', 'primaryStartStops', 'testStartStops',...
                             'subjectID', 'sessionNum','annulusData','sInterval', 'lInterval',...
                             'foveal', 'setPrimaries');
-                        
                         % Move on to next fixed light in fixedPositions
+                        stepModePos = 1;
                         fixedPositionPos = fixedPositionPos + 1;
                         if fixedPositionPos <= length(fixedPositions)
-                            primaryPos = 1;
-                            testPos = 1;
+                            if setPrimaries
+                                primaryPos = fixedPositions(fixedPositionPos);
+                                testPos = initialAdjustedPos;
+                            else
+                                testPos = fixedPositions(fixedPositionPos);
+                                primaryPos = initialAdjustedPos;
+                            end
                             blockMatches = true;
                         else  % Reached end of fixed positions array
                             if ~rev   % Set up to do reverse matching
-                                fixedPositionPos == 1;
+                                fixedPositionPos = 1;
                                 rev = true;
                             else      % Close program
-                                break;
+                                stillLooping = false;
                                 fprintf('\nFinished looping through fixed lights\n');
                             end
                         end
-                        continue; 
+                        lightModePos = 0;
+                        break;
                     else
                         fprintf('Matching blocked\n');
                     end
@@ -319,6 +333,7 @@ while(stillLooping)
                     fprintf('User exited program \n');
                     stillLooping = false;
                     Snd('Play',sin(0:5000));
+                    break;
                     
                 case 'GP:North' % Scale up test intensity or p2 ratio
                     if setPrimaries
@@ -363,11 +378,12 @@ while(stillLooping)
     
     % Switch to the next light to display
     lightModePos = lightModePos + 1;
-    % Check if you have gone through all lights since the last match
-    if lightModePos > length(lights) 
-        lightModePos = 1; 
-        blockMatches = false; 
-    end 
+    % Check if you have gone through all lights since the last match. If
+    % this is the case, turn off match blocking.
+    if lightModePos > length(lights)
+        lightModePos = 1;
+        blockMatches = false;
+    end
 end
 
 %% Close up
@@ -375,5 +391,4 @@ if ~foveal
     GLW_CloseAnnularStimulus();
 end
 ol.setAll(false);
-
 end
