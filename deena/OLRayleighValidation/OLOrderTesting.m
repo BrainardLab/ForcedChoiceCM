@@ -1,8 +1,33 @@
-load('/Users/melanopsin/Dropbox (Aguirre-Brainard Lab)/MELA_data/Experiments/ForcedChoiceCM/OLRayleighMatch/DE_23_ordered.mat');
+fName = '/Users/melanopsin/Dropbox (Aguirre-Brainard Lab)/MELA_data/Experiments/ForcedChoiceCM/OLRayleighMatch/DE_peripheral/DE_peripheral_1.mat';
+[pCones,tCones] = OLGetConeEffects(fName, 'measured', true);
 
-% Number of trials with test and primary first
-numPFirst = 5;
-numTFirst = 5;
+% Find number of trials with test and primary first
+[row, col] = size(pCones); 
+numPFirst = ceil(col/2); 
+numTFirst = floor(col/2);
+
+% Initialize data arrays 
+p_primaryFirst = zeros(3,numPFirst);
+p_testFirst = zeros(3,numTFirst);
+t_primaryFirst = zeros(3,numPFirst);
+t_testFirst = zeros(3,numTFirst);
+
+pFirstIndex = 1;
+tFirstIndex = 1;
+
+% Loop through and calculate cone effects, place in appropriate array. Odd
+% numbers are primary first, even numbers are test first 
+for i = 1:col
+    if mod(i,2) ~= 0
+        p_primaryFirst(:,pFirstIndex) = pCones(:,i);
+        t_primaryFirst(:,pFirstIndex) = tCones(:,i);
+        pFirstIndex = pFirstIndex+1;
+    else 
+        p_testFirst(:,tFirstIndex) = pCones(:,i);
+        t_testFirst(:,tFirstIndex) = tCones(:,i);
+        tFirstIndex = tFirstIndex+1; 
+    end 
+end 
 
 % Find means and standard errors
 pAverages_pFirst = mean(p_primaryFirst, 2);
@@ -42,4 +67,4 @@ names ={'L'; 'M'; 'S' };
 set(gca,'xticklabel', names)
 ylabel('Relative Response Intensity');
 legend('primary: primary first', 'primary: test first', 'test: primary first', 'test: test first');
-title('DE 23 Measured Cone Responses: Order Effect');
+title('DE_peripheral Measured Cone Responses: Order Effect');
