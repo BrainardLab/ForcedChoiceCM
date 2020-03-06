@@ -49,7 +49,7 @@ function OLRayleighMatch(varargin)
 %                  1.
 %    'foveal'    - logical indicating whether we are making foveal matches,
 %                  in which case the annulus is not turned on. Default is
-%                  false.
+%                  true.
 %    'white'     - logical indicating to run  a version of the experiment
 %                  where the lights  are displayed with white in between.
 %                  Default is false.
@@ -301,7 +301,11 @@ while(stillLooping)
                 case'GP:Back' %Switch to showing ideal match
                     ideal = ~ ideal;
                     Snd('Play',sin(0:5000));
-                    
+                    if ideal
+                        fprintf('User switched to ideal match'); 
+                    else
+                        fprintf('User switched off ideal match');
+                    end 
                 case 'GP:North' % Scale up test intensity
                     testPos = testPos + stepModes(stepModePos);
                     if testPos > adjustment_length
