@@ -123,5 +123,5 @@ end
 % file = sprintf('OLRayleighMatchFineSpectralSettings'); 
 file = sprintf('OLRayleighMatchFineSpectralSettings_%g_%g_%g.mat', p1, p2, test);
 save(fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
-    'precomputedStartStops', file));
+    'precomputedStartStops', file), 'cal');
 end 

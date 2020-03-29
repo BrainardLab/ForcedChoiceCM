@@ -11,21 +11,21 @@
 
 % Background
 backgroundRGB = [1 1 1]; % Half-on
-annulusRGB = [0 0 0]; % Full-on
+annulusRGB = [0 0 0];    % Full-on
 
 % The 'inner circle', i.e. the hole
 innerCircleDiameter = 78; % px
 innerCircleRGB = [1 1 1]; % Assume that it's the same as background, but it can be changed.
 
 % The 'outer circle'
-outerCircleDiameter = 303;%200; % px
-outerCircleRGB = annulusRGB;
+outerCircleDiameter = 303;    % px
+outerCircleRGB = annulusRGB;  % Same color as background
 
 % Fixation cross
-fixationCrossDiameter = 10;
-fixationCrossRGB = [1 0 0];
+fixationCrossDiameter = 10;  % px
+fixationCrossRGB = [1 0 0];  % Red
 
-% Define step sizes for the navigation
+% Define step sizes for the navigation, in px
 fineStepSize = 5;
 coarseStepSize = 30;
 
@@ -61,7 +61,7 @@ try
     gamePad = GamePad();
     
     % Display some information
-    disp('******** Set up a new annulus projection ********'); 
+    disp('******** Set up a new annulus projection ********');
     disp('Press Back to exit');
     disp('Commands:');
     disp(['Press Start to toggle step size: coarse is ' num2str(coarseStepSize)...
@@ -127,13 +127,9 @@ try
     end
     win.draw;
     
-    % Optional setting to save annular stimulus window so it can be used
-    % later
-    saveWin = true; 
-    if saveWin
-        file = fullfile(getpref('ForcedChoiceCM', 'rayleighDataDir'), 'projectorSettings', 'OLAnnulusSettings.mat');
-        save(file, 'win');
-    end 
+    % Save annular stimulus window so it can be used later
+    file = fullfile(getpref('ForcedChoiceCM', 'rayleighDataDir'), 'projectorSettings', 'OLAnnulusSettings.mat');
+    save(file, 'win');
     
 catch e
     disp('An exception was raised');

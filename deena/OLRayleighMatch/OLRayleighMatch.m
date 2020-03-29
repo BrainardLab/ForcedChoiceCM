@@ -64,6 +64,7 @@ function OLRayleighMatch(varargin)
 %   02/14/20  dce       Made option to show matches without white light
 %   02/26/19  dce       Changed default settings to foveal and no white
 %                       light
+%   03/29/19  dce       Edited for style 
 %% Close any stray figures
 close all;
 
@@ -78,8 +79,8 @@ p.addParameter('sInterval', 0.25, @(x) (isnumeric(x)));
 p.addParameter('lInterval', 1, @(x) (isnumeric(x)));
 p.addParameter('foveal', true, @(x) (islogical(x)));
 p.addParameter('white', false, @(x) (islogical(x)));
-p.parse(varargin{:});
 
+p.parse(varargin{:});
 p1 = p.Results.p1;
 p2 = p.Results.p2;
 test = p.Results.test;
@@ -87,7 +88,6 @@ sInterval = p.Results.sInterval;
 lInterval = p.Results.lInterval;
 foveal = p.Results.foveal;
 white = p.Results.white;
-
 
 %% Set up directory for saving results
 subjectID = input('Enter subject ID: ');
@@ -116,7 +116,7 @@ if ~exist(fName, 'file')
     OLRayleighMatchLightSettings(p1,p2,test);
 end
 
-% Load light settings and save needed variables locally
+% Load light settings and save some variables locally
 lightSettings = load(fName);
 
 cal = lightSettings.cal;
@@ -142,6 +142,8 @@ gamePad = GamePad();
 %% Set up projector (if not making foveal matches)
 % Set annulusData so the program will save even if annulus is not used
 annulusData = 0;
+% Check if an annulus file exists. If it does, the experimenter can choose
+% whether to use the existing file or to reset the annulus.
 if ~foveal
     fprintf('\n**** Set up projector ****\n');
     annulusFile = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
@@ -150,25 +152,26 @@ if ~foveal
         fprintf('[1]: Use existing annulus settings file\n');
         fprintf('[2]: Reset annulus\n');
         res = GetInput('Select option', 'number', 1);
+        % Run program to reset the annulus
         if res == 2
             ol.setMirrors(squeeze(primaryStartStops(1,1,:))',...
                 squeeze(primaryStartStops(1,2,:))');
             GLW_AnnularStimulusButtonBox();
         end
+    % Run program to reset the annulus, if it does not exist
     else
         ol.setMirrors(squeeze(primaryStartStops(1,1,:))',...
             squeeze(primaryStartStops(1,2,:))');ol.setAll(false);
         GLW_AnnularStimulusButtonBox();
     end
+    % Load and display annulus file 
     annulusData = load(annulusFile);
     annulusData.win.open;
     annulusData.win.draw;
     fprintf('\nProjector ready. Starting display loop\n')
 end
 
-%% Display loop
-%
-% Display parameters
+%% Display parameters
 % Possible step sizes (relative to adjustment_length)
 stepModes = [floor(adjustment_length/5), floor(adjustment_length/20),...
     floor(adjustment_length/100), floor(adjustment_length/200)];
@@ -177,11 +180,10 @@ stepModes = [floor(adjustment_length/5), floor(adjustment_length/20),...
 % test lights are displayed. If rev is set to true, lights will be
 % displayed in the order specified by lightModeRev instead of the order
 % specified by lightMode
-rev = false;
 if ~white
-    lightMode = ['p', 't'];
-    lightModeRev = ['t', 'p'];
-    lightTimes = [lInterval sInterval];
+    lightMode = ['p', 't'];     % Possible light settings - primary, test 
+    lightModeRev = ['t', 'p'];  % Switch primary and test lights
+    lightTimes = [lInterval sInterval]; % Times for each setting 
 else
     lightMode = ['p' 'w' 't' 'w']; % Possible light settings - primary, test, or white
     lightModeRev = ['t' 'w' 'p' 'w']; % Switch test and primary order
@@ -190,7 +192,6 @@ end
 
 % Settings for ideal match. These were derived from the findNominalMatch
 % script.
-ideal = false;
 if foveal
     pIdealIndex = 197;
     tIdealIndex = 14;
@@ -199,31 +200,34 @@ else
     tIdealIndex = 13;
 end
 
+%% Setup for display loop 
 % Data-storing arrays
 matches = [];               % Output array with subject matches
 matchPositions = [];        % Positions of matches in the adjustment array
 
-% Initial position in primary, test, step size, and light mode arrays
-%
-% Start with largest step size and with the primary light
-primaryPos = 1;
-testPos = 1;
-stepModePos = 1;
-lightModePos = 1;
+% Initial settings 
+primaryPos = 1;      % Start with first position in primary array 
+testPos = 1;         % Start with first position in test array 
+stepModePos = 1;     % Start with the largest step size 
+lightModePos = 1;    % Start with the first light in the lights array 
 
+rev = false;         % Start with forward, not reverse order 
+ideal = false;       % Do not start with the ideal match
+stillLooping = true; % Start looping 
+
+%% Display loop 
 % Loop through primary and test light until the user presses a key
-stillLooping = true;
 while(stillLooping)
-    nowTime = mglGetSecs;
-    
-    % Display primary, test, or white light. The white light is displayed
-    % for a short time between primary and test lights and a long time
-    % between test and primary lights.
+    % Determine which lights array we are using 
     if rev
         lights = lightModeRev;
     else
         lights = lightMode;
     end
+    % Display primary, test, or white light. When used, the white light is 
+    % displayed for a short time between primary and test lights and a long 
+    % time between test and primary lights.
+    nowTime = mglGetSecs;
     switch lights(lightModePos)
         case 'p'
             if ideal
@@ -255,6 +259,7 @@ while(stillLooping)
                     if stepModePos > length(stepModes)
                         stepModePos = 1;
                     end
+                    % Number of beeps indicates new step size position 
                     for i = 1:stepModePos
                         Snd('Play',sin(0:5000));
                     end
@@ -299,7 +304,7 @@ while(stillLooping)
                     fprintf('User switched order of primary and test lights\n');
                     
                 case'GP:Back' %Switch to showing ideal match
-                    ideal = ~ ideal;
+                    ideal = ~ideal;
                     Snd('Play',sin(0:5000));
                     if ideal
                         fprintf('User switched to ideal match'); 
