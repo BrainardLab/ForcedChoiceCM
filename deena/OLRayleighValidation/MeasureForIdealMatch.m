@@ -1,9 +1,31 @@
-%% Setup
-% Load files
-fName = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
-    'precomputedStartStops', 'OLRayleighMatchFineSpectralSettings_670_560_600.mat');
-lightSettings = load(fName);
+% Script to loop through a series of radiometer measurements to measure
+% lights around subjects' match settings. This allows computation of an
+% "ideal" match based on measured data.
+% Saves a file of measured primary and test spds to a chosen directory.
 
+% History
+%    dce    2/xx/20  - Wrote it
+%    dce    4/5/20    - Edited for style, added ongoing saving 
+
+%% Parameters - change as needed 
+% Light settings to load
+file = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
+    'precomputedStartStops', 'OLRayleighMatchFineSpectralSettings_670_560_600.mat');
+lightSettings = load(file);
+
+% Indices of primary and test light to measure. These are around the range 
+% of subject matches 
+pIndices = 181:201;
+tIndices = 1:41; 
+
+% Output directory
+fName = fullfile(getpref('ForcedChoiceCM','rayleighAnalysisDir'),...
+    'ideal_meas.mat');
+
+% Email recipient - receives message when measurements are complete 
+emailRecipient = 'delul@sas.upenn.edu';
+
+%% Setup 
 % Set up radiometer
 spectroRadiometerOBJ  = PR670dev(...
     'verbosity',        1, ...       % 1 -> minimum verbosity
@@ -20,14 +42,17 @@ spectroRadiometerOBJ.setOptions(...
     'apertureSize',     '1 DEG' ...   % choose between '1 DEG', '1/2 DEG', '1/4 DEG', '1/8 DEG'
     );
 
-% Set up initial arrays
+% Set up OneLight
 ol = OneLight();
-[spdLength, ~] = size(lightSettings.primarySpdsPredicted);
-primaryData = zeros(spdLength, 21);
-testData = zeros(spdLength, 41);
 
-%% Loop
-for p = 181:201
+% Set up initial arrays
+[spdLength, ~] = size(lightSettings.primarySpdsPredicted);
+primaryData = zeros(spdLength, length(pIndices));
+testData = zeros(spdLength, length(tIndices));
+
+%% Loop to display and measure lights 
+for p = pIndices  % Primaries
+    % Starts/stops positions for OneLight
     primaryStarts = lightSettings.primaryStartStops(p,1,:);
     primaryStops = lightSettings.primaryStartStops(p,2,:);
     
@@ -35,11 +60,13 @@ for p = 181:201
     ol.setMirrors(squeeze(primaryStarts)', squeeze(primaryStops)');
     pause(0.1);
     primaryMeas = spectroRadiometerOBJ.measure;
-    primaryData(:, p - 180) = primaryMeas;
-    fprintf('Primary Light %g Complete\n', p-180);
+    primaryData(:, p - pIndices(1) + 1) = primaryMeas;
+    save(fName, 'primaryData');
+    fprintf('Primary Light %g Complete\n', p - pIndices(1) + 1);
 end
 
-for t = 1:41
+for t = tIndices  % Test lights 
+    % Starts/stops positions for OneLight
     testStarts =  lightSettings.testStartStops(t,1,:);
     testStops =  lightSettings.testStartStops(t,2,:);
     
@@ -48,15 +75,13 @@ for t = 1:41
         squeeze(testStops)');
     pause(0.1);
     testMeas = spectroRadiometerOBJ.measure;
-    testData(:,t) = testMeas;
-    fprintf('Test Light %g Complete\n', t);
+    testData(:,t - tIndices(1) + 1) = testMeas;
+    save(fName, 'primaryData', 'testData');
+    fprintf('Test Light %g Complete\n', t - tIndices(1) + 1);
 end
 
-% Save data and close devices
-fName = '/Users/melanopsin/Dropbox (Aguirre-Brainard Lab)/MELA_data/Experiments/ForcedChoiceCM/OLRayleighMatch/ideal_meas.mat';
-save(fName, 'primaryData', 'testData');
+% Close devices and email experimenter
 spectroRadiometerOBJ.shutDown;
 ol.setAll(false);
-emailRecipient = 'delul@sas.upenn.edu';
 SendEmail(emailRecipient, 'OneLight Measurements Complete', ...
     'Finished!');

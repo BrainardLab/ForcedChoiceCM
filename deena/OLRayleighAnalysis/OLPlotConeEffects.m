@@ -6,10 +6,10 @@ function OLPlotConeEffects(primaryCones, testCones, subjectID, sessionNum, varar
 %
 % Description
 %    Takes in calculated cone responses to test and primary lights from
-%    subject matches. For each match, produces a bar graph comparing the
-%    response of each cone to the test and primary lights. Can also run
-%    this with average cone responses to produce a bar graph with error
-%    bars.
+%    subject matches (these are calculated with the OLGetConeEffects function).
+%    For each match, produces a bar graph comparing the response of each
+%    cone to the test and primary lights. Can also run this with average
+%    cone responses to produce a bar graph with error bars.
 %
 % Inputs:
 %    primaryCones  - 3xn matrix with cone responses for primary lights,
@@ -39,8 +39,10 @@ function OLPlotConeEffects(primaryCones, testCones, subjectID, sessionNum, varar
 %                  saving results. Default is 'tiff'.
 
 % History
-%    1/22/20   dce  -Modified program from OLTestConeEffects
-% Example: OLGetConeEffects('/Users/melanopsin/Dropbox (Aguirre-Brainard Lab)/MELA_data/Experiments/ForcedChoiceCM/OLRayleighMatches/test/test_1.mat')
+%    1/22/20   dce  - Modified program from OLTestConeEffects
+%    4/5/20    dce  - Edited for stype
+%
+% Example: OLPlotConeEffects(p, t, 'Deena', 10)
 
 close all;
 
@@ -54,23 +56,29 @@ p.parse(varargin{:});
 
 err = p.Results.err;
 
-% Create folder for saving figures
+% Create folder for saving figures, if it does not already exist. Average
+% plots are saved in a folder named subjectID/average, while standard plots
+% are saved in a folder named subjectId/sessionNum.
 if p.Results.average
-    outputDir = fullfile(getpref('ForcedChoiceCM','rayleighAnalysisDir'), 'coneResponsePlots', subjectID, 'average');
+    outputDir = fullfile(getpref('ForcedChoiceCM','rayleighAnalysisDir'),...
+        'coneResponsePlots', subjectID, 'average');
 else
-    outputDir = fullfile(getpref('ForcedChoiceCM','rayleighAnalysisDir'), 'coneResponsePlots', subjectID, num2str(sessionNum));
+    outputDir = fullfile(getpref('ForcedChoiceCM','rayleighAnalysisDir'),...
+        'coneResponsePlots', subjectID, num2str(sessionNum));
 end
+% Create the output directory if it does not exist
 if (~exist(outputDir,'dir'))
     mkdir(outputDir);
 end
 
-[~, nMatches] = size(primaryCones);
+[~, nMatches] = size(primaryCones); % Number of matches
+
+% Loop through each match and make a bar graph of cones.
 for i = 1:nMatches
-    
-    % Make bar graph of cones
-    figure();
+    % Put cones in order for plotting
     cones = [testCones(1,i), primaryCones(1,i); testCones(2,i),...
         primaryCones(2,i); testCones(3,i), primaryCones(3,i)];
+    figure();
     bar(cones);
     hold on;
     
@@ -79,35 +87,46 @@ for i = 1:nMatches
     set(gca,'xticklabel', names)
     ylabel('Relative Response Intensity');
     
+    % If making an average plot, add error bars based on passed-in standard
+    % error
+    if p.Results.average
+        % Vector list of the cones, in the order they are plotted
+        errCones = [testCones(1,i), primaryCones(1,i), testCones(2,i),...
+            primaryCones(2,i), testCones(3,i), primaryCones(3,i)];
+        % Vector of positions for error bars
+        errBarPos = [0.85 1.15 1.85 2.15 2.85 3.15];
+        % Add error bars
+        errorbar(errBarPos, errCones, err, err, 'k. ');
+    end 
+    
     % Set plot title
     if p.Results.measured
         category = 'Measured';
     else
         category = 'Nominal';
-    end
+    end 
     if p.Results.average
-        % Add error bars based on passed-in standard error. errCones lists 
-        % the cone responses in the order they are plotted, and errBarPos 
-        % contains x-axis positions for the error bars. 
-        errCones = [testCones(1,i), primaryCones(1,i), testCones(2,i),...
-            primaryCones(2,i), testCones(3,i), primaryCones(3,i)];
-        errBarPos = [0.85 1.15 1.85 2.15 2.85 3.15];
-        errorbar(errBarPos, errCones, err, err, 'k. ');
-        if sessionNum == 0
-            theTitle = sprintf('Subject %s %s Average Cone Responses', subjectID, category);
+        % A 0 session number indicates that the average was calculated
+        % across sessions 
+        if sessionNum == 0   
+            theTitle = sprintf('Subject %s %s Average Cone Responses',...
+                subjectID, category);
             legend('Test','Primaries', 'Standard Error');
         else
-            theTitle = sprintf('Subject %s Session %g %s Average Cone Responses', subjectID, sessionNum, category);
+            theTitle = sprintf('Subject %s Session %g %s Average Cone Responses',...
+                subjectID, sessionNum, category);
             legend('Test','Primaries', 'Standard Error');
         end
     else
-        theTitle = sprintf('Subject %s Session %g Match %g %s Cone Responses', subjectID, sessionNum, i, category);
+        theTitle = sprintf('Subject %s Session %g Match %g %s Cone Responses',...
+            subjectID, sessionNum, i, category);
         legend('Test','Primaries');
     end
-    title(theTitle);
-    
-    file = fullfile(outputDir, strrep(theTitle,' ', '_'));
-    saveas(gcf, file, p.Results.fType);
 end
+title(theTitle);
+
+% Save file 
+fName = fullfile(outputDir, strrep(theTitle,' ', '_'));
+saveas(gcf, fName, p.Results.fType);
 end
 

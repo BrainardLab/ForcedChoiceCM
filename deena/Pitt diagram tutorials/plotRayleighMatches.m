@@ -1,6 +1,8 @@
-% Create Pitt diagrams based on passed cone parameters
 function plotRayleighMatches(lambdaMaxes, baseLambdaMaxes, dphotopigments,...
     colors, theLegend, theTitle, varargin)
+
+% Create Pitt diagrams based on passed cone parameters
+%
 % Syntax:
 %   plotMatches(lambdaMaxes, baseLambdaMaxes, dphotopigments, colors,...
 %                theLegend, the Title)
@@ -27,17 +29,20 @@ function plotRayleighMatches(lambdaMaxes, baseLambdaMaxes, dphotopigments,...
 %    lambdaMax        - logical indicating whether we are plotting lambda
 %                       max variation (true) or optical density variation
 %                       (false).
-% Optional key-value pairs: 
-%    'test'           - integer wavelength of the test light in nm. Default
-%                       is 590
-%    'p1'           - integer wavelength of the first primary light in nm. 
-%                       Default is 545
-%    'p2'           - integer wavelength of the second primary light in nm. 
-%                      Default is 679
-
-
 % Outputs:
 %    Pitt Diagram that plots passed cone parameters 
+% 
+% Optional key-value pairs: 
+%    'test'         - integer wavelength of the test light in nm. Default
+%                     is 590. 
+%    'p1'           - integer wavelength of the first primary light in nm. 
+%                     Default is 545. 
+%    'p2'           - integer wavelength of the second primary light in nm. 
+%                     Default is 679. 
+
+% History
+%    xx/xx/19   dce  - Wrote program 
+%    4/5/20     dce  - Edited for style
 
 % Parse input 
 p = inputParser;
@@ -47,7 +52,7 @@ p.addParameter('test', 580, @(x) (isnumeric(x)));
 p.parse(varargin{:});
 
 % Range parameters for simulated anomaloscope
-% Mixing ratio of zero is all green primary, 1 is all red
+% Mixing ratio of zero is all short primary primary, 1 is all long
 % (assuming shorter primary is first one specified in routine below.)
 mixingRatioRange = 0:0.001:1;
 testIntensityRange = 0:0.001:0.35;
@@ -61,7 +66,6 @@ for ii = 1:size(lambdaMaxes,2)
     indDiffParams(ii).lambdaMaxShift = lambdaMaxes(:,ii)' - baseLambdaMaxes(:,ii)';
     indDiffParams(ii).shiftType = 'linear';
 end
-
 
 % Plot simulated Rayleigh matches for each observer by using the
 % ComputeConfusions routine and the passed parameters
@@ -85,5 +89,4 @@ ylabel('Test Intensity');
 axis('square');
 legend(theLegend);
 title(theTitle);
-
 end

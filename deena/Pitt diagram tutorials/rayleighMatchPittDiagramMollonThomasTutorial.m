@@ -39,7 +39,7 @@
 clear; close all;
 
 %% In our first case, we will plots effects of variation in cone lambda max
-%% for a hypothetical dichromat. We begin by defining our parameters
+%  for a hypothetical dichromat. We begin by defining our parameters
 
 % Cone lambda maxes, taken from Fig. 1 of the Thomas and Mollon paper.
 lambdaMaxes1 = [  ...

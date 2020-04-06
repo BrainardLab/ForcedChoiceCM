@@ -6,6 +6,9 @@
 % are saved as .mat variables for lambda max fit parameters and optical 
 % density fit parameters. 
 
+% History
+%    xx/xx/19   dce  - Wrote program 
+%    4/5/20     dce  - Edited for style
 
 %% Lambda max data 
 lambdaMaxFitParams = zeros(4, 2); 
