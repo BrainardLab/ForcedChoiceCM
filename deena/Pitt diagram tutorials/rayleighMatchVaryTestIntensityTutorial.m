@@ -1,7 +1,7 @@
 % Visualization of how varying test wavelength can help distinguish between
 % observers who make similar Rayleigh matches but have different underlying
-% lambda maxes and optical densities. Uses the plotRayleighMatches and 
-% ComputeRayleighConfusions to produce a Pitt diagram of result. 
+% lambda maxes and optical densities. Uses the plotRayleighMatches and
+% ComputeRayleighConfusions to produce a Pitt diagram of result.
 
 %% Variation in cone optical density obscures differences in lambda max
 %% for a hypothetical dichromat
@@ -34,14 +34,15 @@ plotRayleighMatches(lambdaMaxes, baseLambdaMaxes, dphotopigments1,...
 plotRayleighMatches(lambdaMaxes, baseLambdaMaxes, dphotopigments2,...
     colors, theLegend, 'Optical Density Variation, test light to 590nm');
 
-%% Plot the cone fundamentals for the two overlapping observers to see 
+%% Plot the cone fundamentals for the two overlapping observers to see
 %  potential sites of modification
 
-% Wavelength sampling. 
+% Wavelength sampling.
 S = [380 1 401];
-wls = SToWls(S); 
+wls = SToWls(S);
+long_ind = 161:length(wls); % Indices of wavelengths above 540nm
 
-% Find cone fundamentals 
+% Find cone fundamentals
 T_cones_observer1 = findConeFundamentals(lambdaMaxes(:,1),...
     dphotopigments1(:,1));
 T_cones_observer2_noOD = findConeFundamentals(lambdaMaxes(:,2),...
@@ -54,31 +55,40 @@ plot(wls,T_cones_observer1(1,:),'r','LineWidth',2);
 plot(wls,T_cones_observer2_noOD(1,:),'g','LineWidth',2);
 xlabel('Wavelength');
 legend (theLegend);
-title ('Compare L cones - no OD variation'); 
+title ('Compare L cones - no OD variation');
 
 figure; clf; hold on;
 plot(wls,T_cones_observer1(1,:),'r','LineWidth',2);
 plot(wls,T_cones_observer2_OD(1,:),'g','LineWidth',2);
 xlabel('Wavelength');
 legend (theLegend);
-title ('Compare L cones - OD variation'); 
+title ('Compare L cones - OD variation');
 
 % Find wavelength of maximum difference in each condition
-[~, ind1] = max(abs(T_cones_observer1(1,:) - T_cones_observer2_noOD(2,:))); 
-maxDiffWl1 = wls(ind1); 
+[~, ind1] = max(abs(T_cones_observer1(1,long_ind) - T_cones_observer2_noOD(1,long_ind)));
+maxDiffWl1 = wls(ind1 + 160);
 
-[~, ind2] = max(abs(T_cones_observer1(1,:) - T_cones_observer2_OD(2,:))); 
-maxDiffWl2 = wls(ind2); 
+[~, ind2] = max(abs(T_cones_observer1(1,long_ind) - T_cones_observer2_OD(1,long_ind)));
+maxDiffWl2 = wls(ind2 + 160);
 
 
-%% Use the wavelengths of max difference as test wavelengths to separate 
-% the two observers 
-plotTitle1 = sprintf('No Optical Density Variation, test light to %g nm'...
-    , maxDiffWl1); 
+%% Use the wavelengths of max difference as test wavelengths to separate
+% the two observers
+plotTitle1 = sprintf('No Optical Density Variation, test light to %g nm',...
+    maxDiffWl1);
 plotRayleighMatches(lambdaMaxes, baseLambdaMaxes, dphotopigments1,...
     colors, theLegend, plotTitle1, 'test', maxDiffWl1);
 
 plotTitle2 = sprintf('Optical Density Variation, test light to %g nm',...
-    maxDiffWl2); 
+    maxDiffWl2);
 plotRayleighMatches(lambdaMaxes, baseLambdaMaxes, dphotopigments2,...
     colors, theLegend, plotTitle2, 'test', maxDiffWl2);
+
+%% Tutorial
+wls = [540 550 560 570 580 590 600 620];
+for i = 1:length(wls)
+    theTitle = sprintf('Optical Density Variation, test light to %g nm',...
+        wls(i));
+    plotRayleighMatches(lambdaMaxes, baseLambdaMaxes, dphotopigments2,...
+        colors, theLegend, theTitle, 'test', wls(i));
+end

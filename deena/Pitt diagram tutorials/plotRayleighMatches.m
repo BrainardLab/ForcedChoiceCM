@@ -30,21 +30,21 @@ function plotRayleighMatches(lambdaMaxes, baseLambdaMaxes, dphotopigments,...
 %                       max variation (true) or optical density variation
 %                       (false).
 % Outputs:
-%    Pitt Diagram that plots passed cone parameters 
-% 
-% Optional key-value pairs: 
+%    Pitt Diagram that plots passed cone parameters
+%
+% Optional key-value pairs:
 %    'test'         - integer wavelength of the test light in nm. Default
-%                     is 590. 
-%    'p1'           - integer wavelength of the first primary light in nm. 
-%                     Default is 545. 
-%    'p2'           - integer wavelength of the second primary light in nm. 
-%                     Default is 679. 
+%                     is 590.
+%    'p1'           - integer wavelength of the first primary light in nm.
+%                     Default is 545.
+%    'p2'           - integer wavelength of the second primary light in nm.
+%                     Default is 679.
 
 % History
-%    xx/xx/19   dce  - Wrote program 
+%    xx/xx/19   dce  - Wrote program
 %    4/5/20     dce  - Edited for style
 
-% Parse input 
+% Parse input
 p = inputParser;
 p.addParameter('p1', 545, @(x) (isnumeric(x)));
 p.addParameter('p2', 679, @(x) (isnumeric(x)));
@@ -71,22 +71,20 @@ end
 % ComputeConfusions routine and the passed parameters
 theFigure = figure; clf; hold on
 for kk = 1:size(lambdaMaxes,2)
-    [testIntensity{kk},mixingRatio{kk},matchDiff{kk}] =...
-        ComputeRayleighConfusions(baseLambdaMaxes(:,kk),indDiffParams(kk),...
-        p.Results.p1, p.Results.p2, p.Results.test, testIntensityRange,...
-        mixingRatioRange);
+    [testIntensity{kk},mixingRatio{kk},matchDiff{kk}] = ComputeRayleighConfusions(baseLambdaMaxes(:,kk),indDiffParams(kk),p.Results.p1, p.Results.p2, p.Results.test, testIntensityRange,mixingRatioRange);
     figure(theFigure);
     index = find(matchDiff{kk} < thresholdVal);
     plot(mixingRatio{kk}(index),testIntensity{kk}(index),...
         [colors(kk) 'o'],'MarkerFaceColor',colors(kk));
     
-% Finish off the Pitt diagram plots (Figures 1-2)
-figure(theFigure);
-xlim([min(mixingRatioRange) max(mixingRatioRange)]);
-ylim([min(testIntensityRange) max(testIntensityRange)]);
-xlabel(' Mixing Ratio (0 -> green; 1 -> red)');
-ylabel('Test Intensity');
-axis('square');
-legend(theLegend);
-title(theTitle);
+    % Finish off the Pitt diagram plots (Figures 1-2)
+    figure(theFigure);
+    xlim([min(mixingRatioRange) max(mixingRatioRange)]);
+    ylim([min(testIntensityRange) max(testIntensityRange)]);
+    xlabel(' Mixing Ratio (0 -> green; 1 -> red)');
+    ylabel('Test Intensity');
+    axis('square');
+    legend(theLegend);
+    title(theTitle);
+end
 end
