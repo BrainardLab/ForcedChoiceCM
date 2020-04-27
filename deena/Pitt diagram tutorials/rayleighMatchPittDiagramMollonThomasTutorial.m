@@ -61,7 +61,7 @@ dphotopigments1 = zeros(3,4);
 colors1 = [ 'r' 'g' 'b' 'y'];
 legend1 = {'531' '541' '551' '561'};
 title1 = 'Lambda Max Variation';
-plotMatches(lambdaMaxes1, baseLambdaMaxes1, dphotopigments1, colors1,...
+plotRayleighMatches(lambdaMaxes1, baseLambdaMaxes1, dphotopigments1, colors1,...
     legend1, title1, true)
 
 %% The second case plots effects of optical density variation for a
@@ -89,7 +89,7 @@ dphotopigments2 = [  ...
 colors2 = [ 'r' 'g' 'b' 'y' 'm' ];
 legend2 = { '-83.33%' '-33.33%' '16.67%' '66.67%' '116.67%' };
 title2 = 'Optical Density Variation';
-plotMatches(lambdaMaxes2, baseLambdaMaxes2, dphotopigments2, colors2,...
+plotRayleighMatches(lambdaMaxes2, baseLambdaMaxes2, dphotopigments2, colors2,...
     legend2, title2, false);
 
 % Finish off the Rayleigh match comparison plots (Figures 3-4)
