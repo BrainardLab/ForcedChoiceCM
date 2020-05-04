@@ -7,8 +7,8 @@
 % cone activations and uses this as a test light to separate the two cones.
 
 %% Physiological ranges of parameters
-% Cone lambda maxes for deuteranopes (530.3+-6nm)
-lambdaMaxesD = [  ...
+% Cone lambda maxes for protanopes (M cones: 530.3+-6nm)
+lambdaMaxesP = [  ...
     [524.3 524.3 420.7]' ...
     [526.3 526.3 420.7]'...
     [528.3 528.3 420.7]'...
@@ -17,13 +17,13 @@ lambdaMaxesD = [  ...
     [534.3 534.3 420.7]'...
     [536.3 536.3 420.7]'];...
     
-lambdaMaxesD_small = [  ...
+lambdaMaxesP_small = [  ...
     [524.3 524.3 420.7]' ...
     [530.3 530.3 420.7]'...
     [536.3 536.3 420.7]'];...
     
-% Cone lambda maxes for protanopes (558.9+-6nm)
-lambdaMaxesP = [  ...
+% Cone lambda maxes for deuteranopes (L cones: 558.9+-6nm)
+lambdaMaxesD = [  ...
     [552.9 552.9 420.7]' ...
     [554.9 554.9 420.7]'...
     [556.9 556.9 420.7]'...
@@ -32,12 +32,12 @@ lambdaMaxesP = [  ...
     [562.9 562.9 420.7]'...
     [564.9 564.9 420.7]'];
 
-lambdaMaxesP_small = [  ...
+lambdaMaxesD_small = [  ...
     [552.9 552.9 420.7]' ...
     [558.9 558.9 420.7]'...
     [564.9 564.9 420.7]'];
 
-% Optical density % variation (constrain to be the same for L and M)
+% Optical density variation (constrain to be the same for L and M)
 ODs = [...
     [-30 -30 0]'...
     [-20 -20 0]' ...
@@ -55,39 +55,30 @@ ODs_small = [...
     [30 30 0]'];
 
 [~, numODs] = size(ODs);
-[~, numd] = size(lambdaMaxesD);
 [~, nump] = size(lambdaMaxesP);
+[~, numd] = size(lambdaMaxesD);
 colors = 'bgrcmykbgrcmykbgrcmykbgrcmykbgrcmykbgrcmykbgrcmyk';
 
 %% Case 1: Vary only lambda max
-% Deuteranopes
-for i = 1:numODs
-    dphotopigments = repmat(ODs(:,i), 1, nump);
-    theTitle = sprintf('Deuteranopes, OD = %g percent', ODs(1,i));
-    theLegend = {'524.3', '526.3', '528.3', '530.3', '532.3', '534.3', '536.3'};
-    plotRayleighMatches(lambdaMaxesD, lambdaMaxesD, dphotopigments,...
-        colors(1:numd), theLegend, theTitle);
-end
-
 % Protanopes
 for i = 1:numODs
-    dphotopigments = repmat(ODs(:,i), 1, nump);
+    dphotopigments = repmat(ODs(:,i), 1, numd);
     theTitle = sprintf('Protanopes, OD = %g percent', ODs(1,i));
-    theLegend = {'552.9', '554.9', '556.9', '558.9', '560.9', '562.9', '564.9'};
-    plotRayleighMatches(lambdaMaxesD, lambdaMaxesD, dphotopigments,...
+    theLegend = {'524.3', '526.3', '528.3', '530.3', '532.3', '534.3', '536.3'};
+    plotRayleighMatches(lambdaMaxesP, lambdaMaxesP, dphotopigments,...
         colors(1:nump), theLegend, theTitle);
 end
 
-%% Case 2: Vary only OD
 % Deuteranopes
-for i = 1:numd
-    lambdaMaxes = repmat(lambdaMaxesD(:,i), 1, numODs);
-    theTitle = sprintf('OD variation, lambdaMax = %g nm', lambdaMaxesD(1,i));
-    theLegend = {'-30', '-20', '-10', '0', '10', '20', '30'};
-    plotRayleighMatches(lambdaMaxes, lambdaMaxes, ODs,...
-        colors(1:numODs), theLegend, theTitle);
+for i = 1:numODs
+    dphotopigments = repmat(ODs(:,i), 1, numd);
+    theTitle = sprintf('Deuteranopes, OD = %g percent', ODs(1,i));
+    theLegend = {'552.9', '554.9', '556.9', '558.9', '560.9', '562.9', '564.9'};
+    plotRayleighMatches(lambdaMaxesP, lambdaMaxesP, dphotopigments,...
+        colors(1:numd), theLegend, theTitle);
 end
 
+%% Case 2: Vary only OD
 % Protanopes
 for i = 1:nump
     lambdaMaxes = repmat(lambdaMaxesP(:,i), 1, numODs);
@@ -97,12 +88,21 @@ for i = 1:nump
         colors(1:numODs), theLegend, theTitle);
 end
 
-%% Case 3: Vary simultaneously
 % Deuteranopes
+for i = 1:numd
+    lambdaMaxes = repmat(lambdaMaxesD(:,i), 1, numODs);
+    theTitle = sprintf('OD variation, lambdaMax = %g nm', lambdaMaxesD(1,i));
+    theLegend = {'-30', '-20', '-10', '0', '10', '20', '30'};
+    plotRayleighMatches(lambdaMaxes, lambdaMaxes, ODs,...
+        colors(1:numODs), theLegend, theTitle);
+end
+
+%% Case 3: Vary simultaneously
+% Protanopes
 lambdaMaxes = [];
 dphotopigments = [];
-for i = 1:length(lambdaMaxesD_small)
-    lambdaMaxes = [lambdaMaxes, repmat(lambdaMaxesD_small(:,i), 1, length(ODs_small))];
+for i = 1:length(lambdaMaxesP_small)
+    lambdaMaxes = [lambdaMaxes, repmat(lambdaMaxesP_small(:,i), 1, length(ODs_small))];
     dphotopigments = [dphotopigments, ODs_small];
 end
 theLegend = {'524.3/-30', '524.3/-15', '524.3/0', '524.3/15', '524.3/30'...
@@ -111,11 +111,11 @@ theLegend = {'524.3/-30', '524.3/-15', '524.3/0', '524.3/15', '524.3/30'...
 plotRayleighMatches(lambdaMaxes, lambdaMaxes, dphotopigments,...
     colors, theLegend, 'Simultaneous Variation - Deuteranopes');
 
-% Protanopes
+% Deuteranopes
 lambdaMaxes = [];
 dphotopigments = [];
-for i = 1:length(lambdaMaxesP_small)
-    lambdaMaxes = [lambdaMaxes, repmat(lambdaMaxesP_small(:,i), 1, length(ODs_small))];
+for i = 1:length(lambdaMaxesD_small)
+    lambdaMaxes = [lambdaMaxes, repmat(lambdaMaxesD_small(:,i), 1, length(ODs_small))];
     dphotopigments = [dphotopigments, ODs_small];
 end
 theLegend = {'552.9/-30', '552.9/-15', '552.9/0', '552.9/15', '552.9/30'...
@@ -133,7 +133,7 @@ S = [380 1 401];
 wls = SToWls(S);
 long_ind = 161:length(wls); % Indices of wavelengths above 540nm
 
-%% 1 - Deuteranopes 
+%% 1 - Protanopes 
 % lambdaMaxes +-2nm from average
 lambdaMaxes = [
     [528.3 528.3 420.7]'...
@@ -197,7 +197,7 @@ plotTitle2 = sprintf('Optical Density Variation, test light to %g nm',...
 plotRayleighMatches(lambdaMaxes, lambdaMaxes, dphotopigments2,...
     colors, l2, plotTitle2, 'test', maxDiffWl2);
 
-%% 2 - Protanopes 
+%% 2 - Deuteranopes 
 % lambdaMaxes +-2nm from average
 lambdaMaxes = [
     [556.9 556.9 420.7]'...
@@ -260,7 +260,7 @@ plotTitle2 = sprintf('Optical Density Variation, test light to %g nm',...
 plotRayleighMatches(lambdaMaxes, lambdaMaxes, dphotopigments2,...
     colors, l2, plotTitle2, 'test', maxDiffWl2);
 
-%% 3 - Protanope - 2nm difference 
+%% 3 - Deuteranopes - 2nm difference 
 % lambdaMaxes +-1nm from average
 lambdaMaxes = [
     [557.9 557.9 420.7]'...
