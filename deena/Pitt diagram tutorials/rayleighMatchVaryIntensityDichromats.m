@@ -74,7 +74,7 @@ for i = 1:numODs
     dphotopigments = repmat(ODs(:,i), 1, numd);
     theTitle = sprintf('Deuteranopes, OD = %g percent', ODs(1,i));
     theLegend = {'552.9', '554.9', '556.9', '558.9', '560.9', '562.9', '564.9'};
-    plotRayleighMatches(lambdaMaxesP, lambdaMaxesP, dphotopigments,...
+    plotRayleighMatches(lambdaMaxesD, lambdaMaxesD, dphotopigments,...
         colors(1:numd), theLegend, theTitle);
 end
 
