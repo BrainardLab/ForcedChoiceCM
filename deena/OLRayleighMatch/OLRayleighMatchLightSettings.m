@@ -48,6 +48,7 @@ lambda = 0.001;
 p1Scales = linspace(0,1,adjustment_length);
 p2Scales = 1-p1Scales;
 testScales = linspace(0,1,adjustment_length);
+
 %% Get the OneLight calibration structure
 %
 % Use it to set some device related parameters.

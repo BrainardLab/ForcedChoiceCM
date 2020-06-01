@@ -136,7 +136,7 @@ whiteSpdNominal = lightSettings.whiteSpdNominal;
 adjustment_length = lightSettings.adjustment_length;
 
 %% Intialize OneLight and button box
-ol = OneLight;
+ol = OneLight('simulate',true,'plotWhenSimulating',true);
 gamePad = GamePad();
 
 %% Set up projector (if not making foveal matches)
