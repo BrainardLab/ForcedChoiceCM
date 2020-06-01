@@ -31,7 +31,7 @@ function OLRayleighMatch(varargin)
 % Outputs:
 %    Saves a .mat file titled by subject and session number, which includes
 %    a record of subjects' matches and various experimental parameters. As
-%    of now, the file is saved after each match and is only saved if the 
+%    of now, the file is saved after each match and is only saved if the
 %    subject makes at least one match.
 %
 % Optional key-value pairs:
@@ -55,6 +55,8 @@ function OLRayleighMatch(varargin)
 %                  Default is false.
 %    'simulate'  - logical. Set to true to run in simulated mode. Default
 %                  is true.
+%    'silent'    - logical. Set to true to turn off feedback beeps. Default
+%                  is false.
 
 % History:
 %   xx/xx/19  dce       Wrote it.
@@ -66,7 +68,9 @@ function OLRayleighMatch(varargin)
 %   02/14/20  dce       Made option to show matches without white light
 %   02/26/19  dce       Changed default settings to foveal and no white
 %                       light
-%   03/29/19  dce       Edited for style 
+%   03/29/19  dce       Edited for style
+%   06/01/20  dce       Added simulation option
+
 %% Close any stray figures
 close all;
 
@@ -82,6 +86,7 @@ p.addParameter('lInterval', 1, @(x) (isnumeric(x)));
 p.addParameter('foveal', true, @(x) (islogical(x)));
 p.addParameter('white', false, @(x) (islogical(x)));
 p.addParameter('simulate', true, @(x) (islogical(x)));
+p.addParameter('silent', false, @(x) (islogical(x)));
 
 p.parse(varargin{:});
 p1 = p.Results.p1;
@@ -91,34 +96,12 @@ sInterval = p.Results.sInterval;
 lInterval = p.Results.lInterval;
 foveal = p.Results.foveal;
 white = p.Results.white;
+simulate = p.Results.simulate;
+silent = p.Results.silent;
 
 %% Set up directory for saving results
 subjectID = input('Enter subject ID: ');
 sessionNum = input('Enter session number: ');
-
-%% Set up key interpretations
-if (p.Results.simulate)
-    keyCodes.switchStepSize = 's';
-    keyCodes.switchLightOrder = 'l'; 
-    keyCodes.foundMatch = ' ';
-    keyCodes.quit = 'q'; 
-    keyCodes.idealMatch = 'i'; 
-    keyCodes.increaseIntensity = 'up'; 
-    keyCodes.decreaseIntensity = 'down'; 
-    keyCodes.increaseP1 = 'right'; 
-    keyCodes.decreaseP1 = 'left';
-else
-    keyCodes.switchStepSize = 'GP:Y';
-    keyCodes.switchLightOrder = 'GP:X'; 
-    keyCodes.foundMatch = 'GP:B';
-    keyCodes.quit = 'GP:A'; 
-    keyCodes.idealMatch = 'GP:Back';
-    keyCodes.increaseIntensity = 'GP:North';
-    keyCodes.decreaseIntensity = 'GP:South';
-    keyCodes.increaseP1 = 'GP:East'; 
-    keyCodes.decreaseP1 = 'GP:West'; 
-
-end
 
 % Create directory named subjectID for saving data, if it doesn't exist
 outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),subjectID);
@@ -132,6 +115,29 @@ fileName = [subjectID, '_', num2str(sessionNum), '.mat'];
 fileLoc = fullfile(outputDir,fileName);
 if (exist(fileLoc, 'file'))
     error('Specified output file %s already exists', fileName);
+end
+
+%% Set up key interpretations
+if simulate
+    keyCodes.switchStepSize = 's';
+    keyCodes.switchLightOrder = 'o';
+    keyCodes.foundMatch = ' ';
+    keyCodes.quit = 'q';
+    keyCodes.idealMatch = 'i';
+    keyCodes.increaseIntensity = 'u';
+    keyCodes.decreaseIntensity = 'd';
+    keyCodes.increaseP1 = 'r';
+    keyCodes.decreaseP1 = 'l';
+else
+    keyCodes.switchStepSize = 'GP:Y';
+    keyCodes.switchLightOrder = 'GP:X';
+    keyCodes.foundMatch = 'GP:B';
+    keyCodes.quit = 'GP:A';
+    keyCodes.idealMatch = 'GP:Back';
+    keyCodes.increaseIntensity = 'GP:North';
+    keyCodes.decreaseIntensity = 'GP:South';
+    keyCodes.increaseP1 = 'GP:East';
+    keyCodes.decreaseP1 = 'GP:West';
 end
 
 %% Find light settings
@@ -163,9 +169,9 @@ whiteSpdNominal = lightSettings.whiteSpdNominal;
 adjustment_length = lightSettings.adjustment_length;
 
 %% Intialize OneLight and button box
-ol = OneLight('simulate',p.Results.simulate,'plotWhenSimulating',true);
-if (p.Results.simulate)
-    % ListenChar(2);
+ol = OneLight('simulate', simulate, 'plotWhenSimulating', true);
+if simulate
+    ListenChar(2);
     FlushEvents;
 else
     gamePad = GamePad();
@@ -176,7 +182,7 @@ end
 annulusData = 0;
 % Check if an annulus file exists. If it does, the experimenter can choose
 % whether to use the existing file or to reset the annulus.
-if ~foveal && ~p.Results.simulated
+if ~simulate && ~foveal
     fprintf('\n**** Set up projector ****\n');
     annulusFile = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
         'projectorSettings','OLAnnulusSettings.mat');
@@ -190,13 +196,13 @@ if ~foveal && ~p.Results.simulated
                 squeeze(primaryStartStops(1,2,:))');
             GLW_AnnularStimulusButtonBox();
         end
-    % Run program to reset the annulus, if it does not exist
+        % Run program to reset the annulus, if it does not exist
     else
         ol.setMirrors(squeeze(primaryStartStops(1,1,:))',...
             squeeze(primaryStartStops(1,2,:))');ol.setAll(false);
         GLW_AnnularStimulusButtonBox();
     end
-    % Load and display annulus file 
+    % Load and display annulus file
     annulusData = load(annulusFile);
     annulusData.win.open;
     annulusData.win.draw;
@@ -212,14 +218,14 @@ stepModes = [floor(adjustment_length/5), floor(adjustment_length/20),...
 % test lights are displayed. If rev is set to true, lights will be
 % displayed in the order specified by lightModeRev instead of the order
 % specified by lightMode
-if ~white
-    lightMode = ['p', 't'];     % Possible light settings - primary, test 
-    lightModeRev = ['t', 'p'];  % Switch primary and test lights
-    lightTimes = [lInterval sInterval]; % Times for each setting 
-else
+if white
     lightMode = ['p' 'w' 't' 'w']; % Possible light settings - primary, test, or white
     lightModeRev = ['t' 'w' 'p' 'w']; % Switch test and primary order
     lightTimes = [sInterval sInterval sInterval lInterval]; % Times for each setting
+else
+    lightMode = ['p', 't'];     % Possible light settings - primary, test
+    lightModeRev = ['t', 'p'];  % Switch primary and test lights
+    lightTimes = [lInterval sInterval]; % Times for each setting
 end
 
 % Settings for ideal match. These were derived from the findNominalMatch
@@ -232,32 +238,32 @@ else
     tIdealIndex = 13;
 end
 
-%% Setup for display loop 
+%% Setup for display loop
 % Data-storing arrays
 matches = [];               % Output array with subject matches
 matchPositions = [];        % Positions of matches in the adjustment array
 
-% Initial settings 
-primaryPos = 1;      % Start with first position in primary array 
-testPos = 1;         % Start with first position in test array 
-stepModePos = 1;     % Start with the largest step size 
-lightModePos = 1;    % Start with the first light in the lights array 
+% Initial settings
+primaryPos = 1;      % Start with first position in primary array
+testPos = 1;         % Start with first position in test array
+stepModePos = 1;     % Start with the largest step size
+lightModePos = 1;    % Start with the first light in the lights array
 
-rev = false;         % Start with forward, not reverse order 
+rev = false;         % Start with forward, not reverse order
 ideal = false;       % Do not start with the ideal match
-stillLooping = true; % Start looping 
+stillLooping = true; % Start looping
 
-%% Display loop 
+%% Display loop
 % Loop through primary and test light until the user presses a key
 while(stillLooping)
-    % Determine which lights array we are using 
+    % Determine which lights array we are using
     if rev
         lights = lightModeRev;
     else
         lights = lightMode;
     end
-    % Display primary, test, or white light. When used, the white light is 
-    % displayed for a short time between primary and test lights and a long 
+    % Display primary, test, or white light. When used, the white light is
+    % displayed for a short time between primary and test lights and a long
     % time between test and primary lights.
     nowTime = mglGetSecs;
     switch lights(lightModePos)
@@ -283,7 +289,7 @@ while(stillLooping)
     
     % Until time limit runs out, check for user input
     while(mglGetSecs < nowTime + lightTimes(lightModePos))
-        if (p.Results.simulate)
+        if simulate
             if CharAvail
                 key.charCode = GetChar(true,false);
             else
@@ -300,15 +306,19 @@ while(stillLooping)
                     if stepModePos > length(stepModes)
                         stepModePos = 1;
                     end
-                    % Number of beeps indicates new step size position 
-                    for i = 1:stepModePos
-                        Snd('Play',sin(0:5000));
+                    % Number of beeps indicates new step size position
+                    if ~silent
+                        for i = 1:stepModePos
+                            Snd('Play',sin(0:5000));
+                        end
                     end
                     fprintf('User switched step size to %g \n',...
                         (stepModes(stepModePos)/ (adjustment_length - 1)));
                     
                 case keyCodes.foundMatch  % Subject found a match
-                    Snd('Play',sin(0:5000));
+                    if ~silent
+                        Snd('Play',sin(0:5000));
+                    end
                     fprintf('User found match at %g test, %g primary \n',...
                         testScales(testPos), p1Scales(primaryPos));
                     % Save match
@@ -329,76 +339,99 @@ while(stillLooping)
                     testPos = randi(adjustment_length);
                     stepModePos = 1;
                     
-                case 'GP:A' % Quit
-                    Snd('Play',sin(0:5000));
+                case keyCodes.quit % Quit
+                    if ~silent
+                        Snd('Play',sin(0:5000));
+                    end
                     fprintf('User exited program \n');
                     stillLooping = false;
                     
                     % Switch order of primary and test lights. One beep means
                     % primary is now first, two beeps means test is first.
-                case 'GP:X'
+                case keyCodes.switchLightOrder
                     rev = ~rev;
-                    Snd('Play',sin(0:5000)/ 20);
-                    if rev
+                    if ~silent
                         Snd('Play',sin(0:5000)/ 20);
+                        if rev
+                            Snd('Play',sin(0:5000)/ 20);
+                        end
                     end
                     fprintf('User switched order of primary and test lights\n');
                     
-                case'GP:Back' %Switch to showing ideal match
+                case keyCodes.idealMatch % Switch to showing ideal match
                     ideal = ~ideal;
-                    Snd('Play',sin(0:5000));
+                    if ~silent
+                        Snd('Play',sin(0:5000));
+                    end
                     if ideal
-                        fprintf('User switched to ideal match'); 
+                        fprintf('User switched to ideal match');
                     else
                         fprintf('User switched off ideal match');
-                    end 
-                case 'GP:North' % Scale up test intensity
+                    end
+                    
+                case keyCodes.increaseIntensity % Scale up test intensity
                     testPos = testPos + stepModes(stepModePos);
                     if testPos > adjustment_length
-                        Snd('Play',sin(0:5000));
+                        if ~silent
+                            Snd('Play',sin(0:5000));
+                        end 
                         fprintf('User reached upper test limit \n');
                         testPos = adjustment_length;
                     end
-                    Snd('Play',sin(0:5000)/100);
+                    if ~silent
+                        Snd('Play',sin(0:5000)/100);
+                    end 
                     fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
                         testScales(testPos), p1Scales(primaryPos));
                     
-                case 'GP:South' % Scale down test intensity
+                case keyCodes.decreaseIntensity % Scale down test intensity
                     testPos = testPos - stepModes(stepModePos);
                     if testPos < 1
-                        Snd('Play',sin(0:5000));
+                        if ~silent
+                            Snd('Play',sin(0:5000));
+                        end 
                         fprintf('User reached lower test limit \n');
                         testPos = 1;
                     end
-                    Snd('Play',sin(0:5000)/100);
+                    if ~silent
+                        Snd('Play',sin(0:5000)/100);
+                    end 
                     fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
                         testScales(testPos), p1Scales(primaryPos));
                     
-                case 'GP:East' % Move towards p1
+                case keyCodes.increaseP1 % Move towards p1
                     primaryPos = primaryPos + stepModes(stepModePos);
                     if primaryPos > adjustment_length
-                        Snd('Play',sin(0:5000));
+                        if ~silent 
+                            Snd('Play',sin(0:5000));
+                        end 
                         fprintf('User reached upper primary limit \n');
                         primaryPos = adjustment_length;
                     end
-                    Snd('Play',sin(0:5000)/100);
+                    if ~silent
+                        Snd('Play',sin(0:5000)/100);
+                    end 
                     fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
                         testScales(testPos), p1Scales(primaryPos));
                     
-                case 'GP:West' % Move towards p2
+                case keyCodes.decreaseP1 % Move towards p2
                     primaryPos = primaryPos - stepModes(stepModePos);
                     if primaryPos < 1
-                        Snd('Play',sin(0:5000));
+                        if ~silent 
+                            Snd('Play',sin(0:5000));
+                        end 
                         fprintf('User reached lower primary limit \n');
                         primaryPos = 1;
                     end
-                    Snd('Play',sin(0:5000)/100);
+                    if ~silent
+                        Snd('Play',sin(0:5000)/100);
+                    end 
                     fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
                         testScales(testPos), p1Scales(primaryPos));
             end
         end
     end
- 
+    
     % Switch to the next light to display
     lightModePos = lightModePos + 1;
     if lightModePos > length(lights)
@@ -407,15 +440,13 @@ while(stillLooping)
 end
 
 %% Close up
-if ~foveal
-    GLW_CloseAnnularStimulus();
-end
 ol.setAll(false);
 
-if (p.Results.simulate)
+if simulate
     ListenChar(0);
 else
-    % gamePad = GamePad();
+    if ~foveal
+        GLW_CloseAnnularStimulus();
+    end
 end
-
 end
