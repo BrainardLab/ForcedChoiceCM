@@ -99,10 +99,25 @@ sessionNum = input('Enter session number: ');
 %% Set up key interpretations
 if (p.Results.simulate)
     keyCodes.switchStepSize = 's';
-    keyCodes.foundMatch = 'q';
+    keyCodes.switchLightOrder = 'l'; 
+    keyCodes.foundMatch = ' ';
+    keyCodes.quit = 'q'; 
+    keyCodes.idealMatch = 'i'; 
+    keyCodes.increaseIntensity = 'up'; 
+    keyCodes.decreaseIntensity = 'down'; 
+    keyCodes.increaseP1 = 'right'; 
+    keyCodes.decreaseP1 = 'left';
 else
     keyCodes.switchStepSize = 'GP:Y';
+    keyCodes.switchLightOrder = 'GP:X'; 
     keyCodes.foundMatch = 'GP:B';
+    keyCodes.quit = 'GP:A'; 
+    keyCodes.idealMatch = 'GP:Back';
+    keyCodes.increaseIntensity = 'GP:North';
+    keyCodes.decreaseIntensity = 'GP:South';
+    keyCodes.increaseP1 = 'GP:East'; 
+    keyCodes.decreaseP1 = 'GP:West'; 
+
 end
 
 % Create directory named subjectID for saving data, if it doesn't exist
@@ -150,7 +165,7 @@ adjustment_length = lightSettings.adjustment_length;
 %% Intialize OneLight and button box
 ol = OneLight('simulate',p.Results.simulate,'plotWhenSimulating',true);
 if (p.Results.simulate)
-    ListenChar(2);
+    % ListenChar(2);
     FlushEvents;
 else
     gamePad = GamePad();
@@ -161,7 +176,7 @@ end
 annulusData = 0;
 % Check if an annulus file exists. If it does, the experimenter can choose
 % whether to use the existing file or to reset the annulus.
-if ~foveal
+if ~foveal && ~p.Results.simulated
     fprintf('\n**** Set up projector ****\n');
     annulusFile = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
         'projectorSettings','OLAnnulusSettings.mat');
