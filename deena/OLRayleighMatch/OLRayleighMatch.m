@@ -53,6 +53,8 @@ function OLRayleighMatch(varargin)
 %    'white'     - logical indicating to run  a version of the experiment
 %                  where the lights  are displayed with white in between.
 %                  Default is false.
+%    'simulate'  - logical. Set to true to run in simulated mode. Default
+%                  is true.
 
 % History:
 %   xx/xx/19  dce       Wrote it.
@@ -79,6 +81,7 @@ p.addParameter('sInterval', 0.25, @(x) (isnumeric(x)));
 p.addParameter('lInterval', 1, @(x) (isnumeric(x)));
 p.addParameter('foveal', true, @(x) (islogical(x)));
 p.addParameter('white', false, @(x) (islogical(x)));
+p.addParameter('simulate', true, @(x) (islogical(x)));
 
 p.parse(varargin{:});
 p1 = p.Results.p1;
@@ -92,6 +95,15 @@ white = p.Results.white;
 %% Set up directory for saving results
 subjectID = input('Enter subject ID: ');
 sessionNum = input('Enter session number: ');
+
+%% Set up key interpretations
+if (p.Results.simulate)
+    keyCodes.switchStepSize = 's';
+    keyCodes.foundMatch = 'q';
+else
+    keyCodes.switchStepSize = 'GP:Y';
+    keyCodes.foundMatch = 'GP:B';
+end
 
 % Create directory named subjectID for saving data, if it doesn't exist
 outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),subjectID);
@@ -136,8 +148,13 @@ whiteSpdNominal = lightSettings.whiteSpdNominal;
 adjustment_length = lightSettings.adjustment_length;
 
 %% Intialize OneLight and button box
-ol = OneLight('simulate',true,'plotWhenSimulating',true);
-gamePad = GamePad();
+ol = OneLight('simulate',p.Results.simulate,'plotWhenSimulating',true);
+if (p.Results.simulate)
+    ListenChar(2);
+    FlushEvents;
+else
+    gamePad = GamePad();
+end
 
 %% Set up projector (if not making foveal matches)
 % Set annulusData so the program will save even if annulus is not used
@@ -251,10 +268,19 @@ while(stillLooping)
     
     % Until time limit runs out, check for user input
     while(mglGetSecs < nowTime + lightTimes(lightModePos))
-        key = gamePad.getKeyEvent();
+        if (p.Results.simulate)
+            if CharAvail
+                key.charCode = GetChar(true,false);
+            else
+                key = [];
+            end
+        else
+            key = gamePad.getKeyEvent();
+        end
+        
         if (~isempty(key))
             switch(key.charCode)
-                case 'GP:Y' % Switch step size mode
+                case keyCodes.switchStepSize    % Switch step size mode
                     stepModePos = stepModePos + 1;
                     if stepModePos > length(stepModes)
                         stepModePos = 1;
@@ -266,7 +292,7 @@ while(stillLooping)
                     fprintf('User switched step size to %g \n',...
                         (stepModes(stepModePos)/ (adjustment_length - 1)));
                     
-                case 'GP:B' % Subject found a match
+                case keyCodes.foundMatch  % Subject found a match
                     Snd('Play',sin(0:5000));
                     fprintf('User found match at %g test, %g primary \n',...
                         testScales(testPos), p1Scales(primaryPos));
@@ -370,4 +396,11 @@ if ~foveal
     GLW_CloseAnnularStimulus();
 end
 ol.setAll(false);
+
+if (p.Results.simulate)
+    ListenChar(0);
+else
+    % gamePad = GamePad();
+end
+
 end
