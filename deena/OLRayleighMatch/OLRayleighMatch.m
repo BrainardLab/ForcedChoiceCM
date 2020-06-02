@@ -70,6 +70,7 @@ function OLRayleighMatch(varargin)
 %                       light
 %   03/29/19  dce       Edited for style
 %   06/01/20  dce       Added simulation option
+%   06/02/20  dce       Added simulated observer logic
 
 %% Close any stray figures
 close all;
@@ -115,6 +116,29 @@ fileName = [subjectID, '_', num2str(sessionNum), '.mat'];
 fileLoc = fullfile(outputDir,fileName);
 if (exist(fileLoc, 'file'))
     error('Specified output file %s already exists', fileName);
+end
+
+%% Initialize simulated observer if desired
+% If the experiment is run in simulation mode without a simulated observer,
+% the user can control the stimuli with keypresses (this is useful for
+% program testing).
+sim_observer = false;
+if simulate
+    fprintf('Use simulated observer?\n')
+    fprintf('[1]: Yes\n');
+    fprintf('[2]: No\n');
+    res = GetInput('Select option', 'number', 1);
+    if res == 1
+        sim_observer = true;
+        params = GetInput('Enter optional observer parameters, or press Enter to continue', 'number', -1); 
+        if isempty(params)
+            observer = genRayleighObserver(); 
+        elseif length(params) == 9
+            observer = genRayleighObserver('coneVec', params);
+        else 
+            error('Observer parameters must be listed as a 9-element vector'); 
+        end 
+    end
 end
 
 %% Set up key interpretations
@@ -253,6 +277,10 @@ rev = false;         % Start with forward, not reverse order
 ideal = false;       % Do not start with the ideal match
 stillLooping = true; % Start looping
 
+if sim_observer
+    primary_set = false;  % Primary ratio has not yet been adjusted 
+    test_set = false;     % Test intensity has not yet been adjusted
+end 
 %% Display loop
 % Loop through primary and test light until the user presses a key
 while(stillLooping)
@@ -266,37 +294,45 @@ while(stillLooping)
     % displayed for a short time between primary and test lights and a long
     % time between test and primary lights.
     nowTime = mglGetSecs;
+    if ideal
+        pI = pIdealIndex;
+        tI = tIdealIndex;
+    else
+        pI = primaryPos;
+        tI = testPos;
+    end
     switch lights(lightModePos)
         case 'p'
-            if ideal
-                ol.setMirrors(squeeze(primaryStartStops(pIdealIndex,1,:))',...
-                    squeeze(primaryStartStops(pIdealIndex,2,:))');
-            else
-                ol.setMirrors(squeeze(primaryStartStops(primaryPos,1,:))',...
-                    squeeze(primaryStartStops(primaryPos,2,:))');
-            end
+            ol.setMirrors(squeeze(primaryStartStops(pI,1,:))',...
+                squeeze(primaryStartStops(pI,2,:))');
         case 't'
-            if ideal
-                ol.setMirrors(squeeze(testStartStops(tIdealIndex,1,:))',...
-                    squeeze(testStartStops(tIdealIndex,2,:))');
-            else
-                ol.setMirrors(squeeze(testStartStops(testPos,1,:))',...
-                    squeeze(testStartStops(testPos,2,:))');
-            end
+            ol.setMirrors(squeeze(testStartStops(tI,1,:))',...
+                squeeze(testStartStops(tI,2,:))');
         case 'w'
             ol.setMirrors(whiteStarts,whiteStops);
     end
     
     % Until time limit runs out, check for user input
     while(mglGetSecs < nowTime + lightTimes(lightModePos))
-        if simulate
+        if sim_observer      % Simulated observer experiment
+            [p1_up, t_up] = observerRayleighDecision(observer, primarySpdsNominal(:, pI), testSpdsNominal(:, tI));
+            if p1_up
+                key.charCode = 'r'; 
+            elseif t_up 
+                key.charCode = 'u'; 
+            end 
+            % function to call simulated observer, takes in spectra, return
+            % the needed change 
+            % if it was wrong in one direction and is now wrong in the
+            % other direction, change step size. When reversal happens for the smallest step size, make a match  
+        elseif simulate      % Simulation with user keypresses
             if CharAvail
                 key.charCode = GetChar(true,false);
             else
                 key = [];
             end
-        else
-            key = gamePad.getKeyEvent();
+        else                 % Live experiment
+            key.charCode = gamePad.getKeyEvent();
         end
         
         if (~isempty(key))
@@ -312,14 +348,14 @@ while(stillLooping)
                             Snd('Play',sin(0:5000));
                         end
                     end
-                    fprintf('User switched step size to %g \n',...
+                    fprintf('User switched step size to %g\n',...
                         (stepModes(stepModePos)/ (adjustment_length - 1)));
                     
                 case keyCodes.foundMatch  % Subject found a match
                     if ~silent
                         Snd('Play',sin(0:5000));
                     end
-                    fprintf('User found match at %g test, %g primary \n',...
+                    fprintf('User found match at %g test, %g primary\n',...
                         testScales(testPos), p1Scales(primaryPos));
                     % Save match
                     matches = [matches;...
@@ -343,7 +379,7 @@ while(stillLooping)
                     if ~silent
                         Snd('Play',sin(0:5000));
                     end
-                    fprintf('User exited program \n');
+                    fprintf('User exited program\n');
                     stillLooping = false;
                     
                     % Switch order of primary and test lights. One beep means
@@ -364,9 +400,9 @@ while(stillLooping)
                         Snd('Play',sin(0:5000));
                     end
                     if ideal
-                        fprintf('User switched to ideal match');
+                        fprintf('User switched to ideal match\n');
                     else
-                        fprintf('User switched off ideal match');
+                        fprintf('User switched off ideal match\n');
                     end
                     
                 case keyCodes.increaseIntensity % Scale up test intensity
@@ -374,14 +410,14 @@ while(stillLooping)
                     if testPos > adjustment_length
                         if ~silent
                             Snd('Play',sin(0:5000));
-                        end 
-                        fprintf('User reached upper test limit \n');
+                        end
+                        fprintf('User reached upper test limit\n');
                         testPos = adjustment_length;
                     end
                     if ~silent
                         Snd('Play',sin(0:5000)/100);
-                    end 
-                    fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
+                    end
+                    fprintf('User pressed key. Test intensity = %g, red primary = %g\n',...
                         testScales(testPos), p1Scales(primaryPos));
                     
                 case keyCodes.decreaseIntensity % Scale down test intensity
@@ -389,44 +425,44 @@ while(stillLooping)
                     if testPos < 1
                         if ~silent
                             Snd('Play',sin(0:5000));
-                        end 
-                        fprintf('User reached lower test limit \n');
+                        end
+                        fprintf('User reached lower test limit\n');
                         testPos = 1;
                     end
                     if ~silent
                         Snd('Play',sin(0:5000)/100);
-                    end 
-                    fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
+                    end
+                    fprintf('User pressed key. Test intensity = %g, red primary = %g\n',...
                         testScales(testPos), p1Scales(primaryPos));
                     
                 case keyCodes.increaseP1 % Move towards p1
                     primaryPos = primaryPos + stepModes(stepModePos);
                     if primaryPos > adjustment_length
-                        if ~silent 
+                        if ~silent
                             Snd('Play',sin(0:5000));
-                        end 
-                        fprintf('User reached upper primary limit \n');
+                        end
+                        fprintf('User reached upper primary limit\n');
                         primaryPos = adjustment_length;
                     end
                     if ~silent
                         Snd('Play',sin(0:5000)/100);
-                    end 
+                    end
                     fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
                         testScales(testPos), p1Scales(primaryPos));
                     
                 case keyCodes.decreaseP1 % Move towards p2
                     primaryPos = primaryPos - stepModes(stepModePos);
                     if primaryPos < 1
-                        if ~silent 
+                        if ~silent
                             Snd('Play',sin(0:5000));
-                        end 
-                        fprintf('User reached lower primary limit \n');
+                        end
+                        fprintf('User reached lower primary limit\n');
                         primaryPos = 1;
                     end
                     if ~silent
                         Snd('Play',sin(0:5000)/100);
-                    end 
-                    fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
+                    end
+                    fprintf('User pressed key. Test intensity = %g, red primary = %g\n',...
                         testScales(testPos), p1Scales(primaryPos));
             end
         end
