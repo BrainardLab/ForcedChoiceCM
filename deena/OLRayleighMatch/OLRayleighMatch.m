@@ -1,5 +1,6 @@
 function OLRayleighMatch(varargin)
-% Program to run a Rayleigh match experiment on the OneLight
+% Program to run a Rayleigh match experiment on the OneLight, or a
+% simulated Rayleigh match experiment
 %
 % Syntax:
 %   OLRayleighMatch
@@ -20,13 +21,14 @@ function OLRayleighMatch(varargin)
 %    The subject can also use the top 'Y' button to toggle step size, the
 %    right 'B' button to record a match, the left 'X' button to change the
 %    order that primary and test lights are displayed, the bottom 'A'
-%    button to quit, and the 'Start' button to display an ideal match
+%    button to quit, and the 'Back' button to display an ideal match
 %    (based on measured data).
 %
 %    In addition to the experimental program, two simulation options are
-%    available. The first option allows the experimenter to use keypresses 
-%    to recreate subjects' button presses. The second method creates a 
-%    simulated observer based on the Asano model, using this observer to 
+%    available. The first option lets the experimenter use keypresses to
+%    recreate subjects' button presses. The second option creates a
+%    simulated observer based on the Asano model and searches for the
+%    best match for this observer.
 %
 %    The routine prompts for subject and session info.
 %
@@ -35,9 +37,9 @@ function OLRayleighMatch(varargin)
 %
 % Outputs:
 %    Saves a .mat file titled by subject and session number, which includes
-%    a record of subjects' matches and various experimental parameters. As
-%    of now, the file is saved after each match and is only saved if the
-%    subject makes at least one match.
+%    a record of subjects' matches and various experimental parameters. The
+%    file is saved after each match and is only saved if the subject makes
+%    at least one match.
 %
 % Optional key-value pairs:
 %    'p1'        - integer wavelength of the first primary light in nm.
@@ -125,8 +127,7 @@ end
 
 %% Initialize simulated observer if desired
 % If the experiment is run in simulation mode without a simulated observer,
-% the user can control the stimuli with keypresses (this is useful for
-% program testing).
+% the user can control the stimuli with keypresses
 sim_observer = false;
 if simulate
     fprintf('Use simulated observer?\n')
@@ -137,9 +138,9 @@ if simulate
         sim_observer = true;
         params = GetInput('Enter optional observer params vector, or press Enter to continue', 'number', -1);
         if isempty(params)
-            observer = genRayleighObserver();
+            observer = genRayleighObserver(foveal);
         elseif length(params) == 9
-            observer = genRayleighObserver('coneVec', params);
+            observer = genRayleighObserver(foveal, 'coneVec', params);
         else
             error('Observer parameters must be listed as a 9-element vector');
         end
@@ -180,7 +181,6 @@ end
 
 % Load light settings and save some variables locally
 lightSettings = load(fName);
-
 cal = lightSettings.cal;
 primarySpdsNominal = lightSettings.primarySpdsNominal;
 primarySpdsPredicted = lightSettings.primarySpdsPredicted;
@@ -199,18 +199,17 @@ adjustment_length = lightSettings.adjustment_length;
 
 %% Intialize OneLight and button box
 ol = OneLight('simulate', simulate, 'plotWhenSimulating', true);
-if simulate
+if simulate && ~sim_observer
     ListenChar(2);
     FlushEvents;
-else
+elseif ~simulate
     gamePad = GamePad();
 end
 
 %% Set up projector (if not making foveal matches)
-% Set annulusData so the program will save even if annulus is not used
-annulusData = 0;
-% Check if an annulus file exists. If it does, the experimenter can choose
-% whether to use the existing file or to reset the annulus.
+annulusData = 0; % Set so the program will save even if annulus is not used
+% Check if an annulus file exists. If it does, can choose whether to use
+% the existing file or reset the annulus.
 if ~simulate && ~foveal
     fprintf('\n**** Set up projector ****\n');
     annulusFile = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
@@ -225,7 +224,7 @@ if ~simulate && ~foveal
                 squeeze(primaryStartStops(1,2,:))');
             GLW_AnnularStimulusButtonBox();
         end
-        % Run program to reset the annulus, if it does not exist
+        % Run program to reset the annulus if its file does not exist
     else
         ol.setMirrors(squeeze(primaryStartStops(1,1,:))',...
             squeeze(primaryStartStops(1,2,:))');ol.setAll(false);
@@ -246,7 +245,9 @@ stepModes = [floor(adjustment_length/5), floor(adjustment_length/20),...
 % The experiment includes an option to switch the order that primary and
 % test lights are displayed. If rev is set to true, lights will be
 % displayed in the order specified by lightModeRev instead of the order
-% specified by lightMode
+% specified by lightMode. When the white light is used, it is displayed for
+% a short time between primary and test lights and a long time between test
+% and primary lights.
 if white
     lightMode = ['p' 'w' 't' 'w']; % Possible light settings - primary, test, or white
     lightModeRev = ['t' 'w' 'p' 'w']; % Switch test and primary order
@@ -258,7 +259,7 @@ else
 end
 
 % Settings for ideal match. These were derived from the findNominalMatch
-% script.
+% script. Should probably update in the future.
 if foveal
     pIdealIndex = 197;
     tIdealIndex = 14;
@@ -277,39 +278,38 @@ primaryPos = 1;      % Start with first position in primary array
 testPos = 1;         % Start with first position in test array
 stepModePos = 1;     % Start with the largest step size
 lightModePos = 1;    % Start with the first light in the lights array
-
 rev = false;         % Start with forward, not reverse order
 ideal = false;       % Do not start with the ideal match
 stillLooping = true; % Start looping
-pI = primaryPos;
-tI = testPos;
 
+% Settings for simulated observer
 if sim_observer
     primary_set = false;  % Primary ratio has not yet been adjusted
     test_set = false;     % Test intensity has not yet been adjusted
     
     p1_up_prev = true;    % Indicate that the program directed p1 and t to
-    t_up_prev = true;    % increase on prior trials.
+    t_up_prev = true;     % increase on prior trials.
 end
 %% Display loop
-% Loop through primary and test light until the user presses a key
+% Loop through primary and test light until the user presses a key or the
+% simulated observer decides to simulate a keypress
 while(stillLooping)
-    % Determine which lights array we are using
+    % Determine which lights we are using
     if rev
         lights = lightModeRev;
     else
         lights = lightMode;
     end
-    % Display primary, test, or white light. When used, the white light is
-    % displayed for a short time between primary and test lights and a long
-    % time between test and primary lights.
-    nowTime = mglGetSecs;
     if ideal
         pI = pIdealIndex;
         tI = tIdealIndex;
     else
-
+        pI = primaryPos;
+        tI = testPos;
     end
+    
+    % Display primary, test, or white light.
+    nowTime = mglGetSecs;        
     switch lights(lightModePos)
         case 'p'
             ol.setMirrors(squeeze(primaryStartStops(pI,1,:))',...
@@ -331,11 +331,12 @@ while(stillLooping)
             tI = testPos;
         end
         % Simulated observer experiment - determine appropriate action with
-        % calculations
+        % calculations. First adjust the primary ratio, then adjust the
+        % test intensity.
         if sim_observer
             [p1_up, t_up] = observerRayleighDecision(observer,...
                 primarySpdsPredicted(:, pI), testSpdsPredicted(:, tI));
-            if ~primary_set  % Adjusting mixing ration
+            if ~primary_set  % Adjusting primary ratio
                 if p1_up == p1_up_prev % Continue in existing direction
                     if p1_up
                         key.charCode = 'r';
@@ -351,7 +352,7 @@ while(stillLooping)
                     end
                 end
                 p1_up_prev = p1_up;
-            elseif ~test_set % If mixing ratio is correct, adjust test intensity
+            elseif ~test_set % Adjusting test intensity
                 if t_up == t_up_prev % Continue in existing direction
                     if t_up
                         key.charCode = 'u';
@@ -369,7 +370,7 @@ while(stillLooping)
                     end
                 end
                 t_up_prev = t_up;
-            else             % Quit because the experiment is finished
+            else            % Quit because the experiment is finished
                 key.charCode = 'q';
             end
         elseif simulate      % Simulation with user keypresses
@@ -416,7 +417,6 @@ while(stillLooping)
                         'whiteStarts', 'whiteStops','whiteSpdNominal',...
                         'subjectID', 'sessionNum','annulusData','sInterval',...
                         'lInterval', 'adjustment_length', 'foveal');
-                    
                     % Randomize lights and set step size to largest
                     primaryPos = randi(adjustment_length);
                     testPos = randi(adjustment_length);
@@ -429,11 +429,10 @@ while(stillLooping)
                     fprintf('User exited program\n');
                     stillLooping = false;
                     
-                    % Switch order of primary and test lights. One beep means
-                    % primary is now first, two beeps means test is first.
-                case keyCodes.switchLightOrder
+                case keyCodes.switchLightOrder % Switch primary/test order
                     rev = ~rev;
                     if ~silent
+                        % One beep = primary first, two beeps = test first
                         Snd('Play',sin(0:5000)/ 20);
                         if rev
                             Snd('Play',sin(0:5000)/ 20);
@@ -454,12 +453,12 @@ while(stillLooping)
                     
                 case keyCodes.increaseIntensity % Scale up test intensity
                     testPos = testPos + stepModes(stepModePos);
-                    if testPos > adjustment_length
+                    if testPos > adjustment_length                        
+                        testPos = adjustment_length;
                         if ~silent
                             Snd('Play',sin(0:5000));
                         end
                         fprintf('User reached upper test limit\n');
-                        testPos = adjustment_length;
                     end
                     if ~silent
                         Snd('Play',sin(0:5000)/100);
@@ -470,11 +469,11 @@ while(stillLooping)
                 case keyCodes.decreaseIntensity % Scale down test intensity
                     testPos = testPos - stepModes(stepModePos);
                     if testPos < 1
+                        testPos = 1;
                         if ~silent
                             Snd('Play',sin(0:5000));
                         end
                         fprintf('User reached lower test limit\n');
-                        testPos = 1;
                     end
                     if ~silent
                         Snd('Play',sin(0:5000)/100);
@@ -485,11 +484,11 @@ while(stillLooping)
                 case keyCodes.increaseP1 % Move towards p1
                     primaryPos = primaryPos + stepModes(stepModePos);
                     if primaryPos > adjustment_length
+                        primaryPos = adjustment_length;
                         if ~silent
                             Snd('Play',sin(0:5000));
                         end
                         fprintf('User reached upper primary limit\n');
-                        primaryPos = adjustment_length;
                     end
                     if ~silent
                         Snd('Play',sin(0:5000)/100);
@@ -500,11 +499,11 @@ while(stillLooping)
                 case keyCodes.decreaseP1 % Move towards p2
                     primaryPos = primaryPos - stepModes(stepModePos);
                     if primaryPos < 1
+                        primaryPos = 1; 
                         if ~silent
                             Snd('Play',sin(0:5000));
                         end
                         fprintf('User reached lower primary limit\n');
-                        primaryPos = 1;
                     end
                     if ~silent
                         Snd('Play',sin(0:5000)/100);
@@ -514,7 +513,7 @@ while(stillLooping)
             end
         end
     end
-    % Switch to the next light to display
+    % Once the time has elapsed, switch to the next light to display
     lightModePos = lightModePos + 1;
     if lightModePos > length(lights)
         lightModePos = 1;
@@ -523,7 +522,6 @@ end
 
 %% Close up
 ol.setAll(false);
-
 if simulate
     ListenChar(0);
 else

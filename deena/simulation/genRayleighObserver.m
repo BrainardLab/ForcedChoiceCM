@@ -1,4 +1,4 @@
-function observer = genRayleighObserver(varargin)
+function observer = genRayleighObserver(foveal, varargin)
 % Generates a simulated observer for a Rayleigh match experiment 
 %
 % Syntax:
@@ -19,7 +19,8 @@ function observer = genRayleighObserver(varargin)
 %    difference/observer parameters), and T_cones (cone fundamentals). 
 %
 % Inputs:
-%     none  
+%     foveal            -Logical indicating whether matches are foveal 
+%                       (true) or peripheral (false)   
 %
 % Outputs:
 %     observer          -Struct with observer parameters and cone 
@@ -33,6 +34,7 @@ function observer = genRayleighObserver(varargin)
  
 % History:
 %   06/02/20  dce       Wrote initial code
+%   06/03/20  dce       Added field size correction
 
 
 % Parse input 
@@ -45,7 +47,9 @@ S = [380 2 201];  % Wavelength sampling (following OneLight convention)
 observer = struct; 
 observer.colorDiffParams = DefaultColorDiffParams('opponentContrast'); 
 observer.coneParams = DefaultConeParams('cie_asano'); 
-
+if foveal
+    observer.coneParams.fieldSizeDegrees = 2; 
+end 
 if ~isempty(p.Results.coneVec)
     observer = ObserverVecToParams('basic', p.Results.coneVec, observer);  
 end 
