@@ -136,6 +136,7 @@ if simulate
     res = GetInput('Select option', 'number', 1);
     if res == 1
         sim_observer = true;
+        nMatches = GetInput('Enter number of simulated matches', 'number', 1);
         params = GetInput('Enter optional observer params vector, or press Enter to continue', 'number', -1);
         if isempty(params)
             observer = genRayleighObserver(foveal);
@@ -145,6 +146,10 @@ if simulate
             error('Observer parameters must be listed as a 9-element vector');
         end
     end
+end
+% Placeholder variable for saving 
+if ~exist('observer', 'var')
+    observer = 0;
 end
 
 %% Set up key interpretations
@@ -309,7 +314,7 @@ while(stillLooping)
     end
     
     % Display primary, test, or white light.
-    nowTime = mglGetSecs;        
+    nowTime = mglGetSecs;
     switch lights(lightModePos)
         case 'p'
             ol.setMirrors(squeeze(primaryStartStops(pI,1,:))',...
@@ -323,19 +328,20 @@ while(stillLooping)
     
     % Until time limit runs out, check for user input
     while(mglGetSecs < nowTime + lightTimes(lightModePos))
-        if ideal
-            pI = pIdealIndex;
-            tI = tIdealIndex;
-        else
-            pI = primaryPos;
-            tI = testPos;
-        end
         % Simulated observer experiment - determine appropriate action with
         % calculations. First adjust the primary ratio, then adjust the
         % test intensity.
         if sim_observer
+            if ideal
+                pI = pIdealIndex;
+                tI = tIdealIndex;
+            else
+                pI = primaryPos;
+                tI = testPos;
+            end
             [p1_up, t_up] = observerRayleighDecision(observer,...
                 primarySpdsPredicted(:, pI), testSpdsPredicted(:, tI));
+            
             if ~primary_set  % Adjusting primary ratio
                 if p1_up == p1_up_prev % Continue in existing direction
                     if p1_up
@@ -352,6 +358,7 @@ while(stillLooping)
                     end
                 end
                 p1_up_prev = p1_up;
+                
             elseif ~test_set % Adjusting test intensity
                 if t_up == t_up_prev % Continue in existing direction
                     if t_up
@@ -370,19 +377,35 @@ while(stillLooping)
                     end
                 end
                 t_up_prev = t_up;
-            else            % Quit because the experiment is finished
-                key.charCode = 'q';
+                
+            else
+                % Reach this block once a match has been completed. Quit if
+                % the desired number of matches has been made, and reset
+                % otherwise.
+                [row,~] = size(matches);
+                if row == nMatches
+                    key.charCode = 'q';
+                else
+                    p1_up_prev = true;
+                    t_up_prev = true;
+                    primary_set = false;
+                    test_set = false;
+                    continue;
+                end
             end
+            
         elseif simulate      % Simulation with user keypresses
             if CharAvail
                 key.charCode = GetChar(true,false);
             else
                 key = [];
             end
+            
         else                 % Live experiment
             key.charCode = gamePad.getKeyEvent();
         end
         
+        % Modify program settings based on key input
         if (~isempty(key))
             switch(key.charCode)
                 case keyCodes.switchStepSize    % Switch step size mode
@@ -416,11 +439,18 @@ while(stillLooping)
                         'testStartStops','whitePrimaries', 'whiteSettings',...
                         'whiteStarts', 'whiteStops','whiteSpdNominal',...
                         'subjectID', 'sessionNum','annulusData','sInterval',...
-                        'lInterval', 'adjustment_length', 'foveal');
-                    % Randomize lights and set step size to largest
-                    primaryPos = randi(adjustment_length);
-                    testPos = randi(adjustment_length);
+                        'lInterval', 'adjustment_length', 'foveal', 'observer');
+                    % Set step size to largest and reset lights (random
+                    % position for live experiment, initial values for
+                    % simulation)
                     stepModePos = 1;
+                    if simulate
+                        primaryPos = 1;
+                        testPos = 1;
+                    else
+                        primaryPos = randi(adjustment_length);
+                        testPos = randi(adjustment_length);
+                    end
                     
                 case keyCodes.quit % Quit
                     if ~silent
@@ -453,7 +483,7 @@ while(stillLooping)
                     
                 case keyCodes.increaseIntensity % Scale up test intensity
                     testPos = testPos + stepModes(stepModePos);
-                    if testPos > adjustment_length                        
+                    if testPos > adjustment_length
                         testPos = adjustment_length;
                         if ~silent
                             Snd('Play',sin(0:5000));
@@ -499,7 +529,7 @@ while(stillLooping)
                 case keyCodes.decreaseP1 % Move towards p2
                     primaryPos = primaryPos - stepModes(stepModePos);
                     if primaryPos < 1
-                        primaryPos = 1; 
+                        primaryPos = 1;
                         if ~silent
                             Snd('Play',sin(0:5000));
                         end

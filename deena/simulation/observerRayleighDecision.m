@@ -37,7 +37,8 @@ function [p1_up, t_up] = observerRayleighDecision(observer, primarySpd, testSpd)
 tLMS = observer.T_cones * testSpd; 
 pLMS = observer.T_cones * primarySpd; 
 
-% Opponent contrasts for the given spectra 
+% Opponent contrasts for the given spectra (primary light relative to test
+% light)
 opponentContrast = LMSToOpponentContrast(observer.colorDiffParams,...
     tLMS, pLMS);
 

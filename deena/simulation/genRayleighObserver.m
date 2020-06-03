@@ -2,17 +2,18 @@ function observer = genRayleighObserver(foveal, varargin)
 % Generates a simulated observer for a Rayleigh match experiment 
 %
 % Syntax:
-%   genRayleighObserver(); 
+%   genRayleighObserver(foveal); 
 %
 % Description:
 %    Generates a simulated observer based on the Asano model. Designed for
 %    use with the OLRayleighMatch program to simulate Rayleigh matching
 %    experiments. 
 % 
-%    If no inputs are given, the program generates an observer with 
-%    standard cone fundamentals. However, the user can also enter a vector 
-%    of individual difference parameters for the model as a key-value pair
-%    (dlens, dmac, dphotopigments, lambdaMaxShifts, and noiseSd). 
+%    If no key-alue pairs are given, the program generates an observer with 
+%    standard cone fundamentals and a field size specified by the "foveal" 
+%    input. However, the user can also enter a vector of individual 
+%    difference parameters as a key-value pair (dlens, dmac, 
+%    dphotopigments, lambdaMaxShifts, and noiseSd). 
 %   
 %    The output observer struct includes three fields: colorDiffParams 
 %    (opponent contrast weighting parameters), coneParams (individual
@@ -47,12 +48,17 @@ S = [380 2 201];  % Wavelength sampling (following OneLight convention)
 observer = struct; 
 observer.colorDiffParams = DefaultColorDiffParams('opponentContrast'); 
 observer.coneParams = DefaultConeParams('cie_asano'); 
+
+% Set field size (default is 10 degrees)
 if foveal
     observer.coneParams.fieldSizeDegrees = 2; 
-end 
+end
+
+% Set individual difference parameters
 if ~isempty(p.Results.coneVec)
     observer = ObserverVecToParams('basic', p.Results.coneVec, observer);  
 end 
 
+% Cone fundamentals
 observer.T_cones = ComputeObserverFundamentals(observer.coneParams,S); 
 end 
