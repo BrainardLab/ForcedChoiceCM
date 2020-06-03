@@ -78,6 +78,7 @@ function OLRayleighMatch(varargin)
 %   03/29/19  dce       Edited for style
 %   06/01/20  dce       Added simulation option
 %   06/02/20  dce       Added simulated observer logic
+%   06/03/20  dce       Added tracking of subject settings over time
 
 %% Close any stray figures
 close all;
@@ -129,6 +130,7 @@ end
 % If the experiment is run in simulation mode without a simulated observer,
 % the user can control the stimuli with keypresses
 sim_observer = false;
+observer = struct();
 if simulate
     fprintf('Use simulated observer?\n')
     fprintf('[1]: Yes\n');
@@ -146,10 +148,6 @@ if simulate
             error('Observer parameters must be listed as a 9-element vector');
         end
     end
-end
-% Placeholder variable for saving 
-if ~exist('observer', 'var')
-    observer = 0;
 end
 
 %% Set up key interpretations
@@ -212,7 +210,7 @@ elseif ~simulate
 end
 
 %% Set up projector (if not making foveal matches)
-annulusData = 0; % Set so the program will save even if annulus is not used
+annulusData = struct(); % Empty placeholder variable
 % Check if an annulus file exists. If it does, can choose whether to use
 % the existing file or reset the annulus.
 if ~simulate && ~foveal
@@ -287,6 +285,9 @@ rev = false;         % Start with forward, not reverse order
 ideal = false;       % Do not start with the ideal match
 stillLooping = true; % Start looping
 
+% Store positions of subjects' light settings
+subjectSettings = [testScales(testPos), p1Scales(primaryPos)];
+
 % Settings for simulated observer
 if sim_observer
     primary_set = false;  % Primary ratio has not yet been adjusted
@@ -295,6 +296,7 @@ if sim_observer
     p1_up_prev = true;    % Indicate that the program directed p1 and t to
     t_up_prev = true;     % increase on prior trials.
 end
+
 %% Display loop
 % Loop through primary and test light until the user presses a key or the
 % simulated observer decides to simulate a keypress
@@ -340,7 +342,8 @@ while(stillLooping)
                 tI = testPos;
             end
             [p1_up, t_up] = observerRayleighDecision(observer,...
-                primarySpdsPredicted(:, pI), testSpdsPredicted(:, tI));
+                primarySpdsPredicted(:, pI), testSpdsPredicted(:, tI),...
+                'noisy', true);
             
             if ~primary_set  % Adjusting primary ratio
                 if p1_up == p1_up_prev % Continue in existing direction
@@ -439,7 +442,8 @@ while(stillLooping)
                         'testStartStops','whitePrimaries', 'whiteSettings',...
                         'whiteStarts', 'whiteStops','whiteSpdNominal',...
                         'subjectID', 'sessionNum','annulusData','sInterval',...
-                        'lInterval', 'adjustment_length', 'foveal', 'observer');
+                        'lInterval', 'adjustment_length', 'foveal',...
+                        'observer', 'subjectSettings');
                     % Set step size to largest and reset lights (random
                     % position for live experiment, initial values for
                     % simulation)
@@ -493,6 +497,7 @@ while(stillLooping)
                     if ~silent
                         Snd('Play',sin(0:5000)/100);
                     end
+                    subjectSettings = [subjectSettings; [testScales(testPos), p1Scales(primaryPos)]];
                     fprintf('User pressed key. Test intensity = %g, red primary = %g\n',...
                         testScales(testPos), p1Scales(primaryPos));
                     
@@ -508,6 +513,7 @@ while(stillLooping)
                     if ~silent
                         Snd('Play',sin(0:5000)/100);
                     end
+                    subjectSettings = [subjectSettings; [testScales(testPos), p1Scales(primaryPos)]];
                     fprintf('User pressed key. Test intensity = %g, red primary = %g\n',...
                         testScales(testPos), p1Scales(primaryPos));
                     
@@ -523,6 +529,7 @@ while(stillLooping)
                     if ~silent
                         Snd('Play',sin(0:5000)/100);
                     end
+                    subjectSettings = [subjectSettings; [testScales(testPos), p1Scales(primaryPos)]];
                     fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
                         testScales(testPos), p1Scales(primaryPos));
                     
@@ -538,6 +545,7 @@ while(stillLooping)
                     if ~silent
                         Snd('Play',sin(0:5000)/100);
                     end
+                    subjectSettings = [subjectSettings; [testScales(testPos), p1Scales(primaryPos)]];
                     fprintf('User pressed key. Test intensity = %g, red primary = %g\n',...
                         testScales(testPos), p1Scales(primaryPos));
             end
@@ -558,5 +566,40 @@ else
     if ~foveal
         GLW_CloseAnnularStimulus();
     end
+end
+
+%% Optional Plots
+% Optional plots
+plot_responses = true;
+if plot_responses
+    % Separate subplots of primary/test trajectories
+    figure();
+    hold on; 
+    subplot(2,1,1);
+    plot(subjectSettings(:,2),'b*-');
+    yline(subjectSettings(end,2)); 
+    plot(length(subjectSettings(:,2)) + 1, p1Scales(pIdealIndex), 'r*');
+    title('Primary Ratio');
+    xlabel('Trial');
+    ylabel('Proportion Red (p1)');
+    
+    subplot(2,1,2);
+    plot(subjectSettings(:,1), 'b*-');
+    yline(subjectSettings(end,1));
+    plot(length(subjectSettings(:,1)) + 1, testScales(tIdealIndex), 'r*');  
+    title('Test Intensity');
+    xlabel('Trial');
+    ylabel('Proportion of Maximal Intensity');
+    sgtitle('Subject Settings Over Time');
+    
+    % Plot with both trajectories in tandem
+    figure();
+    hold on; 
+    plot(subjectSettings(:,1), subjectSettings(:,2), 'b. ');
+    plot(testScales(tIdealIndex), p1Scales(pIdealIndex), 'r*'); 
+    xlabel('Proportional Test Intensity');
+    ylabel('Primary Ratio (Proportion Red)');
+    title('Subject Settings Over Time');
+    legend('Subject Settings', 'Nominal Match'); 
 end
 end

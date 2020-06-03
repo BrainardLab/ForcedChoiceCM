@@ -1,4 +1,4 @@
-function [p1_up, t_up] = observerRayleighDecision(observer, primarySpd, testSpd) 
+function [primary_redder, test_brighter] = observerRayleighDecision(observer, primarySpd, testSpd, varargin) 
 % Simulated observer decision making for a Rayleigh match experiment 
 %
 % Syntax:
@@ -9,11 +9,10 @@ function [p1_up, t_up] = observerRayleighDecision(observer, primarySpd, testSpd)
 %    spds (primary and test). 
 %
 %    Computes the opponent contrast of the two spectra based on the
-%    observer's cone fundamentals. Based on the contrast values of
-%    individual channels, determines whether the test light should be made
-%    brighter or dimmer and whether the mixing light should be shifted
-%    towards the red primary or the green primary. 
-%
+%    observer's cone fundamentals. Using the contrast values of individual
+%    channels, determines whether the test light should be made brighter or
+%    dimmer and whether the mixing light should be shifted towards the red
+%    primary or the green primary. Noise can be added as a key-value pair. 
 %   
 % Inputs:
 %     observer          -Struct with observer parameters. Must contain the
@@ -22,37 +21,53 @@ function [p1_up, t_up] = observerRayleighDecision(observer, primarySpd, testSpd)
 %     testSpd           -201x1 vector represetation of the test spd  
 %
 % Outputs:
-%     p1_up             -Logical indicating whether  primary ratio should 
-%                        be shifted towards p1 (red). 
-%     t_up              -Logical indicating whether test intensity should  
+%     primary_redder    -Logical indicating whether  primary ratio should 
+%                        be shifted towards a redder value 
+%     test_brighter     -Logical indicating whether test intensity should  
 %                        be increased. 
 %
 % Optional key-value pairs:
-%    None
+%     noisy             -Logical indicating whether to add Gaussian noise.
+%                        Default is false
 
 % History:
 %   06/02/20  dce       Wrote initial code
+%   06/03/20  dce       Added noise, style edits
+
+% Parse input 
+p = inputParser;
+p.addParameter('noisy', false, @(x) (islogical(x)));
+p.parse(varargin{:});
 
 % Cone responses for the given spectra 
-tLMS = observer.T_cones * testSpd; 
-pLMS = observer.T_cones * primarySpd; 
+test_LMS = observer.T_cones * testSpd; 
+primary_LMS = observer.T_cones * primarySpd; 
 
-% Opponent contrasts for the given spectra (primary light relative to test
-% light)
+% Opponent contrasts for the given spectra (primary mixing light relative 
+% to test light). The result has the form [LUM; RG; BY].
 opponentContrast = LMSToOpponentContrast(observer.colorDiffParams,...
-    tLMS, pLMS);
+    test_LMS, primary_LMS);
+
+% Add noise
+% Sample three values from a Gaussian distribution, and add them to the
+% opponentContrast vector
+if p.Results.noisy 
+    sd = observer.colorDiffParams.noiseSd; % Gaussian standard deviation
+    noise = normrnd(0, sd, 3, 1); 
+    opponentContrast = opponentContrast + noise; 
+end 
 
 % Check luminance 
-if opponentContrast(1) > 0 % Primary is brighter 
-    t_up = true;
+if opponentContrast(1) > 0 % Primary mixture is brighter than test 
+    test_brighter = true;
 else 
-    t_up = false; 
+    test_brighter = false; 
 end 
 
 % Check R/G ratio
-if opponentContrast(2) < 0 % Too green/too close to p2
-    p1_up = true; 
+if opponentContrast(2) < 0 % Primary mixture is greener than test
+    primary_redder = true; 
 else 
-    p1_up = false; 
+    primary_redder = false; 
 end 
 end 
