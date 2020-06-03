@@ -23,6 +23,11 @@ function OLRayleighMatch(varargin)
 %    button to quit, and the 'Start' button to display an ideal match
 %    (based on measured data).
 %
+%    In addition to the experimental program, two simulation options are
+%    available. The first option allows the experimenter to use keypresses 
+%    to recreate subjects' button presses. The second method creates a 
+%    simulated observer based on the Asano model, using this observer to 
+%
 %    The routine prompts for subject and session info.
 %
 % Inputs:
@@ -130,14 +135,14 @@ if simulate
     res = GetInput('Select option', 'number', 1);
     if res == 1
         sim_observer = true;
-        params = GetInput('Enter optional observer parameters, or press Enter to continue', 'number', -1); 
+        params = GetInput('Enter optional observer params vector, or press Enter to continue', 'number', -1);
         if isempty(params)
-            observer = genRayleighObserver(); 
+            observer = genRayleighObserver();
         elseif length(params) == 9
             observer = genRayleighObserver('coneVec', params);
-        else 
-            error('Observer parameters must be listed as a 9-element vector'); 
-        end 
+        else
+            error('Observer parameters must be listed as a 9-element vector');
+        end
     end
 end
 
@@ -276,11 +281,16 @@ lightModePos = 1;    % Start with the first light in the lights array
 rev = false;         % Start with forward, not reverse order
 ideal = false;       % Do not start with the ideal match
 stillLooping = true; % Start looping
+pI = primaryPos;
+tI = testPos;
 
 if sim_observer
-    primary_set = false;  % Primary ratio has not yet been adjusted 
+    primary_set = false;  % Primary ratio has not yet been adjusted
     test_set = false;     % Test intensity has not yet been adjusted
-end 
+    
+    p1_up_prev = true;    % Indicate that the program directed p1 and t to
+    t_up_prev = true;    % increase on prior trials.
+end
 %% Display loop
 % Loop through primary and test light until the user presses a key
 while(stillLooping)
@@ -298,8 +308,7 @@ while(stillLooping)
         pI = pIdealIndex;
         tI = tIdealIndex;
     else
-        pI = primaryPos;
-        tI = testPos;
+
     end
     switch lights(lightModePos)
         case 'p'
@@ -314,17 +323,55 @@ while(stillLooping)
     
     % Until time limit runs out, check for user input
     while(mglGetSecs < nowTime + lightTimes(lightModePos))
-        if sim_observer      % Simulated observer experiment
-            [p1_up, t_up] = observerRayleighDecision(observer, primarySpdsNominal(:, pI), testSpdsNominal(:, tI));
-            if p1_up
-                key.charCode = 'r'; 
-            elseif t_up 
-                key.charCode = 'u'; 
-            end 
-            % function to call simulated observer, takes in spectra, return
-            % the needed change 
-            % if it was wrong in one direction and is now wrong in the
-            % other direction, change step size. When reversal happens for the smallest step size, make a match  
+        if ideal
+            pI = pIdealIndex;
+            tI = tIdealIndex;
+        else
+            pI = primaryPos;
+            tI = testPos;
+        end
+        % Simulated observer experiment - determine appropriate action with
+        % calculations
+        if sim_observer
+            [p1_up, t_up] = observerRayleighDecision(observer,...
+                primarySpdsPredicted(:, pI), testSpdsPredicted(:, tI));
+            if ~primary_set  % Adjusting mixing ration
+                if p1_up == p1_up_prev % Continue in existing direction
+                    if p1_up
+                        key.charCode = 'r';
+                    else
+                        key.charCode = 'l';
+                    end
+                else        % Reversal
+                    key.charCode = 's'; % Lower step size
+                    % If smallest step size has already been reached,
+                    % you're done with the primary.
+                    if stepModePos == length(stepModes)
+                        primary_set = true;
+                    end
+                end
+                p1_up_prev = p1_up;
+            elseif ~test_set % If mixing ratio is correct, adjust test intensity
+                if t_up == t_up_prev % Continue in existing direction
+                    if t_up
+                        key.charCode = 'u';
+                    else
+                        key.charCode = 'd';
+                    end
+                else        % Reversal
+                    % If smallest step size has already been reached,
+                    % you're done with the test light and can record a match.
+                    if stepModePos == length(stepModes)
+                        test_set = true;
+                        key.charCode = ' ';
+                    else
+                        key.charCode = 's'; % Lower step size
+                    end
+                end
+                t_up_prev = t_up;
+            else             % Quit because the experiment is finished
+                key.charCode = 'q';
+            end
         elseif simulate      % Simulation with user keypresses
             if CharAvail
                 key.charCode = GetChar(true,false);
@@ -467,7 +514,6 @@ while(stillLooping)
             end
         end
     end
-    
     % Switch to the next light to display
     lightModePos = lightModePos + 1;
     if lightModePos > length(lights)
