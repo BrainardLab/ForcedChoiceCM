@@ -42,29 +42,37 @@ function OLRayleighMatch(varargin)
 %    at least one match.
 %
 % Optional key-value pairs:
-%    'p1'        - integer wavelength of the first primary light in nm.
-%                  Default is 670.
-%    'p2'        - integer wavelength of the second primary light in nm.
-%                  Default is 540.
-%    'test'      - integer wavelength of the test light in nm. Default is
-%                  580.
-%    'sInterval' - length of time in s that the short stimulus is displayed
-%                  for (or both stimuli when white light is used). Default
-%                  is 0.25.
-%    'lInterval' - length of time in s that the long stimulus is displayed
-%                  for (or the iti white light if it is used). Default is
-%                  1.
-%    'foveal'    - logical indicating whether we are making foveal matches,
-%                  in which case the annulus is not turned on. Default is
-%                  true.
-%    'white'     - logical indicating to run  a version of the experiment
-%                  where the lights  are displayed with white in between.
-%                  Default is false.
-%    'simulate'  - logical. Set to true to run in simulated mode. Default
-%                  is true.
-%    'silent'    - logical. Set to true to turn off feedback beeps. Default
-%                  is false.
-
+%    'p1'             - integer wavelength of the first primary light in
+%                       nm. Default is 670.
+%    'p2'             - integer wavelength of the second primary light in
+%                       nm. Default is 540.
+%    'test'           - integer wavelength of the test light in nm. Default
+%                       is 580.
+%    'sInterval'      - length of time in s that the short stimulus is
+%                       displayed for (or both stimuli when white light is
+%                       used). Default is 0.25.
+%    'lInterval'      - length of time in s that the long stimulus is
+%                       displayed for (or the iti white light if it is
+%                       used). Default is 1.
+%    'foveal'         - logical indicating whether we are making foveal
+%                       matches, in which case the annulus is not turned
+%                       on. Default is true.
+%    'white'          - logical indicating to run  a version of the
+%                       experiment where the lights  are displayed with
+%                       white in between. Default is false.
+%    'simulate'       - logical. Set to true to run in simulated mode.
+%                       Default is true.
+%    'silent'         - logical. Set to true to turn off feedback beeps.
+%                       Default is false.
+%    'switchInterval' - When using a simulated observer, number of
+%                       adjustments to make in a particular dimension
+%                       (luminance or RG) before switching. Default is 1.
+%    'numReversals'   - When using a simulated observer, number of
+%                       reversals required before changing step size. Enter
+%                       as a 2-element vector - the first element is the
+%                       number of reversals for intermediate step sizes,
+%                       the second is the number needed for the smallest
+%                       step size. Default is [1 4]. 
 % History:
 %   xx/xx/19  dce       Wrote it.
 %   01/15/20  dce, dhb  Add control of white by specifying primaries.
@@ -79,6 +87,7 @@ function OLRayleighMatch(varargin)
 %   06/01/20  dce       Added simulation option
 %   06/02/20  dce       Added simulated observer logic
 %   06/03/20  dce       Added tracking of subject settings over time
+%   06/04/20  dce       Added plotting option
 
 %% Close any stray figures
 close all;
@@ -96,6 +105,8 @@ p.addParameter('foveal', true, @(x) (islogical(x)));
 p.addParameter('white', false, @(x) (islogical(x)));
 p.addParameter('simulate', true, @(x) (islogical(x)));
 p.addParameter('silent', false, @(x) (islogical(x)));
+p.addParameter('switchInterval', 1, @(x) (isnumeric(x)));
+p.addParameter('numReversals', [1 4], @(x) (isnumeric(x)));
 
 p.parse(varargin{:});
 p1 = p.Results.p1;
@@ -107,6 +118,11 @@ foveal = p.Results.foveal;
 white = p.Results.white;
 simulate = p.Results.simulate;
 silent = p.Results.silent;
+switchInterval = p.Results.switchInterval;
+numReversals = p.Results.numReversals;
+if (length(numReversals) ~= 2) 
+    error('Reversal vector must be 2x1'); 
+end 
 
 %% Set up directory for saving results
 subjectID = input('Enter subject ID: ');
@@ -240,6 +256,37 @@ if ~simulate && ~foveal
     fprintf('\nProjector ready. Starting display loop\n')
 end
 
+%% Optional Plots
+plot_responses = true;
+if plot_responses
+    % Separate subplots of primary/test trajectories
+    figure(2);
+    subplot(2,1,1);
+    hold on;
+    title('Primary Ratio');
+    xlabel('Number Adjustment');
+    ylabel('Proportion Red (p1)');
+    
+    subplot(2,1,2);
+    hold on;
+    title('Test Intensity');
+    xlabel('Number Adjustment');
+    ylabel('Proportion of Maximal Intensity');
+    sgtitle('Subject Settings Over Time');
+    
+    % Plot with both trajectories in tandem
+    figure(3);
+    hold on;
+    xlabel('Proportional Test Intensity');
+    ylabel('Primary Ratio (Proportion Red)');
+    title('Subject Settings Over Time');
+    
+    % Arrays for plot data
+    tSettingsVec = []; % Vector to store test settings for plot
+    pSettingsVec = []; % Vector to store primary settings for plot
+    matchInds = [];    % Adjustment numbers of matches
+end
+
 %% Display parameters
 % Possible step sizes (relative to adjustment_length)
 stepModes = [floor(adjustment_length/5), floor(adjustment_length/20),...
@@ -290,11 +337,17 @@ subjectSettings = [testScales(testPos), p1Scales(primaryPos)];
 
 % Settings for simulated observer
 if sim_observer
-    primary_set = false;  % Primary ratio has not yet been adjusted
-    test_set = false;     % Test intensity has not yet been adjusted
+    adjustingP = true;    % Start by adjusting the primary ratio
+    adjustmentCount = 1;  % Count how long you've been adjusting one parameter
     
     p1_up_prev = true;    % Indicate that the program directed p1 and t to
     t_up_prev = true;     % increase on prior trials.
+    
+    pStepPos = 1;         % Start both primary and test adjustment at
+    tStepPos = 1;         % largest step size
+    
+    numReversalsP = 0;    % Number of reversals at smallest step size
+    numReversalsT = 0;    % for each adjustment
 end
 
 %% Display loop
@@ -334,6 +387,7 @@ while(stillLooping)
         % calculations. First adjust the primary ratio, then adjust the
         % test intensity.
         if sim_observer
+            % Which light indices are we using?
             if ideal
                 pI = pIdealIndex;
                 tI = tIdealIndex;
@@ -341,62 +395,89 @@ while(stillLooping)
                 pI = primaryPos;
                 tI = testPos;
             end
+            % Prompt the simulated observer for a decision
             [p1_up, t_up] = observerRayleighDecision(observer,...
                 primarySpdsPredicted(:, pI), testSpdsPredicted(:, tI),...
                 'noisy', true);
-            
-            if ~primary_set  % Adjusting primary ratio
+            % Quit if all matches have been made
+            [row,~] = size(matches);
+            if row == nMatches
+                key.charCode = 'q';
+                % Record match and reset loop if match criteria are reached
+            elseif ((numReversalsP >= numReversals) && (numReversalsT >= numReversals))
+                key.charCode = ' ';
+                p1_up_prev = true;
+                t_up_prev = true;
+                adjustingP = true;
+                adjustmentCount = 1;
+                pStepPos = 1;
+                tStepPos = 1;
+                numReversalsP = 0;
+                numReversalsT = 0;
+                % Adjust primary if match is not yet reached
+            elseif adjustingP
+                stepModePos = pStepPos;
                 if p1_up == p1_up_prev % Continue in existing direction
                     if p1_up
                         key.charCode = 'r';
                     else
                         key.charCode = 'l';
                     end
+                    adjustmentCount = adjustmentCount + 1;
                 else        % Reversal
-                    key.charCode = 's'; % Lower step size
                     % If smallest step size has already been reached,
-                    % you're done with the primary.
+                    % just move however it indicates and count reversals.
+                    % Otherwise, lower step size
                     if stepModePos == length(stepModes)
-                        primary_set = true;
+                        if p1_up
+                            key.charCode = 'r';
+                        else
+                            key.charCode = 'l';
+                        end
+                        numReversalsP = numReversalsP + 1;
+                        adjustmentCount = adjustmentCount + 1;
+                        fprintf('Primary reversal %g\n', numReversalsP);
+                    else
+                        key.charCode = 's';
+                        pStepPos = pStepPos + 1;
                     end
                 end
                 p1_up_prev = p1_up;
-                
-            elseif ~test_set % Adjusting test intensity
+                % Adjust test intensity if match is not yet reached
+            else
+                stepModePos = tStepPos;
                 if t_up == t_up_prev % Continue in existing direction
                     if t_up
                         key.charCode = 'u';
                     else
                         key.charCode = 'd';
                     end
+                    adjustmentCount = adjustmentCount + 1;
                 else        % Reversal
-                    % If smallest step size has already been reached,
-                    % you're done with the test light and can record a match.
+                    % If smallest step size has already been reached, just
+                    % move as it says and count reversals. Otherwise, lower
+                    % step size.
                     if stepModePos == length(stepModes)
-                        test_set = true;
-                        key.charCode = ' ';
+                        if p1_up
+                            key.charCode = 'u';
+                        else
+                            key.charCode = 'd';
+                        end
+                        numReversalsT = numReversalsT + 1;
+                        fprintf('Test reversal %g\n', numReversalsT);
+                        adjustmentCount = adjustmentCount + 1;
                     else
                         key.charCode = 's'; % Lower step size
+                        tStepPos = tStepPos + 1;
                     end
                 end
                 t_up_prev = t_up;
-                
-            else
-                % Reach this block once a match has been completed. Quit if
-                % the desired number of matches has been made, and reset
-                % otherwise.
-                [row,~] = size(matches);
-                if row == nMatches
-                    key.charCode = 'q';
-                else
-                    p1_up_prev = true;
-                    t_up_prev = true;
-                    primary_set = false;
-                    test_set = false;
-                    continue;
-                end
             end
-            
+            % Switch which light you're adjusting if the limit is reached
+            if adjustmentCount > switchInterval
+                adjustingP = ~adjustingP;
+                adjustmentCount = 1;
+            end
         elseif simulate      % Simulation with user keypresses
             if CharAvail
                 key.charCode = GetChar(true,false);
@@ -422,18 +503,39 @@ while(stillLooping)
                             Snd('Play',sin(0:5000));
                         end
                     end
-                    fprintf('User switched step size to %g\n',...
-                        (stepModes(stepModePos)/ (adjustment_length - 1)));
+                    if sim_observer && adjustingP
+                        fprintf('User switched primary step size to %g\n',...
+                            (stepModes(stepModePos)/ (adjustment_length - 1)));
+                    elseif sim_observer
+                        fprintf('User switched test step size to %g\n',...
+                            (stepModes(stepModePos)/ (adjustment_length - 1)));
+                    else
+                        fprintf('User switched step size to %g\n',...
+                            (stepModes(stepModePos)/ (adjustment_length - 1)));
+                    end
                     
                 case keyCodes.foundMatch  % Subject found a match
                     if ~silent
                         Snd('Play',sin(0:5000));
                     end
+                    % Calculate match. If this is a live experiment, simply
+                    % provide the subject setting. For a simulated
+                    % observer, average the last two different settings
+                    if sim_observer
+                        % Find previous values to average with
+                        pPrev = findLastUnique(subjectSettings(:, 2));
+                        tPrev = findLastUnique(subjectSettings(:,1));
+                        pMatch = mean([subjectSettings(end,2), pPrev]);
+                        tMatch = mean([subjectSettings(end,1),tPrev]);
+                    else
+                        pMatch = p1Scales(primaryPos);
+                        tMatch = testScales(testPos);
+                    end
                     fprintf('User found match at %g test, %g primary\n',...
-                        testScales(testPos), p1Scales(primaryPos));
-                    % Save match
+                        tMatch, pMatch);
                     matches = [matches;...
-                        [testScales(testPos), p1Scales(primaryPos)]];
+                        [tMatch, pMatch]];
+                    % Change matchPos later
                     matchPositions = [matchPositions; [testPos, primaryPos]];
                     save(fileLoc, 'matches', 'matchPositions', 'p1', 'p2',...
                         'test', 'cal','primarySpdsNominal',...
@@ -443,7 +545,16 @@ while(stillLooping)
                         'whiteStarts', 'whiteStops','whiteSpdNominal',...
                         'subjectID', 'sessionNum','annulusData','sInterval',...
                         'lInterval', 'adjustment_length', 'foveal',...
-                        'observer', 'subjectSettings');
+                        'observer', 'subjectSettings', 'simulate',...
+                        'switchInterval');
+                    if plot_responses
+                        figure(2);
+                        subplot(2,1,1)
+                        xline(length(pSettingsVec));
+                        subplot(2,1,2);
+                        xline(length(tSettingsVec));
+                        matchInds = [matchInds; [length(tSettingsVec), length(pSettingsVec)]];
+                    end
                     % Set step size to largest and reset lights (random
                     % position for live experiment, initial values for
                     % simulation)
@@ -462,6 +573,7 @@ while(stillLooping)
                     end
                     fprintf('User exited program\n');
                     stillLooping = false;
+                    break;
                     
                 case keyCodes.switchLightOrder % Switch primary/test order
                     rev = ~rev;
@@ -498,6 +610,14 @@ while(stillLooping)
                         Snd('Play',sin(0:5000)/100);
                     end
                     subjectSettings = [subjectSettings; [testScales(testPos), p1Scales(primaryPos)]];
+                    if plot_responses
+                        tSettingsVec = [tSettingsVec, subjectSettings(end,1)];
+                        figure(2);
+                        subplot(2,1,2);
+                        plot(tSettingsVec, '-b*');
+                        figure(3); 
+                        plot(subjectSettings(:,1), subjectSettings(:,2), 'b*-'); 
+                    end
                     fprintf('User pressed key. Test intensity = %g, red primary = %g\n',...
                         testScales(testPos), p1Scales(primaryPos));
                     
@@ -514,6 +634,14 @@ while(stillLooping)
                         Snd('Play',sin(0:5000)/100);
                     end
                     subjectSettings = [subjectSettings; [testScales(testPos), p1Scales(primaryPos)]];
+                    if plot_responses
+                        tSettingsVec = [tSettingsVec, subjectSettings(end,1)];
+                        figure(2);
+                        subplot(2,1,2);
+                        plot(tSettingsVec, '-b*');
+                        figure(3); 
+                        plot(subjectSettings(:,1), subjectSettings(:,2), 'b*-'); 
+                    end
                     fprintf('User pressed key. Test intensity = %g, red primary = %g\n',...
                         testScales(testPos), p1Scales(primaryPos));
                     
@@ -530,6 +658,14 @@ while(stillLooping)
                         Snd('Play',sin(0:5000)/100);
                     end
                     subjectSettings = [subjectSettings; [testScales(testPos), p1Scales(primaryPos)]];
+                    if plot_responses
+                        pSettingsVec = [pSettingsVec, subjectSettings(end,2)];
+                        figure(2);
+                        subplot(2,1,1);
+                        plot(pSettingsVec, '-b*');
+                        figure(3); 
+                        plot(subjectSettings(:,1), subjectSettings(:,2), 'b*-'); 
+                    end
                     fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
                         testScales(testPos), p1Scales(primaryPos));
                     
@@ -546,6 +682,14 @@ while(stillLooping)
                         Snd('Play',sin(0:5000)/100);
                     end
                     subjectSettings = [subjectSettings; [testScales(testPos), p1Scales(primaryPos)]];
+                    if plot_responses
+                        pSettingsVec = [pSettingsVec, subjectSettings(end,2)];
+                        figure(2);
+                        subplot(2,1,1);
+                        plot(pSettingsVec, '-b*');
+                        figure(3); 
+                        plot(subjectSettings(:,1), subjectSettings(:,2), 'b*-'); 
+                    end
                     fprintf('User pressed key. Test intensity = %g, red primary = %g\n',...
                         testScales(testPos), p1Scales(primaryPos));
             end
@@ -568,38 +712,20 @@ else
     end
 end
 
-%% Optional Plots
-% Optional plots
-plot_responses = true;
+% Clean up plots, if they are in use
 if plot_responses
-    % Separate subplots of primary/test trajectories
-    figure();
-    hold on; 
-    subplot(2,1,1);
-    plot(subjectSettings(:,2),'b*-');
-    yline(subjectSettings(end,2)); 
-    plot(length(subjectSettings(:,2)) + 1, p1Scales(pIdealIndex), 'r*');
-    title('Primary Ratio');
-    xlabel('Trial');
-    ylabel('Proportion Red (p1)');
+    figure(2);
+    subplot(2,1,1)
+    ylim([0 1.3]);
+    plot(matchInds(:,2)-0.5, matches(:,2), 'r* ', 'MarkerSize', 10);
     
     subplot(2,1,2);
-    plot(subjectSettings(:,1), 'b*-');
-    yline(subjectSettings(end,1));
-    plot(length(subjectSettings(:,1)) + 1, testScales(tIdealIndex), 'r*');  
-    title('Test Intensity');
-    xlabel('Trial');
-    ylabel('Proportion of Maximal Intensity');
-    sgtitle('Subject Settings Over Time');
+    ylim([0 1.3]);
+    plot(matchInds(:,1)-0.5, matches(:,1), 'r* ', 'MarkerSize', 10);
     
-    % Plot with both trajectories in tandem
-    figure();
-    hold on; 
-    plot(subjectSettings(:,1), subjectSettings(:,2), 'b. ');
-    plot(testScales(tIdealIndex), p1Scales(pIdealIndex), 'r*'); 
-    xlabel('Proportional Test Intensity');
-    ylabel('Primary Ratio (Proportion Red)');
-    title('Subject Settings Over Time');
-    legend('Subject Settings', 'Nominal Match'); 
+    figure(3); 
+    xlim([0 1]); 
+    ylim([0 1]); 
+    plot(matches(:,1), matches(:,2), 'r* ', 'MarkerSize', 10, 'LineWidth', 2); 
 end
 end
