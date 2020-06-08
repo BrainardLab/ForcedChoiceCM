@@ -260,37 +260,38 @@ if ~simulate && ~foveal
 end
 
 %% Optional Plots
+% If plot_responses is true, a pair of plots will be made for each match
 plot_responses = true;
 if plot_responses
     % Arrays for storing plot data
-    tSettingsVec = []; % Vector to store test settings for plot
-    pSettingsVec = []; % Vector to store primary settings for plot
-    matchInds = [];    % Adjustment numbers of matches
+    nPlots = 2;           % Counter for figure index of current match
+    matchSettingInd = 1;  % Position in subjectSettings where the current match starts
     
     % Separate subplots of primary/test trajectories
     figure(2);
-    sgtitle('Subject Settings Over Time');
+    sgtitle('Subject Settings Over Time, Match 1');
     subplot(2,1,1);
     hold on;
     title('Primary Ratio');
+    ylim([0 1.3]);
     xlabel('Number Adjustment');
     ylabel('Proportion Red (p1)');
     
     subplot(2,1,2);
     hold on;
     title('Test Intensity');
+    ylim([0 1.3]);
     xlabel('Number Adjustment');
     ylabel('Proportion of Maximal Intensity');
     
-    % Plot with both trajectories in tandem. One plot of this type will be
-    % made for each match
+    % Plot with both trajectories in tandem.
     figure(3);
     hold on;
+    xlim([0 1]);
+    ylim([0 1]);
     xlabel('Proportional Test Intensity');
     ylabel('Primary Ratio (Proportion Red)');
     title('Subject Settings Over Time, Match 1');
-    nPlots = 3;           % Counter for what number plot we're up to
-    matchSettingInd = 1;  % Position in subjectSettings where the current match starts
 end
 
 %% Display parameters
@@ -543,23 +544,55 @@ while(stillLooping)
                         'adjustment_length', 'foveal', 'white', 'simulate',...
                         'numReversals', 'switchInterval', 'observer', 'noisy');
                     if plot_responses
-                        figure(2);
-                        subplot(2,1,1)
-                        xline(length(pSettingsVec));
-                        subplot(2,1,2);
-                        xline(length(tSettingsVec));
-                        matchInds = [matchInds; [length(tSettingsVec), length(pSettingsVec)]];
+                        nAdjustments = length(subjectSettings(matchSettingInd:end,1)); 
                         matchSettingInd = length(subjectSettings(:,1))+1;
-                        
-                        % Add a new figure with both trajectories for the next match
-                        % Plot with both trajectories in tandem
-                        nPlots = nPlots + 1;
+                        % Current individual trajectory figure
                         figure(nPlots);
+                        subplot(2,1,1)
+                        p1 = plot(nAdjustments+1, matches(end,2), 'r* ',...
+                            nAdjustments+1, p1Scales(pIdealIndex), 'gs',...
+                            'MarkerSize', 7);
+                        legend(p1,'Subject Match','Nominal Match');
+                        subplot(2,1,2);
+                        p2 = plot(nAdjustments+1, matches(end,1), 'r* ',...
+                            nAdjustments+1, testScales(tIdealIndex), 'gs',...
+                            'MarkerSize', 7);
+                        legend(p2,'Subject Match','Nominal Match');
+                        
+                        % Current joint trajectory figure
+                        figure(nPlots+1);
+                        p3 = plot(matches(end,1), matches(end,2), 'r* ', 'MarkerSize', 10, 'LineWidth', 1.5);
+                        p4 = plot(testScales(tIdealIndex), p1Scales(pIdealIndex), 'gs',...
+                            'MarkerFaceColor', 'g');
+                        legend([p3,p4], 'Subject Match', 'Nominal Match');
+                        
+                        % Add new figures for the next match
+                        nPlots = nPlots + 2;
+                        figure(nPlots);
+                        title1 = sprintf('Subject Settings Over Time, Match %g', nPlots/2);
+                        sgtitle(title1);
+                        subplot(2,1,1);
                         hold on;
+                        title('Primary Ratio');
+                        ylim([0 1.3]);
+                        xlabel('Number Adjustment');
+                        ylabel('Proportion Red (p1)');
+                        
+                        subplot(2,1,2);
+                        hold on;
+                        title('Test Intensity');
+                        ylim([0 1.3]);
+                        xlabel('Number Adjustment');
+                        ylabel('Proportion of Maximal Intensity');
+                        
+                        figure(nPlots +1);
+                        hold on;
+                        xlim([0 1]);
+                        ylim([0 1]);
                         xlabel('Proportional Test Intensity');
                         ylabel('Primary Ratio (Proportion Red)');
-                        theTitle = sprintf('Subject Settings Over Time, Match %g', nPlots - 2);
-                        title(theTitle);
+                        title2 = sprintf('Subject Settings Over Time, Match %g', nPlots/2);
+                        title(title2);
                     end
                     % Set step size to largest and reset lights (random
                     % position for live experiment, initial values for
@@ -619,11 +652,12 @@ while(stillLooping)
                         testScales(testPos), p1Scales(primaryPos));
                     subjectSettings = [subjectSettings; [testScales(testPos), p1Scales(primaryPos)]];
                     if plot_responses
-                        tSettingsVec = [tSettingsVec, subjectSettings(end,1)];
-                        figure(2);
-                        subplot(2,1,2);
-                        plot(tSettingsVec, '-b*');
                         figure(nPlots);
+                        subplot(2,1,1);
+                        plot(subjectSettings(matchSettingInd:end,2),'b*-');
+                        subplot(2,1,2);
+                        plot(subjectSettings(matchSettingInd:end,1),'b*-');
+                        figure(nPlots+1);
                         plot(subjectSettings(matchSettingInd:end,1),...
                             subjectSettings(matchSettingInd:end,2), 'b*-');
                     end
@@ -644,11 +678,12 @@ while(stillLooping)
                         testScales(testPos), p1Scales(primaryPos));
                     subjectSettings = [subjectSettings; [testScales(testPos), p1Scales(primaryPos)]];
                     if plot_responses
-                        tSettingsVec = [tSettingsVec, subjectSettings(end,1)];
-                        figure(2);
-                        subplot(2,1,2);
-                        plot(tSettingsVec, '-b*');
                         figure(nPlots);
+                        subplot(2,1,1);
+                        plot(subjectSettings(matchSettingInd:end,2),'b*-');
+                        subplot(2,1,2);
+                        plot(subjectSettings(matchSettingInd:end,1),'b*-');
+                        figure(nPlots+1);
                         plot(subjectSettings(matchSettingInd:end,1),...
                             subjectSettings(matchSettingInd:end,2), 'b*-');
                     end
@@ -669,11 +704,12 @@ while(stillLooping)
                         testScales(testPos), p1Scales(primaryPos));
                     subjectSettings = [subjectSettings; [testScales(testPos), p1Scales(primaryPos)]];
                     if plot_responses
-                        pSettingsVec = [pSettingsVec, subjectSettings(end,2)];
-                        figure(2);
-                        subplot(2,1,1);
-                        plot(pSettingsVec, '-b*');
                         figure(nPlots);
+                        subplot(2,1,1);
+                        plot(subjectSettings(matchSettingInd:end,2),'b*-');
+                        subplot(2,1,2);
+                        plot(subjectSettings(matchSettingInd:end,1),'b*-');
+                        figure(nPlots+1);
                         plot(subjectSettings(matchSettingInd:end,1),...
                             subjectSettings(matchSettingInd:end,2), 'b*-');
                     end
@@ -694,11 +730,12 @@ while(stillLooping)
                     fprintf('User pressed key. Test intensity = %g, red primary = %g\n',...
                         testScales(testPos), p1Scales(primaryPos));
                     if plot_responses
-                        pSettingsVec = [pSettingsVec, subjectSettings(end,2)];
-                        figure(2);
-                        subplot(2,1,1);
-                        plot(pSettingsVec, '-b*');
                         figure(nPlots);
+                        subplot(2,1,1);
+                        plot(subjectSettings(matchSettingInd:end,2),'b*-');
+                        subplot(2,1,2);
+                        plot(subjectSettings(matchSettingInd:end,1),'b*-');
+                        figure(nPlots+1);
                         plot(subjectSettings(matchSettingInd:end,1),...
                             subjectSettings(matchSettingInd:end,2), 'b*-');
                     end
@@ -720,31 +757,8 @@ elseif ~foveal
     GLW_CloseAnnularStimulus();
 end
 
-% Clean up plots and add matches
-if plot_responses
-    figure(2);
-    subplot(2,1,1)
-    ylim([0 1.3]);
-    p1 = plot(matchInds(:,2)-0.5, matches(:,2), 'r* ', 'MarkerSize', 10);
-    
-    legend(p1, 'Matches');
-    subplot(2,1,2);
-    ylim([0 1.3]);
-    p2 = plot(matchInds(:,1)-0.5, matches(:,1), 'r* ', 'MarkerSize', 10);
-    legend(p2, 'Matches');
-    
-    for i = 1:length(matches(:,1))
-        figure(i+2);
-        xlim([0 1]);
-        ylim([0 1]);
-        p1 = plot(matches(i,1), matches(i,2), 'r* ', 'MarkerSize', 10, 'LineWidth', 1.5);
-        p2 = plot(testScales(tIdealIndex), p1Scales(pIdealIndex), 'gs',...
-            'MarkerFaceColor', 'g');
-        legend([p1,p2], 'Subject Match', 'Nominal Match');
-    end
-    % Close the extra blank figure for a simulated observer
-    if sim_observer
-        close(figure(nPlots));
-    end
+% Close extra plots
+if plot_responses && sim_observer
+    close(figure(nPlots), figure(nPlots+1));
 end
 end
