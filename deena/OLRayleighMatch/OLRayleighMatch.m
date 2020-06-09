@@ -45,9 +45,15 @@ function OLRayleighMatch(varargin)
 %    'p1'             - integer wavelength of the first primary light in
 %                       nm. Default is 670.
 %    'p2'             - integer wavelength of the second primary light in
-%                       nm. Default is 540.
+%                       nm. Default is 560.
 %    'test'           - integer wavelength of the test light in nm. Default
 %                       is 580.
+%    'p1Scale'        - Numerical scale factor for the first primary light,
+%                       between 0 and 1. Default is 1.
+%    'p2Scale'        - Numerical scale factor for the second primary
+%                       light, between 0 and 1. Default is 0.02.
+%    'testScale'      - Numerical scale factor for the test light, between
+%                       0 and 1. Default is 0.07.
 %    'sInterval'      - length of time in s that the short stimulus is
 %                       displayed for (or both stimuli when white light is
 %                       used). Default is 0.25.
@@ -73,6 +79,14 @@ function OLRayleighMatch(varargin)
 %                       number of reversals for intermediate step sizes,
 %                       the second is the number needed for the smallest
 %                       step size. Default is [1 4].
+%    'nBelowThreshold'      - When using a simulated observer with 
+%                             threshold matching, number of pairs below 
+%                             threshold required before recording a match. 
+%                             Default is 1.
+%    'thresholdScaleFactor' - When using a simulated observer with
+%                             threshold matching, scale factor for matching
+%                             threshold. Default is 2. 
+
 % History:
 %   xx/xx/19  dce       Wrote it.
 %   01/15/20  dce, dhb  Add control of white by specifying primaries.
@@ -88,6 +102,8 @@ function OLRayleighMatch(varargin)
 %   06/02/20  dce       Added simulated observer logic
 %   06/03/20  dce       Added tracking of subject settings over time
 %   06/04/20  dce       Added plotting option
+%   06/09/20  dce       Added primary/test scale factors and threshold
+%                       matching
 
 %% Close any stray figures
 close all;
@@ -98,6 +114,9 @@ p = inputParser;
 p.addParameter('p1', 670, @(x) (isnumeric(x)));
 p.addParameter('p2', 560, @(x) (isnumeric(x)));
 p.addParameter('test', 600, @(x) (isnumeric(x)));
+p.addParameter('p1Scale', 1, @(x) (isnumeric(x)));
+p.addParameter('p2Scale', 0.02, @(x) (isnumeric(x)));
+p.addParameter('testScale', 0.07, @(x) (isnumeric(x)));
 p.addParameter('sInterval', 0.25, @(x) (isnumeric(x)));
 p.addParameter('lInterval', 1, @(x) (isnumeric(x)));
 p.addParameter('foveal', true, @(x) (islogical(x)));
@@ -106,10 +125,15 @@ p.addParameter('simulate', true, @(x) (islogical(x)));
 p.addParameter('silent', false, @(x) (islogical(x)));
 p.addParameter('switchInterval', 1, @(x) (isnumeric(x)));
 p.addParameter('numReversals', [1 4], @(x) (isnumeric(x)));
+p.addParameter('nBelowThreshold', 1, @(x) (isnumeric(x)));
+p.addParameter('thresholdScaleFactor', 2, @(x) (isnumeric(x)));
 
 p.parse(varargin{:});
 p1 = p.Results.p1;
 p2 = p.Results.p2;
+p1Scale = p.Results.p1Scale;
+p2Scale = p.Results.p2Scale;
+testScale = p.Results.testScale;
 test = p.Results.test;
 sInterval = p.Results.sInterval;
 lInterval = p.Results.lInterval;
@@ -122,6 +146,8 @@ numReversals = p.Results.numReversals;
 if (length(numReversals) ~= 2)
     error('Reversal vector must be 2x1');
 end
+nBelowThreshold = p.Results.nBelowThreshold;
+thresholdScaleFactor = p.Results.thresholdScaleFactor; 
 
 %% Set up directory for saving results
 subjectID = input('Enter subject ID: ');
@@ -147,12 +173,14 @@ end
 sim_observer = false;
 observer = [];
 noisy = false;
+thresholdMatching = false;
 if simulate
-    fprintf('Use simulated observer?\n')
-    fprintf('[1]: Yes\n');
-    fprintf('[2]: No\n');
+    fprintf('Simulation Type:\n')
+    fprintf('[1]: Simulated observer - threshold matches ("adjustment")\n');
+    fprintf('[2]: Simulated observer - reversal matches ("forced choice")\n');
+    fprintf('[3]: Do not use simulated observer\n');
     res = GetInput('Select option', 'number', 1);
-    if res == 1
+    if res == 1 || res == 2
         sim_observer = true;
         nMatches = GetInput('Enter number of simulated matches', 'number', 1);
         params = GetInput('Enter optional observer params vector, or press Enter to continue', 'number', -1);
@@ -169,6 +197,9 @@ if simulate
         n = GetInput('Select option', 'number', 1);
         if n == 1
             noisy = true;
+        end
+        if res == 1
+            thresholdMatching = true;   % We are making threshold matches
         end
     end
 end
@@ -198,11 +229,13 @@ end
 
 %% Find light settings
 % Find precomputed spectra, or compute if they do not exist
-file = sprintf('OLRayleighMatchFineSpectralSettings_%g_%g_%g.mat', p1, p2, test);
+file = sprintf('OLRayleighMatchFineSpectralSettings_%g_%g_%g_%g_%g_%g.mat',...
+    p1, p2, test, p1Scale, p2Scale, testScale);
 fName = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
     'precomputedStartStops', file);
 if ~exist(fName, 'file')
-    OLRayleighMatchLightSettings(p1,p2,test);
+    OLRayleighMatchLightSettings(p1, p2, test, 'p1ScaleFactor', p1Scale,...
+        'p2ScaleFactor', p2Scale, 'testScaleFactor', testScale);
 end
 
 % Load light settings and save some variables locally
@@ -221,7 +254,7 @@ whiteSettings = lightSettings.whiteSettings;
 whiteStarts = lightSettings.whiteStarts;
 whiteStops = lightSettings.whiteStops;
 whiteSpdNominal = lightSettings.whiteSpdNominal;
-adjustment_length = lightSettings.adjustment_length;
+adjustment_length = lightSettings.adjustmentLength;
 
 %% Intialize OneLight and button box
 ol = OneLight('simulate', simulate, 'plotWhenSimulating', false);
@@ -316,13 +349,13 @@ else
 end
 
 % Settings for ideal match. These were derived from the findNominalMatch
-% script. Should probably update in the future.
+% script.
 if foveal
-    pIdealIndex = 197;
-    tIdealIndex = 14;
+    pIdealIndex = 116;
+    tIdealIndex = 91;
 else
-    pIdealIndex = 198;
-    tIdealIndex = 13;
+    pIdealIndex = 125;
+    tIdealIndex = 89;
 end
 
 %% Setup for display loop
@@ -353,6 +386,10 @@ if sim_observer
     
     numReversalsP = 0;    % Initially, have made 0 reversals for each
     numReversalsT = 0;    % adjustment
+    if thresholdMatching
+        % Number of consecutive light pairs below the matching threshold
+        countBelowThreshold = 0;
+    end
 end
 
 %% Display loop
@@ -392,28 +429,55 @@ while(stillLooping)
         % adjustment to make
         if sim_observer
             % Prompt the observer for a decision
-            [p1_up, t_up] = observerRayleighDecision(observer,...
-                primarySpdsPredicted(:, primaryPos),...
-                testSpdsPredicted(:, testPos), 'noisy', noisy);
+            [p1_up, t_up, isBelowThreshold] = ...
+                observerRayleighDecision(observer,primarySpdsPredicted(:, primaryPos),...
+                testSpdsPredicted(:, testPos), 'noisy', noisy,...
+                'thresholdScale', thresholdScaleFactor);
+            % If we are making threshold matches, record whether this
+            % combination of lights is below the threshold
+            if thresholdMatching
+                if isBelowThreshold
+                    countBelowThreshold = countBelowThreshold + 1;
+                    fprintf('Below threshold: %g\n', countBelowThreshold); 
+                else
+                    countBelowThreshold = 0;
+                end
+            end
             % Quit if all matches have been made
             [row, ~] = size(matches);
             if row == nMatches
                 key.charCode = 'q';
-                % Record match and reset loop if both adjustments have had
-                % the required number of reversals at the smallest step size
-            elseif (pStepPos == length(stepModes)...
+            elseif (~thresholdMatching && pStepPos == length(stepModes)...
                     && tStepPos == length(stepModes)...
                     && (numReversalsP >= numReversals(2))...
                     && (numReversalsT >= numReversals(2)))
+                % In the forced-choice version of the simulation, record
+                % match and reset loop if both adjustments have had the
+                % required number of reversals at the smallest step size
                 key.charCode = ' ';
-                p1_up_prev = true;
-                t_up_prev = true;
-                adjustingP = true;
+                p1_up_prev = logical(round(rand()));
+                t_up_prev = logical(round(rand()));
+                adjustingP = logical(round(rand())); 
                 adjustmentCount = 1;
                 pStepPos = 1;
                 tStepPos = 1;
                 numReversalsP = 0;
                 numReversalsT = 0;
+            elseif thresholdMatching &&...
+                    countBelowThreshold == nBelowThreshold
+                % In the adjustment version of the simulation, record match
+                % and reset loop if the required number of matches has been
+                % made
+                key.charCode = ' ';
+                p1_up_prev = logical(round(rand()));
+                t_up_prev = logical(round(rand()));
+                adjustingP = logical(round(rand()));
+                adjustmentCount = 1;
+                pStepPos = 1;
+                tStepPos = 1;
+                numReversalsP = 0;
+                numReversalsT = 0;
+                countBelowThreshold = 0;
             elseif adjustingP  % Adjust primary if match is not yet reached
                 stepModePos = pStepPos;
                 if p1_up == p1_up_prev % Continue in existing direction
@@ -518,10 +582,12 @@ while(stillLooping)
                     if ~silent
                         Snd('Play',sin(0:5000));
                     end
-                    % Calculate match. If this is a live experiment, simply
-                    % provide the subject setting. For a simulated
-                    % observer, average the last two different settings
-                    if sim_observer
+                    % Calculate match. If this is a live experiment or a
+                    % simulated threshold match, simply provide the subject
+                    % setting. For a simulated observer with a
+                    % forced-choice match, average the last two distinct
+                    % light settings.
+                    if sim_observer && ~thresholdMatching
                         % Find previous values to average with
                         pUnique = unique(flip(subjectSettings(:, 2)), 'stable');
                         tUnique = unique(flip(subjectSettings(:, 1)), 'stable');
@@ -542,9 +608,12 @@ while(stillLooping)
                         'primaryStartStops','testStartStops','subjectID',...
                         'sessionNum','annulusData','sInterval','lInterval',...
                         'adjustment_length', 'foveal', 'white', 'simulate',...
-                        'numReversals', 'switchInterval', 'observer', 'noisy');
+                        'numReversals', 'switchInterval', 'observer',...
+                        'noisy', 'p1Scale', 'p2Scale', 'testScale',...
+                        'thresholdMatching', 'thresholdScaleFactor',...
+                        'nBelowThreshold');
                     if plot_responses
-                        nAdjustments = length(subjectSettings(matchSettingInd:end,1)); 
+                        nAdjustments = length(subjectSettings(matchSettingInd:end,1));
                         matchSettingInd = length(subjectSettings(:,1))+1;
                         % Current individual trajectory figure
                         figure(nPlots);
@@ -598,13 +667,8 @@ while(stillLooping)
                     % position for live experiment, initial values for
                     % simulation)
                     stepModePos = 1;
-                    if simulate
-                        primaryPos = 1;
-                        testPos = 1;
-                    else
-                        primaryPos = randi(adjustment_length);
-                        testPos = randi(adjustment_length);
-                    end
+                    primaryPos = randi(adjustment_length);
+                    testPos = randi(adjustment_length);
                     
                 case keyCodes.quit % Quit
                     if ~silent
