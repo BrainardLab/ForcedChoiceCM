@@ -82,9 +82,13 @@ else
     primary_redder = false; 
 end
 
-% Check whether we're below the matching threshold 
-threshold = sd * p.Results.thresholdScale;  % add matching threshold for no-noise case 
-% If this method of finding the vector is wrong, change it
+% Define matching threshold 
+if p.Results.noisy
+    threshold = sd * p.Results.thresholdScale;  
+else 
+    threshold = 0.05 * p.Results.thresholdScale;
+end
+% Check whether we're below the matching threshold (need to edit) 
 LDiff = test_LMS(1) - primary_LMS(1); 
 MDiff = test_LMS(2) - primary_LMS(2); 
 differenceVector = sqrt(LDiff^2 + MDiff^2); 
