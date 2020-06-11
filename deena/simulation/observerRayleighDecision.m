@@ -38,16 +38,23 @@ function [primary_redder, test_brighter, isMatch] = ...
 %     thresholdScale    -Number >0 which determines which scalar multiple 
 %                        of the observer standard deviation should be used
 %                        as the matching threshold. Default is 1. 
+%     baseThreshold     -Number >0. When 'noisy' is false, thresholdScale 
+%                        is multiplied by baseThreshold instead of by the 
+%                        the observer standard deviation. Default is 0.02,
+%                        an approximation of typical observer standard
+%                        deviation.
 
 % History:
 %   06/02/20  dce       Wrote initial code
 %   06/03/20  dce       Added noise, style edits
 %   06/09/20  dce       Added match threshold calculation  
+%   06/11/20  dce       Added baseThreshold parameter
 
 % Parse input 
 p = inputParser;
 p.addParameter('noisy', false, @(x) (islogical(x)));
 p.addParameter('thresholdScale', 1, @(x) (isnumeric(x)));
+p.addParameter('baseThreshold', 0.02, @(x) (isnumeric(x)));
 p.parse(varargin{:});
 
 % Cone responses for the given spectra 
@@ -86,12 +93,11 @@ end
 if p.Results.noisy
     threshold = sd * p.Results.thresholdScale;  
 else 
-    threshold = 0.05 * p.Results.thresholdScale;
+    threshold = p.Results.baseThreshold * p.Results.thresholdScale;
 end
-% Check whether we're below the matching threshold (need to edit) 
-LDiff = test_LMS(1) - primary_LMS(1); 
-MDiff = test_LMS(2) - primary_LMS(2); 
-differenceVector = sqrt(LDiff^2 + MDiff^2); 
+
+% Check whether we're below the matching threshold  
+differenceVector = sqrt(opponentContrast(1)^2 + opponentContrast(2)^2); 
 if differenceVector < threshold
     isMatch = true; 
 else

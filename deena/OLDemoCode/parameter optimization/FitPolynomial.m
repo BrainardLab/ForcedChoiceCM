@@ -2,7 +2,7 @@ function [error, yPred] = FitPolynomial(params, xVals,yObs)
 % Use with fmincon to find the error associated with a given polynomial fit
 
 % Find the predicted y values
-yPred = zeros(yObs, 1); 
+yPred = zeros(1, length(yObs)); 
 degree = length(params); 
 for i = 1:degree
     yPred = yPred + params(i).*xVals.^(degree-i); 

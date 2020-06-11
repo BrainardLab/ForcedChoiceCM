@@ -363,7 +363,6 @@ plot_responses = true;
 if plot_responses
     nPlots = 2;           % Counter for current figure index
     matchSettingInd = 1;  % SubjectSettings position for current match start 
-    makeNewPlot = true;   % Indicator that you should be making a new plot
 end
 
 %% Display loop
@@ -444,8 +443,6 @@ while(stillLooping)
                 if isBelowThreshold
                     countBelowThreshold = countBelowThreshold+1;
                     fprintf('Below threshold: %g\n',countBelowThreshold);
-                else
-                    countBelowThreshold = 0;
                 end
             end
             % Quit if all matches have been made
