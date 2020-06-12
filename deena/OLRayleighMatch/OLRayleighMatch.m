@@ -187,12 +187,17 @@ if simulate
     res = GetInput('Select option','number',1);
     if res==1 || res==2
         sim_observer = true;
+        if foveal
+            fieldSize = 2; 
+        else 
+            fieldSize = 10; 
+        end 
         nMatches = GetInput('Enter number of simulated matches','number',1);
         params = GetInput('Enter optional observer params vector, or press Enter to continue','number',-1);
         if isempty(params)
-            observer = genRayleighObserver(foveal);
+            observer = genRayleighObserver('fieldSize', fieldSize);
         elseif length(params) == 9
-            observer = genRayleighObserver(foveal,'coneVec',params);
+            observer = genRayleighObserver('fieldSize', fieldSize,'coneVec',params);
         else
             error('Observer parameters must be listed as a 9-element vector');
         end
