@@ -1,7 +1,6 @@
 function [testSpd, primarySpd] = getSingleMatchData(fName)
 % Helper function that takes in a data file produced by OLRayleighMatch and
-% returns the predicted primary and test spds associated with the first 
-% match. 
+% returns the predicted primary and test spds associated with its matches
 %
 % Syntax:
 %   getSingleMatchData(fName)
@@ -20,7 +19,7 @@ function [testSpd, primarySpd] = getSingleMatchData(fName)
 %   06/12/20  dce       Wrote it.
 
 theData = load(fName); 
-testSpd = theData.testSpdsPredicted(:,theData.matchPositions(1,1)); 
-primarySpd = theData.primarySpdsPredicted(:,theData.matchPositions(1,2));
+testSpd = theData.testSpdsPredicted(:,theData.matchPositions(:,1)); 
+primarySpd = theData.primarySpdsPredicted(:,theData.matchPositions(:,2));
 end 
 

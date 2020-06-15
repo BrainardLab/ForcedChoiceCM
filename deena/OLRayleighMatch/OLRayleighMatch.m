@@ -1,9 +1,9 @@
-function OLRayleighMatch(varargin)
+function OLRayleighMatch(subjectID, sessionNum, varargin)
 % Program to run a Rayleigh match experiment on the OneLight, or as a
 % simulation
 %
 % Syntax:
-%   OLRayleighMatch
+%   OLRayleighMatch(subjectID, sessionNum)
 %
 % Description:
 %    Displays a mixture of two primary iights followed by a test light in
@@ -34,10 +34,9 @@ function OLRayleighMatch(varargin)
 %    procedure that records a match if the two lights meet a similarity
 %    threshold.
 %
-%    The routine prompts for subject and session info.
-%
 % Inputs:
-%    None
+%    subjectID        - Character vector of subject ID
+%    sessionNum       - Integer session number.
 %
 % Outputs:
 %    Saves a .mat file titled by subject and session number, which includes
@@ -70,10 +69,16 @@ function OLRayleighMatch(varargin)
 %    'white'          - logical indicating to run  a version of the
 %                       experiment where the lights are displayed with
 %                       white in between. Default is false.
-%    'simulate'       - logical. Set to true to run in simulated mode.
-%                       Default is true.
+%    'resetAnnulus'   - logical indicating to run a script that lets the
+%                       experimenter reset the annulus. Default is false.
 %    'silent'         - logical. Set to true to turn off feedback beeps.
 %                       Default is true.
+%    'simKeypad'      - logical. Set to true to run a simulation with
+%                       experimenter keypresses. Default is false.
+%    'simObserver'    - logical. Set to true to run with a simulated
+%                       observer. Default is true.
+%    'observerParams' - 1x9 vector of Asano individual difference params
+%                       for simulated observer. Default is zeros(1,9)
 %    'switchInterval' - When using a simulated observer, number of
 %                       adjustments to make in a particular dimension
 %                       (luminance or RG) before switching. Default is 1.
@@ -83,10 +88,13 @@ function OLRayleighMatch(varargin)
 %                       number of reversals for intermediate step sizes,
 %                       the second is the number needed for the smallest
 %                       step size. Default is [1 4].
+%    'thresholdRule'   - Logical indicating to make simulated matches with
+%                        a threshold rule, not a forced-choice rule.
+%                        Default is false.
 %    'nBelowThreshold'      - When using a simulated observer with
-%                             threshold matching, number of consecutive
-%                             pairs below threshold required before
-%                             recording a match. Default is 1.
+%                             threshold matching, number of pairs below
+%                             hreshold required before recording a match.
+%                             Default is 1.
 %    'thresholdScaleFactor' - When using a simulated observer with
 %                             threshold matching, scale factor for matching
 %                             threshold. Default is 2.
@@ -109,12 +117,12 @@ function OLRayleighMatch(varargin)
 %   06/09/20  dce       Added primary/test scale factors and threshold
 %                       matching
 %   06/11/20  dce       Style edits
+%   06/15/20  dce       Removed prompts for user input
 
 %% Close any stray figures
 close all;
 
 %% Parse input
-% This currently sets the primary and test wavelengths.
 p = inputParser;
 p.addParameter('p1',670,@(x)(isnumeric(x)));
 p.addParameter('p2',560,@(x)(isnumeric(x)));
@@ -126,10 +134,15 @@ p.addParameter('sInterval',0.25,@(x)(isnumeric(x)));
 p.addParameter('lInterval',1,@(x)(isnumeric(x)));
 p.addParameter('foveal', true,@(x)(islogical(x)));
 p.addParameter('white',false,@(x)(islogical(x)));
-p.addParameter('simulate',true,@(x)(islogical(x)));
+p.addParameter('resetAnnulus',false,@(x)(islogical(x)));
 p.addParameter('silent',true,@(x)(islogical(x)));
+p.addParameter('simKeypad',false,@(x)(islogical(x)));
+p.addParameter('simObserver',true,@(x)(islogical(x)));
+p.addParameter('observerParams',zeros(1,9),@(x)(isnumeric(x)));
+p.addParameter('nObserverMatches',1,@(x)(isnumeric(x)));
 p.addParameter('switchInterval',1,@(x)(isnumeric(x)));
 p.addParameter('numReversals',[1 4],@(x)(isnumeric(x)));
+p.addParameter('thresholdMatching',false,@(x)(islogical(x)));
 p.addParameter('nBelowThreshold',1,@(x)(isnumeric(x)));
 p.addParameter('thresholdScaleFactor',2,@(x) (isnumeric(x)));
 
@@ -144,20 +157,30 @@ sInterval = p.Results.sInterval;
 lInterval = p.Results.lInterval;
 foveal = p.Results.foveal;
 white = p.Results.white;
-simulate = p.Results.simulate;
+resetAnnulus = p.Results.resetAnnulus;
 silent = p.Results.silent;
+simKeypad = p.Results.simKeypad;
+simObserver = p.Results.simObserver;
+observerParams = p.Results.observerParams;
+nObserverMatches = p.Results.nObserverMatches;
 switchInterval = p.Results.switchInterval;
+numReversals = p.Results.numReversals;
+thresholdMatching = p.Results.thresholdMatching;
 nBelowThreshold = p.Results.nBelowThreshold;
 thresholdScaleFactor = p.Results.thresholdScaleFactor;
-numReversals = p.Results.numReversals;
+
+% Input error checking
 if (length(numReversals)~=2)
     error('Reversal vector must be 2x1');
 end
+if (length(observerParams) ~= 9)
+    error('Observer parameters must be entered as a 9-element vector');
+end
+if (simKeypad && simObserver)
+    error('Only one simulation method can be chosen');
+end
 
 %% Set up directory for saving results
-subjectID = input('Enter subject ID: ');
-sessionNum = input('Enter session number: ');
-
 % Create directory named subjectID for saving data, if it doesn't exist
 outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),subjectID);
 if (~exist(outputDir,'dir'))
@@ -175,47 +198,18 @@ end
 %% Initialize simulated observer if desired
 % If the experiment is run in simulation mode without a simulated observer,
 % the user can control the stimuli with keypresses
-sim_observer = false;
 observer = [];
-noisy = false;
-thresholdMatching = false;
-if simulate
-    fprintf('Simulation Type:\n')
-    fprintf('[1]: Simulated observer - threshold matches ("adjustment")\n');
-    fprintf('[2]: Simulated observer - reversal matches ("forced choice")\n');
-    fprintf('[3]: Do not use simulated observer\n');
-    res = GetInput('Select option','number',1);
-    if res==1 || res==2
-        sim_observer = true;
-        if foveal
-            fieldSize = 2; 
-        else 
-            fieldSize = 10; 
-        end 
-        nMatches = GetInput('Enter number of simulated matches','number',1);
-        params = GetInput('Enter optional observer params vector, or press Enter to continue','number',-1);
-        if isempty(params)
-            observer = genRayleighObserver('fieldSize', fieldSize);
-        elseif length(params) == 9
-            observer = genRayleighObserver('fieldSize', fieldSize,'coneVec',params);
-        else
-            error('Observer parameters must be listed as a 9-element vector');
-        end
-        fprintf('Add noise to decisions?\n')
-        fprintf('[1]: Yes\n');
-        fprintf('[2]: No\n');
-        n = GetInput('Select option','number',1);
-        if n == 1
-            noisy = true;
-        end
-        if res == 1 % We are making threshold matches
-            thresholdMatching = true; 
-        end
+if simObserver
+    if foveal
+        fieldSize = 2;
+    else
+        fieldSize = 10;
     end
+    observer = genRayleighObserver('fieldSize', fieldSize,'coneVec',observerParams);
 end
 
 %% Set up key interpretations
-if simulate
+if simObserver || simKeypad
     keyCodes.switchStepSize = 's';
     keyCodes.switchLightOrder = 'o';
     keyCodes.foundMatch = ' ';
@@ -257,19 +251,17 @@ testSpdsNominal = lightSettings.testSpdsNominal;
 testSpdsPredicted = lightSettings.testSpdsPredicted;
 primaryStartStops = lightSettings.primaryStartStops;
 testStartStops = lightSettings.testStartStops;
-whiteSpdNominal = lightSettings.whiteSpdNominal;
-whiteStarts = lightSettings.whiteStarts;
-whiteStops = lightSettings.whiteStops;
 adjustment_length = lightSettings.adjustmentLength;
 p1Scales = lightSettings.p1Scales;
 testScales = lightSettings.testScales;
 
 %% Intialize OneLight and button box/keypresses
-ol = OneLight('simulate',simulate,'plotWhenSimulating',false);
-if simulate && ~sim_observer
+ol = OneLight('simulate',(simObserver || simKeypad),...
+    'plotWhenSimulating',false);
+if simKeypad
     ListenChar(2);
     FlushEvents;
-elseif ~simulate
+elseif ~simObserver && ~simKeypad
     gamePad = GamePad();
 end
 
@@ -277,27 +269,18 @@ end
 annulusData = []; % Empty placeholder variable
 % Check if an annulus file exists. If it does, can choose whether to use
 % the existing file or reset the annulus.
-if ~simulate && ~foveal
-    fprintf('\n**** Set up projector ****\n');
+if ~simObserver && ~simKeypad && ~foveal
     annulusFile = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
         'projectorSettings','OLAnnulusSettings.mat');
-    if exist(annulusFile,'file')
-        fprintf('[1]: Use existing annulus settings file\n');
-        fprintf('[2]: Reset annulus\n');
-        res = GetInput('Select option','number',1);
-        % Run program to reset the annulus
-        if res == 2
-            GLW_AnnularStimulusButtonBox();
-        end
-        % Run program to reset the annulus if its file does not exist
-    else
+    % Reset annulus if the file does not exist or if the experimenter chose
+    % to
+    if ~exist(annulusFile,'file') || resetAnnulus
         GLW_AnnularStimulusButtonBox();
     end
     % Load and display annulus file
     annulusData = load(annulusFile);
     annulusData.win.open;
     annulusData.win.draw;
-    fprintf('\nProjector ready. Starting display loop\n')
 end
 
 %% Display parameters
@@ -348,7 +331,7 @@ matchPositions = [];        % Positions of matches in the adjustment array
 subjectSettings = [testScales(testPos) p1Scales(primaryPos)];
 
 % Settings for simulated observer
-if sim_observer
+if simObserver
     adjustingP = true;    % Start by adjusting the primary ratio
     adjustmentCount = 1;  % How long you've been adjusting one parameter
     countBelowThreshold = 0; % Count consecutive pairs below match threshold
@@ -361,13 +344,21 @@ if sim_observer
     
     numReversalsP = 0;    % Initially, have made 0 reversals for each
     numReversalsT = 0;    % adjustment
+    
+    % Set observer noise
+    if observerParams(end) == 0
+        noisy = false;
+    else
+        noisy = true;
+    end
+    
 end
 
 % Optional plotting setup (set flag to false to stop plots from being made)
 plot_responses = true;
 if plot_responses
     nPlots = 2;           % Counter for current figure index
-    matchSettingInd = 1;  % SubjectSettings position for current match start 
+    matchSettingInd = 1;  % SubjectSettings position for current match start
 end
 
 %% Display loop
@@ -387,7 +378,7 @@ while(stillLooping)
         pI = primaryPos;
         tI = testPos;
     end
-   
+    
     % Display primary, test, or white light.
     nowTime = mglGetSecs;
     switch lights(lightModePos)
@@ -403,18 +394,18 @@ while(stillLooping)
     
     % Until time limit runs out, check for user input
     while(mglGetSecs < nowTime+lightTimes(lightModePos))
-        % Make new plots if it's the start of a match 
+        % Make new plots if it's the start of a match
         if plot_responses && firstAdjustment
             % Plot with primary and test settings separately
             figure(nPlots);
             title1 = sprintf('Subject Settings Over Time, Match %g',nPlots/2);
-            sgtitle(title1);      
+            sgtitle(title1);
             subplot(2,1,1);
             hold on;
             title('Primary Ratio');
             ylim([0 1.3]);
             xlabel('Number Adjustment');
-            ylabel('Proportion Red (p1)');    
+            ylabel('Proportion Red (p1)');
             subplot(2,1,2);
             hold on;
             title('Test Intensity');
@@ -433,26 +424,24 @@ while(stillLooping)
             title(title2);
         end
         
-        % If using a simulated observer, perform calculations to figure out 
+        % If using a simulated observer, perform calculations to figure out
         % which adjustment to make
-        if sim_observer
+        if simObserver
             % Prompt the observer for a decision
             [p1_up,t_up,isBelowThreshold] = ...
                 observerRayleighDecision(observer,...
                 primarySpdsPredicted(:,primaryPos),...
                 testSpdsPredicted(:,testPos),'noisy',noisy,...
-                'thresholdScale',thresholdScaleFactor);            
+                'thresholdScale',thresholdScaleFactor);
             % If we are making threshold matches, record whether this
             % combination of lights is below the threshold
-            if thresholdMatching
-                if isBelowThreshold
-                    countBelowThreshold = countBelowThreshold+1;
-                    fprintf('Below threshold: %g\n',countBelowThreshold);
-                end
+            if thresholdMatching && isBelowThreshold
+                countBelowThreshold = countBelowThreshold+1;
+                fprintf('Below threshold: %g\n',countBelowThreshold);
             end
             % Quit if all matches have been made
             [row,~] = size(matches);
-            if row == nMatches
+            if row == nObserverMatches
                 key.charCode = 'q';
                 
             elseif (thresholdMatching && countBelowThreshold ==...
@@ -484,14 +473,14 @@ while(stillLooping)
                 % direction, or if it is a reversal and you have not yet
                 % reached the required number of reversals for that stage
                 if p1_up == p1_up_prev || numReversalsP < numReversals(1)...
-                        || stepModePos == length(stepModes) || firstAdjustment
+                        || stepModePos == length(stepModes)
                     if p1_up
                         key.charCode = 'r';
                     else
                         key.charCode = 'l';
                     end
                     adjustmentCount = adjustmentCount+1;
-                    if p1_up ~= p1_up_prev
+                    if p1_up ~= p1_up_prev && ~firstAdjustment
                         numReversalsP = numReversalsP+1;
                         fprintf('Primary reversal %g, step size %g\n',...
                             numReversalsP,(stepModes(stepModePos)/...
@@ -536,7 +525,7 @@ while(stillLooping)
                 adjustmentCount = 1;
             end
             
-        elseif simulate      % Simulation with user keypresses
+        elseif simKeypad      % Simulation with user keypresses
             if CharAvail
                 key.charCode = GetChar(true,false);
             else
@@ -561,10 +550,10 @@ while(stillLooping)
                             Snd('Play',sin(0:5000));
                         end
                     end
-                    if sim_observer && adjustingP
+                    if simObserver && adjustingP
                         fprintf('User switched primary step size to %g\n',...
                             (stepModes(stepModePos)/(adjustment_length-1)));
-                    elseif sim_observer
+                    elseif simObserver
                         fprintf('User switched test step size to %g\n',...
                             (stepModes(stepModePos)/(adjustment_length-1)));
                     else
@@ -578,10 +567,10 @@ while(stillLooping)
                     end
                     % Calculate match. If this is a live experiment or a
                     % simulated threshold match, simply provide the subject
-                    % setting. For a simulated forced-choice match, 
+                    % setting. For a simulated forced-choice match,
                     % average the last two distinct light settings.
-                    if sim_observer && ~thresholdMatching
-                        % Find last two distinct values and average them 
+                    if simObserver && ~thresholdMatching
+                        % Find last two distinct values and average them
                         pUnique = unique(flip(subjectSettings(:,2)),'stable');
                         tUnique = unique(flip(subjectSettings(:,1)),'stable');
                         pMatch = mean([pUnique(1),pUnique(2)]);
@@ -600,13 +589,12 @@ while(stillLooping)
                         'testSpdsNominal','testSpdsPredicted',...
                         'primaryStartStops','testStartStops','subjectID',...
                         'sessionNum','annulusData','sInterval','lInterval',...
-                        'adjustment_length','foveal','white','simulate',...
+                        'adjustment_length','foveal','white',...
                         'numReversals','switchInterval','observer',...
                         'noisy','p1Scale','p2Scale','testScale',...
                         'thresholdMatching','thresholdScaleFactor',...
-                        'nBelowThreshold','sim_observer','lightFileName',...
-                        'p1Scales','testScales','whiteSpdNominal',...
-                        'whiteStarts','whiteStops');
+                        'nBelowThreshold','simObserver','simKeypad','lightFileName',...
+                        'p1Scales','testScales','observerParams','nObserverMatches')
                     if plot_responses
                         nAdjustments = length(subjectSettings(matchSettingInd:end,1));
                         matchSettingInd = length(subjectSettings(:,1))+1;
@@ -625,14 +613,14 @@ while(stillLooping)
                         
                         % Joint trajectory figure
                         figure(nPlots+1);
-                        hold on; 
+                        hold on;
                         p3 = plot(matches(end,1),matches(end,2),'r* ',...
                             'MarkerSize',10,'LineWidth',1.5);
                         p4 = plot(testScales(tIdealIndex),...
                             p1Scales(pIdealIndex),'gs','MarkerFaceColor','g');
                         legend([p3,p4],'Subject Match','Nominal Match');
                         
-                        nPlots = nPlots+2; % Prepare for next match 
+                        nPlots = nPlots+2; % Prepare for next match
                     end
                     % Reset initial condition, and set lights to a random
                     % position
@@ -643,7 +631,7 @@ while(stillLooping)
                     subjectSettings = [subjectSettings;...
                         [testScales(testPos),p1Scales(primaryPos)]];
                     fprintf('Reset at %g test, %g primary\n',...
-                        testScales(testPos),p1Scales(primaryPos)); 
+                        testScales(testPos),p1Scales(primaryPos));
                     
                 case keyCodes.quit % Quit
                     if ~silent
@@ -691,7 +679,7 @@ while(stillLooping)
                         testScales(testPos),p1Scales(primaryPos));
                     subjectSettings = [subjectSettings;...
                         [testScales(testPos),p1Scales(primaryPos)]];
-                    firstAdjustment = false; 
+                    firstAdjustment = false;
                     
                 case keyCodes.decreaseIntensity % Scale down test intensity
                     testPos = testPos-stepModes(stepModePos);
@@ -709,7 +697,7 @@ while(stillLooping)
                         testScales(testPos),p1Scales(primaryPos));
                     subjectSettings = [subjectSettings;...
                         [testScales(testPos),p1Scales(primaryPos)]];
-                    firstAdjustment = false; 
+                    firstAdjustment = false;
                     
                 case keyCodes.increaseP1 % Move towards p1
                     primaryPos = primaryPos+stepModes(stepModePos);
@@ -727,7 +715,7 @@ while(stillLooping)
                         testScales(testPos),p1Scales(primaryPos));
                     subjectSettings = [subjectSettings;...
                         [testScales(testPos),p1Scales(primaryPos)]];
-                    firstAdjustment = false; 
+                    firstAdjustment = false;
                     
                 case keyCodes.decreaseP1 % Move towards p2
                     primaryPos = primaryPos-stepModes(stepModePos);
@@ -745,7 +733,7 @@ while(stillLooping)
                         [testScales(testPos),p1Scales(primaryPos)]];
                     fprintf('User pressed key. Test intensity = %g, red primary = %g\n',...
                         testScales(testPos),p1Scales(primaryPos));
-                    firstAdjustment = false; 
+                    firstAdjustment = false;
             end
             % Edit plots if the lights were adjusted
             if plot_responses && (keyCodes.decreaseP1 || keyCodes.increaseP1...
@@ -770,14 +758,14 @@ end
 
 %% Close up
 ol.setAll(false);
-if simulate
+if simKeypad
     ListenChar(0);
-elseif ~foveal
+elseif ~simObserver && ~foveal
     GLW_CloseAnnularStimulus();
 end
 
 % Close extra plots
-if plot_responses && sim_observer
+if plot_responses && simObserver
     close(figure(nPlots),figure(nPlots+1));
 end
 end

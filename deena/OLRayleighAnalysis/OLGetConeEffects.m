@@ -8,7 +8,7 @@ function [primaryCones, testCones] = OLGetConeEffects(fName, varargin)
 %    Takes in a file of user's Rayleigh matches on the OneLight (produced
 %    by OLRayleighMatch or OLRayleighExp). For each match, calculates the
 %    cone responses to the test and match lights. Can also run to plot test
-%   /match cone responses based on the radiometer playback of matches.
+%    match cone responses based on the radiometer playback of matches.
 %
 % Inputs:
 %    fName         - character array of filename. Ends in .mat

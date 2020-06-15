@@ -1,5 +1,5 @@
 function OLRayleighMatchLightSettings(p1, p2, test, varargin)
-% Compute spectra to display for OLRayleighMatch experiment 
+% Compute spectra to display for OLRayleighMatch experiment
 % Syntax:
 %   OLRayleighMatch
 %
@@ -8,37 +8,37 @@ function OLRayleighMatchLightSettings(p1, p2, test, varargin)
 %    of precomputed spectra to be displayed with various mixtures of the
 %    primary lights and various intensities of the test lights. These
 %    results are saved as OneLight start/stops arrays which can be used to
-%    run a Rayleigh matching experiment. 
-%    
+%    run a Rayleigh matching experiment.
+%
 %    Scaling factors for the two primaries and the test light can be
-%    entered as optional key-value pairs 
+%    entered as optional key-value pairs
 %
 % Inputs:
 %    'p1'        - integer wavelength of the first primary light in nm.
 %    'p2'        - integer wavelength of the second primary light in nm.
-%    'test'      - integer wavelength of the test light in nm. 
+%    'test'      - integer wavelength of the test light in nm.
 %
 % Outputs:
 %    Saves a .mat file which includes computed spds, start/stops data,
 %    white light, and other experimental parameters.
 %
-% Optional key-value pairs 
-%    'p1ScaleFactor'    - Numerical scale factor for the first primary  
-%                         light, between 0 and 1. Default is 1. 
-%    'p2ScaleFactor'    - Numerical scale factor for the second primary  
-%                         light, between 0 and 1. Default is 1. 
-%    'testScaleFactor'  - Numerical scale factor for the test light, 
-%                         between 0 and 1. Default is 1.          
-%    'whiteScaleFactor' - Numerical scale factor for the white light, 
-%                         between 0 and 1. Default is 0.05. 
+% Optional key-value pairs
+%    'p1ScaleFactor'    - Numerical scale factor for the first primary
+%                         light, between 0 and 1. Default is 1.
+%    'p2ScaleFactor'    - Numerical scale factor for the second primary
+%                         light, between 0 and 1. Default is 1.
+%    'testScaleFactor'  - Numerical scale factor for the test light,
+%                         between 0 and 1. Default is 1.
+%    'whiteScaleFactor' - Numerical scale factor for the white light,
+%                         between 0 and 1. Default is 0.05.
 %    'adjustmentLength' - length of scaling factor adjustment arrays.
 %                         Default is 201.
 
 % History:
 %   02/4/20    dce       Separated from OLRayleighMatch
-%   06/09/20   dce       Added scaling factors as key-value pairs 
+%   06/09/20   dce       Added scaling factors as key-value pairs
 
-%% Parse input  
+%% Parse input
 p = inputParser;
 p.addParameter('p1ScaleFactor', 1, @(x) (isnumeric(x)));
 p.addParameter('p2ScaleFactor', 1, @(x) (isnumeric(x)));
@@ -48,18 +48,18 @@ p.addParameter('adjustmentLength', 201, @(x) (isnumeric(x)));
 p.parse(varargin{:});
 
 
-%% Set up parameters 
+%% Set up parameters
 % Spectrum-generating parameters
 fullWidthHalfMax = 20;
 lambda = 0.001;
 
-adjustmentLength = p.Results.adjustmentLength; 
-p1ScaleFactor = p.Results.p1ScaleFactor; 
-p2ScaleFactor = p.Results.p2ScaleFactor; 
+adjustmentLength = p.Results.adjustmentLength;
+p1ScaleFactor = p.Results.p1ScaleFactor;
+p2ScaleFactor = p.Results.p2ScaleFactor;
 testScaleFactor = p.Results.testScaleFactor;
-whiteScaleFactor = p.Results.whiteScaleFactor; 
+whiteScaleFactor = p.Results.whiteScaleFactor;
 
-% Check that scale factor inputs make sense 
+% Check that scale factor inputs make sense
 if (p1ScaleFactor > 1 || p2ScaleFactor > 1 || testScaleFactor > 1 ||...
         whiteScaleFactor > 1)
     error('Scaling factors cannot be greater than 1')
@@ -81,7 +81,7 @@ testScales = linspace(0,1,adjustmentLength);
 %
 % Use it to set some device related parameters.
 % numCols is number of mirrors in each OL column
-cal = OLGetCalibrationStructure;
+cal = OLGetCalibrationStructure('CalibrationType', 'BoxBRandomizedLongCableAEyePiece1_12_10_19');
 [spdLength,settingsLength] = size(cal.computed.pr650M);
 numCols = cal.describe.numColMirrors;
 wls = cal.computed.pr650Wls;
@@ -128,7 +128,7 @@ primary1IncrSpd = OLMaximizeSpd(cal, primary1IncrSpdRel,'lambda',lambda);
 primary2IncrSpdRel = OLMakeMonochromaticSpd(cal, p2, fullWidthHalfMax)/3;
 primary2IncrSpd = OLMaximizeSpd(cal, primary2IncrSpdRel,'lambda',lambda);
 
-%% Get set of test lights varying in intensity and primary lights varying 
+%% Get set of test lights varying in intensity and primary lights varying
 %  in contribution of the two primaries. Scale by the factors defined above
 for i = 1:adjustmentLength
     testSpdsNominal(:,i) = testScaleFactor * testScales(i) * testIncrSpd...
@@ -147,7 +147,7 @@ for i = 1:adjustmentLength
 end
 
 %% Take a look at spectra (optional)
-makePlots = true; 
+makePlots = false;
 if makePlots
     f1 = OLPlotSpdCheck(cal.computed.pr650Wls, testSpdsPredicted);
     title('Test');
@@ -156,14 +156,16 @@ if makePlots
     title('Primaries');
 end
 
-%% Save results 
+%% Save results
 file = sprintf('OLRayleighMatchFineSpectralSettings_%g_%g_%g_%g_%g_%g.mat',...
     p1, p2, test, p1ScaleFactor, p2ScaleFactor, testScaleFactor);
 filepath = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
-    'precomputedStartStops', file); 
-saveas(f1, [filepath(1:end-4), '_test.tiff'], 'tiff'); 
-saveas(f2, [filepath(1:end-4), '_primaries.tiff'], 'tiff'); 
-close(f1, f2); 
+    'precomputedStartStops', file);
+if makePlots
+    saveas(f1, [filepath(1:end-4), '_test.tiff'], 'tiff');
+    saveas(f2, [filepath(1:end-4), '_primaries.tiff'], 'tiff');
+    close(f1, f2);
+end
 save(fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
     'precomputedStartStops', file));
-end 
+end
