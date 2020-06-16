@@ -575,6 +575,14 @@ while(stillLooping)
                         tUnique = unique(flip(subjectSettings(:,1)),'stable');
                         pMatch = mean([pUnique(1),pUnique(2)]);
                         tMatch = mean([tUnique(1),tUnique(2)]);
+                        
+                        % Find the match position - average of positions of
+                        % last two values 
+                        primaryPos = mean([find(p1Scales==pUnique(2)),...
+                            find(p1Scales==pUnique(1))]);
+                        testPos = mean([find(testScales==tUnique(2)),...
+                            find(testScales==tUnique(1))]);
+                        %% make match position a non-integer as well 
                     else
                         pMatch = p1Scales(primaryPos);
                         tMatch = testScales(testPos);

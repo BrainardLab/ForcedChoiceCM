@@ -1,13 +1,14 @@
 % Script for finding the "ideal" match on the OneLight for a standard
-% observer, given the measured primary lights used in the experiment. 
+% observer, given the measured primary lights used in the experiment.
 
-% History 
+% History
 %    dce    xx/xx/20  - Wrote it
 %    dce    4/5/20    - Edited for style
 %    dce    6/9/20    - Modified to work with calculated spds
+%    dce    6/16/20   - Modified to use simulated observer function
 
-% Load light settings - currently set to measured data. 
-% fName = '/Users/melanopsin/Dropbox (Aguirre-Brainard Lab)/MELA_data/Experiments/ForcedChoiceCM/OLRayleighMatch/ideal_meas.mat'; 
+% Load light settings - currently set to measured data.
+% fName = '/Users/melanopsin/Dropbox (Aguirre-Brainard Lab)/MELA_data/Experiments/ForcedChoiceCM/OLRayleighMatch/ideal_meas.mat';
 % lightSettings = load(fName);
 
 % Uncomment these lines to compute ideal match based on nominal rather than
@@ -15,17 +16,23 @@
 nonMeasured = load(fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
     'precomputedStartStops',...
     'OLRayleighMatchFineSpectralSettings_670_560_600_1_0.02_0.07.mat'));
-lightSettings = nonMeasured; 
+lightSettings = nonMeasured;
 
-% Generate standard cone fundamentals for observer. Can adjust parameters
-% as needed. 
-foveal = true;                          % Foveal matching 
-lambdaMaxes = [558.9 530.3 420.7]';     % Normal trichromat
-dphotopigments = [0 0 0]';              % No optical density variation 
-inc = 2;                                % Increment between wavelengths in spd measurements
+% Generate cone fundamentals for observer. Can adjust parameters
+% as needed.
+age = 32;
+fieldSizeDeg = 2;
+coneParams = [0 0 0 0 0 4 0 0 0];
+observer = genRayleighObserver('age',age,'fieldSize',fieldSizeDeg,'coneVec',coneParams);
+T_cones = observer.T_cones;
+
+% foveal = true;                          % Foveal matching
+% lambdaMaxes = [558.9 530.3 420.7]';     % Normal trichromat
+% dphotopigments = [0 0 0]';              % No optical density variation
+% inc = 2;                                % Increment between wavelengths in spd measurements
 wls = 380:2:780;                        % Range of wavelengths tested
-T_cones = findConeFundamentals(lambdaMaxes, dphotopigments, 'inc', inc,...
-    'foveal', foveal);
+% T_cones = findConeFundamentals(lambdaMaxes, dphotopigments, 'inc', inc,...
+%     'foveal', foveal);
 
 % Initialize arrays
 [~, primaryCol] = size(lightSettings.primarySpdsPredicted);
@@ -41,7 +48,7 @@ end
 
 for i = 1:testCol
     testConeEffects(i,:) = (T_cones * lightSettings.testSpdsPredicted(:,i))';
-end 
+end
 
 %% Find least squares error
 
@@ -54,9 +61,10 @@ pIndex = 0;
 % squared error of the difference in cone effects
 for i = 1:testCol
     for j = 1:primaryCol
-        err  = (testConeEffects(i,1) - primaryConeEffects(j,1) )^2 + ...
-            (testConeEffects(i,2) - primaryConeEffects(j,2))^2 +...
-            (testConeEffects(i,3) - primaryConeEffects(j,3)) ^2;
+        opponentContrast = LMSToOpponentContrast(observer.colorDiffParams,...
+            testConeEffects(i,:)', primaryConeEffects(j,:)');
+        err = norm(opponentContrast(1:2)); 
+        
         if err < minErr
             minErr = err;
             tIndex = i;
@@ -70,7 +78,7 @@ fprintf('Minimum Error: %g \n',minErr);
 fprintf('Test Setting: %g \n',nonMeasured.testScales(tIndex));
 fprintf('Primary Setting: %g \n',nonMeasured.p1Scales(pIndex));
 
-% Plot cone effects and spds at the minimum error settings 
+% Plot cone effects and spds at the minimum error settings
 OLPlotConeEffects(primaryConeEffects(pIndex,:)',...
     testConeEffects(tIndex,:)','Ideal',1);
 OLPlotSpdCheck(wls,[lightSettings.testSpdsPredicted(:,tIndex)...
@@ -87,5 +95,5 @@ title('Measured Spds for Ideal Match');
 %     pause(0.5);
 %     ol.setMirrors(squeeze(nonMeasured.testStartStops(tIndex,1,:))',...
 %         squeeze(nonMeasured.testStartStops(tIndex,2,:))');
-%     pause(0.5); 
+%     pause(0.5);
 % end

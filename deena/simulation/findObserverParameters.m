@@ -64,8 +64,10 @@ p.parse(varargin{:});
 
 % Generate a standard observer, and set all initial individual difference
 % parameters to 0. (this is the default for the standard observer).
+%baseParams = zeros(1,9);  
+baseParams = [0 0 0 0 0 4 0 0 0]; 
 observer = genRayleighObserver('fieldSize',p.Results.fieldSize,...
-    'age',p.Results.age,'calcCones',false);
+    'age',p.Results.age,'calcCones',false, 'coneVec', baseParams);
 obsParams = ObserverParamsToVec('basic',observer);
 initialParams = obsParams(1:8);
 
@@ -80,7 +82,7 @@ ub = [];    % Upper bounds
 % percent deviations from the mean, except for last three parameters
 % (lambda max shifts) which are expressed as deviations in nm.
 sds = [18.7 36.5 9.0 9.0 7.4 2.0 1.5 1.3]; % Standard deviations
-scaleFactor = 3;  % Set param limits to 3 standard deviations from the mean 
+scaleFactor = 2;  % Set param limits to 2 standard deviations from the mean 
 if p.Results.restrictBySd
     lb = -1*scaleFactor*sds;
     ub = scaleFactor*sds;

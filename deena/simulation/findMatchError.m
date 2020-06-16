@@ -11,7 +11,7 @@ function error = findMatchError(paramsVec,initialObs,testSpds,primarySpds)
 %    test and primary lights, then converts this to opponent contrast. The
 %    error for a given pair is represented as the vector length of the
 %    luminance and RG opponent contrast terms. The overall error reported
-%    is the sum of the individual error terms.
+%    is the root mean square of the individual error terms.
 %
 %    This function is designed for use with fmincon or similar parameter
 %    search functions.
@@ -39,7 +39,7 @@ function error = findMatchError(paramsVec,initialObs,testSpds,primarySpds)
 %   06/15/20  dce       Modified to take in multiple spds
 
 % Generate a model observer with the given parameters
-params = [paramsVec initialObs.colorDiffParams.noiseSd]; % Append noise
+params = [paramsVec 0]; % Append noise
 observer = genRayleighObserver('age', initialObs.coneParams.ageYears,...
     'fieldSize', initialObs.coneParams.fieldSizeDegrees,'coneVec',params);
 
@@ -61,6 +61,6 @@ for i = 1:nMatches
     pairError(i) = norm(opponentContrast(1:2));
 end
 
-% Report the sum of individual error terms
-error = mean(pairError); 
+% Report the root mean squared error 
+error = sqrt(mean(pairError.^2)); 
 end

@@ -2,7 +2,7 @@ function observer = genRayleighObserver(varargin)
 % Generates a simulated observer for a Rayleigh match experiment 
 %
 % Syntax:
-%   genRayleighObserver(foveal); 
+%   genRayleighObserver(); 
 %
 % Description:
 %    Generates a simulated observer based on the Asano model. Designed for
