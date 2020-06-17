@@ -1,7 +1,52 @@
 function [testSpds,primarySpds] = ...
     OLRayleighMatchSimSeries(subjID,observerParams,useAdjustmentRule,p1Wls,p2Wls,testWls, varargin)
-% Runs a series of Rayleigh match simulations with various primary/test
-% lights
+% Runs a series of Rayleigh match simulations with various lights
+% Syntax:
+%   findObserverParams(testSpds,primarySpds)
+%
+% Description:
+%    Takes in observer information and cone parameters, as well as
+%    information about desired primary and test wavelengths. Then, runs the
+%    OLRayleighMatch simulation program for the given observer with each
+%    possible combination of the specified primary/test wavelengths.
+%    Returns the primary and test spds which were found by the observer for 
+%    each match, collated into two matrices. 
+%
+% Inputs:
+%    subjID            -Subject ID, entered as a character vector
+%    useAdjustmentRule -Logical. If true, uses an adjustment matching rule.
+%                       If false, uses a forced-choice matching rule.
+%    p1Wls             -Integer or numeric vector of desired wavelengths
+%                       for the first primary.
+%    p2Wls             -Integer or numeric vector of desired wavelengths
+%                       for the second primary.
+%    testWls           -Integer or numeric vector of desired wavelengths
+%                       for the test light.
+% Outputs:
+%    testSpds          -201 x n vector representation of the predicted spds 
+%                       for the chosen test lights
+%    primarySpds       -201 x n vector representation of the predicted spds 
+%                       for the chosen primary lights
+%
+%
+% Optional key-value pairs:
+%    'foveal'          -logical indicating whether we are making foveal
+%                       matches. Default is true.
+%    'numReversals'   - Number of reversals the observer must make before 
+%                       changing step size. Enter as a 2-element vector - 
+%                       the first element is the number of reversals for 
+%                       intermediate step sizes, the second is the number 
+%                       needed for the smallest step size. Default is [1 4]
+%    'nBelowThreshold'      - When using a simulated observer with
+%                             threshold matching, number of pairs below
+%                             hreshold required before recording a match.
+%                             Default is 1.
+%    'thresholdScaleFactor' - When using a simulated observer with
+%                             threshold matching, scale factor for matching
+%                             threshold. Default is 2.
+
+% History:
+%   06/12/20  dce       Wrote it.
 
 % Input parsing
 p = inputParser;

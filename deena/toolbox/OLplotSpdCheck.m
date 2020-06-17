@@ -1,3 +1,4 @@
+function theFig = OLPlotSpdCheck(wls, spds)
 % Plots an array of target spds 
 % Syntax:
 %   OLPlotSpdCheck
@@ -19,8 +20,8 @@
 % History:
 %   de  11/26/19  - modified script
 %   de  3/29/20   - added documentation and figure handle output
-% 380:2:780
-function theFig = OLPlotSpdCheck(wls, spds)
+
+% wls = 380:2:780; 
 [~, col] = size(spds);
 theFig = figure(); 
 hold on; 

@@ -7,7 +7,10 @@
 %    vector of lambda max and a 3 x 1 vector of optical density variation,  
 %    then produces a matrix of cones that accounts for these individual 
 %    differences. Optional key-value pairs allow further refinement of the 
-%    model cones.
+%    model cones. 
+%
+%    When using an OLRayleighMatch simulated observer, use
+%    genRayleighObserver instead. 
 %
 % Inputs: 
 %    lambdaMaxes    - 3x1 vector of peak spectral sensitivities

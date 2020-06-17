@@ -1,11 +1,11 @@
-function [testSpds, primarySpds] = getSingleMatchData(fName, varargin)
+function [testSpds, primarySpds] = getMatchData(fName, varargin)
 % Helper function that takes in a data file produced by OLRayleighMatch and
 % returns the predicted primary and test spds associated with its matches.
 % Returns all of the matches by default, but you can also specify an index
 % so it returns a specific match.
 %
 % Syntax:
-%   getSingleMatchData(fName)
+%   getMatchData(fName)
 %
 % Inputs:
 %    fName     - Full filename of an OLRayleighMatch data file (.mat)
