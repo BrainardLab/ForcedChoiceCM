@@ -3,7 +3,7 @@ function [params, error, observer] = findObserverParameters(testSpds,primarySpds
 % they made
 
 % Syntax:
-%   findObserverParams(testSpds,primarySpds)
+%   findObserverParameters(testSpds,primarySpds)
 %
 % Description:
 %    Takes in an array of test and primary spd pairs which a user
@@ -59,12 +59,11 @@ p = inputParser;
 p.addParameter('age',32,@(x)(isnumeric(x)));
 p.addParameter('fieldSize',2,@(x)(isnumeric(x)));
 p.addParameter('LMEqualOD',false,@(x)(islogical(x)));
-p.addParameter('restrictBySd',false,@(x)(islogical(x)));
+p.addParameter('restrictBySd',true,@(x)(islogical(x)));
 p.parse(varargin{:});
 
 % Generate a standard observer, and set all initial individual difference
-% parameters to 0. (this is the default for the standard observer).
-%baseParams = zeros(1,9);  
+% parameters to 0. (this is the default for the standard observer). 
 baseParams = [0 0 0 0 0 4 0 0 0]; 
 observer = genRayleighObserver('fieldSize',p.Results.fieldSize,...
     'age',p.Results.age,'calcCones',false, 'coneVec', baseParams);

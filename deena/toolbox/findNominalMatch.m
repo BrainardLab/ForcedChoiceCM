@@ -1,13 +1,13 @@
-function [pSpd,tSpd,pIndex,tIndex] = findNominalMatch(fName,coneParams)
+function [tSpd,pSpd,tIndex,pIndex] = findNominalMatch(fName,coneParams)
 % Finds the nominal match for a Rayleigh matching experiment
 
 % Syntax:
 %   findNominalMatch(fName,coneParams)
 %
 % Description:
-%    Takes in the file of light settings used to run the Rayleigh match 
+%    Takes in the file of light settings used to run the Rayleigh match
 %    experiment, as well as a nine-element vector of observer individual
-%    difference parameters. Uses these inputs to compute which pair of 
+%    difference parameters. Uses these inputs to compute which pair of
 %    primary and test lights has the smallest opponent contrast vector
 %    length (which indicates that this pair is the best match). Returns
 %    the primary and test spds, as well as their indices in the lights
@@ -36,7 +36,7 @@ function [pSpd,tSpd,pIndex,tIndex] = findNominalMatch(fName,coneParams)
 % Load light settings
 lightSettings = load(fName);
 
-% Generate cone fundamentals for observer. 
+% Generate cone fundamentals for observer.
 age = 32;
 fieldSizeDeg = 2;
 observer = genRayleighObserver('age',age,'fieldSize',...
@@ -82,23 +82,33 @@ for i = 1:testCol
     end
 end
 
-% Show info aboutideal match
-fprintf('Minimum Error: %g \n',minErr);
-fprintf('Test Setting: %g \n',lightSettings.testScales(tIndex));
-fprintf('Primary Setting: %g \n',lightSettings.p1Scales(pIndex));
-
-% Get spds of ideal match lights 
-tSpd = lightSettings.testSpdsPredicted(:,tIndex); 
-pSpd = lightSettings.testSpdsPredicted(:,pIndex); 
-
-% Plot cone effects and spds at the minimum error settings
-makePlots = true;
-if makePlots
-    OLPlotConeEffects(primaryConeEffects(pIndex,:)',...
-        testConeEffects(tIndex,:)','Ideal',1);
-    OLPlotSpdCheck(380:2:780,lightSettings.primarySpdsPredicted(:,pIndex));
-    legend('test','primary');
-    title('Measured Spds for Ideal Match');
+% Return error if the nominal match is at the limit of available light
+% settings
+if (tIndex == lightSettings.adjustmentLength) || ...
+        (pIndex == lightSettings.adjustmentLength)
+    error('One or more nominal match light is at the limit of available settings');
 end
 
+% Get spds of ideal match lights
+tSpd = lightSettings.testSpdsPredicted(:,tIndex);
+pSpd = lightSettings.primarySpdsPredicted(:,pIndex);
+
+% Show info about ideal match
+printResults = false;
+if printResults
+    fprintf('Minimum Error: %g \n',minErr);
+    fprintf('Test Setting: %g \n',lightSettings.testScales(tIndex));
+    fprintf('Primary Setting: %g \n',lightSettings.p1Scales(pIndex));
+end
+
+% Plot cone effects and spds at the minimum error settings
+makePlots = false;
+if makePlots
+%     OLPlotConeEffects(primaryConeEffects(pIndex,:)',...
+%         testConeEffects(tIndex,:)','Ideal',1);
+    OLPlotSpdCheck(380:2:780,lightSettings.testSpdsPredicted(:,tIndex));
+    title('Measured Test Spds for Ideal Match'); 
+    OLPlotSpdCheck(380:2:780,lightSettings.primarySpdsPredicted(:,pIndex));
+    title('Measured Primary Spds for Ideal Match');
+end
 end
