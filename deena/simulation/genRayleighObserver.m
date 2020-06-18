@@ -10,29 +10,29 @@ function observer = genRayleighObserver(varargin)
 %    experiments. 
 % 
 %    If no key-alue pairs are given, the program generates an observer with 
-%    standard cone fundamentals and a field size specified by the "foveal" 
-%    input. However, the user can also enter a vector of individual 
-%    difference parameters as a key-value pair (dlens, dmac, 
-%    dphotopigments, lambdaMaxShifts, and noiseSd). 
+%    standard cone fundamentals and a 2-degree field size. However, the
+%    user can also enter a vector of individual difference parameters as a 
+%    key-value pair (dlens, dmac, dphotopigments, lambdaMaxShifts, and 
+%    noiseSd). There is also an option to specify age and field size. 
 %   
 %    The output observer struct includes three fields: colorDiffParams 
 %    (opponent contrast weighting parameters), coneParams (individual
-%    difference/observer parameters), and T_cones (cone fundamentals). 
-%
+%    difference/observer parameters), and (optionally) T_cones (cone 
+%    fundamentals). 
 % Inputs:
 %     none  
 %
 % Outputs:
 %     observer          -Struct with observer parameters and cone 
 %                        fundamentals. Fields include colorDiffParams, 
-%                        coneParams, and T_cones. 
+%                        coneParams, and (optionally) T_cones. 
 %
 % Optional key-value pairs:
 %    coneVec           -Numeric vector with cone individual difference
 %                       parameters. Includes 9 elements - see 
 %                       ObserverVecToParams for a full description. 
 %    age               -Integer for subject age. Default is 32.
-%    fieldSize         -Integer field size in degrees. Default is 10. 
+%    fieldSize         -Integer field size in degrees. Default is 2. 
 %    calcCones         -Logical indicating whether to calculate cone
 %                       fundamentals. Default is true.
 
@@ -47,7 +47,7 @@ function observer = genRayleighObserver(varargin)
 p = inputParser;
 p.addParameter('coneVec',[],@(x)(isvector(x)));
 p.addParameter('age',32,@(x)(isnumeric(x)));
-p.addParameter('fieldSize',10,@(x)(isnumeric(x))); 
+p.addParameter('fieldSize',2,@(x)(isnumeric(x))); 
 p.addParameter('calcCones',true,@(x)(islogical(x)));
 p.parse(varargin{:});
 
@@ -62,7 +62,7 @@ if p.Results.age ~= 32
     observer.coneParams.ageYears = p.Results.age; 
 end 
 
-% Reset field size if needed (the default is 10 degrees)
+% Reset field size if needed (the default for coneParams is 10 degrees)
 if p.Results.fieldSize ~= 10
     observer.coneParams.fieldSizeDegrees =  p.Results.fieldSize; 
 end

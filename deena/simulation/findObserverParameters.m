@@ -8,12 +8,11 @@ function [params, error, observer] = findObserverParameters(testSpds,primarySpds
 % Description:
 %    Takes in an array of test and primary spd pairs which a user
 %    identified as a Rayleigh match. Then, finds the Asano individual
-%    difference parameters which lead these light pairs to cause the most
+%    difference parameters which cause these light pairs to have the most
 %    similar cone responses. Does this by using fmincon to minimize the
 %    opponent contrast of the test and match lights. Various optimization
-%    constraints can be entered as key-value pairs (see below). Also
-%    creates optional plots of the optimal cone response to the test and
-%    match lights.
+%    constraints can be entered as key-value pairs (see below). Also has an
+%    option to plot the optimal cone response to the test and match lights.
 %
 %    The individual difference paramters are as follows:
 %       observer.coneParams.indDiffParams.dlens = x(1);
@@ -26,9 +25,9 @@ function [params, error, observer] = findObserverParameters(testSpds,primarySpds
 %       observer.coneParams.indDiffParams.lambdaMaxShift(3) = x(8);
 %
 % Inputs:
-%    testSpd     -201 x n vector representation of the predicted spds for
+%    testSpd     -201xn vector representation of the predicted spds for
 %                 the chosen test lights
-%    primarySpd  -201 x n vector representation of the predicted spds for
+%    primarySpd  -201xn vector representation of the predicted spds for
 %                 the chosen primary lights
 %
 % Outputs:
@@ -48,8 +47,9 @@ function [params, error, observer] = findObserverParameters(testSpds,primarySpds
 %                     Default is false.
 %    'restrictBySD'  -Logical. If true, adds lower and upper bounds on all
 %                     paramters to keep them within three standard
-%                     deviations of their means. Default is false.
-
+%                     deviations of their means. Default is true.
+%    'initialParams' -1x9 numerical vector of additional parameters.
+%                     Default is zeros(1,9);
 % History:
 %   06/12/20  dce       Wrote it.
 
@@ -60,15 +60,12 @@ p.addParameter('age',32,@(x)(isnumeric(x)));
 p.addParameter('fieldSize',2,@(x)(isnumeric(x)));
 p.addParameter('LMEqualOD',false,@(x)(islogical(x)));
 p.addParameter('restrictBySd',true,@(x)(islogical(x)));
+p.addParameter('initialParams',zeros(1,9),@(x)(islogical(x)));
 p.parse(varargin{:});
 
-% Generate a standard observer, and set all initial individual difference
-% parameters to 0. (this is the default for the standard observer). 
-baseParams = [0 0 0 0 0 4 0 0 0]; 
-observer = genRayleighObserver('fieldSize',p.Results.fieldSize,...
-    'age',p.Results.age,'calcCones',false, 'coneVec', baseParams);
-obsParams = ObserverParamsToVec('basic',observer);
-initialParams = obsParams(1:8);
+% Generate a standard observer with the given initial values 
+observer = genRayleighObserver('fieldSize',p.Results.fieldSize,'age',...
+    p.Results.age,'calcCones',false,'coneVec', p.Results.initialParams);
 
 %% Restrictions on parameters 
 Aeq = [];   % Linear equality constraint
@@ -81,7 +78,7 @@ ub = [];    % Upper bounds
 % percent deviations from the mean, except for last three parameters
 % (lambda max shifts) which are expressed as deviations in nm.
 sds = [18.7 36.5 9.0 9.0 7.4 2.0 1.5 1.3]; % Standard deviations
-scaleFactor = 2;  % Set param limits to 2 standard deviations from the mean 
+scaleFactor = 2;    % Set limits at 2 standard deviations from the mean 
 if p.Results.restrictBySd
     lb = -1*scaleFactor*sds;
     ub = scaleFactor*sds;
@@ -101,7 +98,7 @@ options = optimset(options,'Diagnostics','off','Display','iter',...
 
 % Find optimal parameters
 params = fmincon(@(x)findMatchError(x,observer,testSpds,primarySpds),...
-    initialParams,[],[],Aeq,Beq,lb,ub,[],options);
+    p.Results.initialParams(1:8),[],[],Aeq,Beq,lb,ub,[],options);
 
 % Reset observer with the final parameters
 observer = ObserverVecToParams('basic', ...

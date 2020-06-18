@@ -59,11 +59,11 @@ fNames = {fName560,fName570,fName580,fName590,fName600,fName610,fName620,...
     fName630,fName640,fName650,fName660};
 
 % Various observer parameter vectors  (test one at a time)
-observerParams = [0 0 0 0 0 4 0 0 0]; % +4nm L
+% observerParams = [0 0 0 0 0 4 0 0 0]; % +4nm L
 % observerParams = [0 0 0 0 0 0 -2 0 0]; % -2nm M
 % observerParams = [0 0 0 0 0 -2 2 0 0]; % shift L and M
 % observerParams = [0 0 30 0 0 0 0 0 0]; % Increase L cone OD
-% observerParams = [0 0 -10 10 0 0 0 0 0]; % Change L and M OD
+observerParams = [0 0 -10 10 0 0 0 0 0]; % Change L and M OD
 
 % Find spds of nominal match for each of the files
 testSpds = [];
@@ -76,9 +76,10 @@ for i = 1:9
 end
 checkSpdPlots = false;
 if checkSpdPlots
-    OLPlotSpdCheck(380:2:780,primarySpds);
+    wls = 380:2:780;
+    OLPlotSpdCheck(wls,primarySpds);
     title('Primaries');
-    OLPlotSpdCheck(380:2:780,testSpds);
+    OLPlotSpdCheck(wls,testSpds);
     title('Test');
 end
 [observerParamsCalc,err] = findObserverParameters(testSpds,primarySpds);

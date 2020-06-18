@@ -79,7 +79,7 @@ for i = 1:nSims
         p.Results.nObserverMatches,'numReversals',p.Results.numReversals,...
         'nBelowThreshold',p.Results.nBelowThreshold,...
         'thresholdScaleFactor',p.Results.thresholdScaleFactor,...
-        'p2Scale',0.3,'testScale',0.5); 
+        'p2Scale',0.02,'testScale',0.15); 
 end 
     
 % Extract the test and match spds for each simulation
@@ -89,7 +89,7 @@ for j = 1:nSims
     outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),subjID);
     fileName = [subjID,'_',num2str(j),'.mat'];
     filePath = fullfile(outputDir,fileName);
-    [testSpd,primarySpd] = getSingleMatchData(filePath); 
+    [testSpd,primarySpd] = getMatchData(filePath); 
     testSpds = [testSpds,testSpd];
     primarySpds = [primarySpds,primarySpd]; 
 end 

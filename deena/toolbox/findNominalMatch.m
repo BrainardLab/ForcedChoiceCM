@@ -1,4 +1,4 @@
-function [tSpd,pSpd,tIndex,pIndex] = findNominalMatch(fName,coneParams)
+function [tSpd,pSpd,tIndex,pIndex] = findNominalMatch(fName,coneParams,varargin)
 % Finds the nominal match for a Rayleigh matching experiment
 
 % Syntax:
@@ -25,7 +25,8 @@ function [tSpd,pSpd,tIndex,pIndex] = findNominalMatch(fName,coneParams)
 %                 array
 %
 % Optional key-value pairs:
-%    None
+%    age               -Integer for subject age. Default is 32.
+%    fieldSize         -Integer field size in degrees. Default is 2. 
 
 % History
 %    dce    xx/xx/20  - Wrote it
@@ -33,14 +34,18 @@ function [tSpd,pSpd,tIndex,pIndex] = findNominalMatch(fName,coneParams)
 %    dce    6/9/20    - Modified to work with calculated spds
 %    dce    6/16/20   - Modified to use simulated observer function
 
+% Parse input 
+p = inputParser; 
+p.addParameter('age',32,@(x)(isnumeric(x)));
+p.addParameter('fieldSize',2,@(x)(isnumeric(x))); 
+p.parse(varargin{:});
+
 % Load light settings
 lightSettings = load(fName);
 
 % Generate cone fundamentals for observer.
-age = 32;
-fieldSizeDeg = 2;
-observer = genRayleighObserver('age',age,'fieldSize',...
-    fieldSizeDeg,'coneVec',coneParams);
+observer = genRayleighObserver('age',p.Results.age,'fieldSize',...
+    p.Results.fieldSize,'coneVec',coneParams);
 T_cones = observer.T_cones;
 
 % Initialize arrays
@@ -104,11 +109,12 @@ end
 % Plot cone effects and spds at the minimum error settings
 makePlots = false;
 if makePlots
-%     OLPlotConeEffects(primaryConeEffects(pIndex,:)',...
-%         testConeEffects(tIndex,:)','Ideal',1);
-    OLPlotSpdCheck(380:2:780,lightSettings.testSpdsPredicted(:,tIndex));
+    wls = 380:2:780; 
+    OLPlotConeEffects(primaryConeEffects(pIndex,:)',...
+        testConeEffects(tIndex,:)','Ideal',1);
+    OLPlotSpdCheck(wls,lightSettings.testSpdsPredicted(:,tIndex));
     title('Measured Test Spds for Ideal Match'); 
-    OLPlotSpdCheck(380:2:780,lightSettings.primarySpdsPredicted(:,pIndex));
+    OLPlotSpdCheck(wls,lightSettings.primarySpdsPredicted(:,pIndex));
     title('Measured Primary Spds for Ideal Match');
 end
 end

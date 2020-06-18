@@ -5,13 +5,13 @@ function error = findMatchError(paramsVec,initialObs,testSpds,primarySpds)
 %   findMatchError(paramsVec,initialObs,testSpds,primarySpds)
 %
 % Description:
-%    Given observer cone parameters, computes the "error" associated with
+%    Given observer cone parameters, computes the error associated with
 %    a set of pairs of spectra which the observer identified as Rayleigh
 %    matches. For each pair, computes the observer's cone responses to both
 %    test and primary lights, then converts this to opponent contrast. The
 %    error for a given pair is represented as the vector length of the
-%    luminance and RG opponent contrast terms. The overall error reported
-%    is the root mean square of the individual error terms.
+%    luminance and RG opponent contrast terms. The overall error is the 
+%    root mean square of the individual error terms.
 %
 %    This function is designed for use with fmincon or similar parameter
 %    search functions.
@@ -39,13 +39,12 @@ function error = findMatchError(paramsVec,initialObs,testSpds,primarySpds)
 %   06/15/20  dce       Modified to take in multiple spds
 
 % Generate a model observer with the given parameters
-params = [paramsVec 0]; % Append noise
+params = [paramsVec 0];          % Append noise
 observer = genRayleighObserver('age', initialObs.coneParams.ageYears,...
     'fieldSize', initialObs.coneParams.fieldSizeDegrees,'coneVec',params);
 
-% How many match pairs do we have?
-[~,nMatches] = size(testSpds);
-pairError = zeros(1,nMatches);
+[~,nMatches] = size(testSpds);   % How many match pairs do we have?
+pairError = zeros(1,nMatches);   % Array for storing error of each pair 
 
 % Calculate opponent contrast for each match 
 for i = 1:nMatches
