@@ -60,7 +60,7 @@ p.addParameter('age',32,@(x)(isnumeric(x)));
 p.addParameter('fieldSize',2,@(x)(isnumeric(x)));
 p.addParameter('LMEqualOD',false,@(x)(islogical(x)));
 p.addParameter('restrictBySd',true,@(x)(islogical(x)));
-p.addParameter('initialParams',zeros(1,9),@(x)(islogical(x)));
+p.addParameter('initialParams',zeros(1,9),@(x)(isnumeric(x)));
 p.parse(varargin{:});
 
 % Generate a standard observer with the given initial values 

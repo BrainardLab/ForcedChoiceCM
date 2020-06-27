@@ -89,10 +89,11 @@ end
 
 % Return error if the nominal match is at the limit of available light
 % settings
-if (tIndex == lightSettings.adjustmentLength) || ...
-        (pIndex == lightSettings.adjustmentLength)
-    error('One or more nominal match light is at the limit of available settings');
-end
+if (tIndex == lightSettings.adjustmentLength) 
+    error('Test light is at the limit of available settings');
+elseif (pIndex == lightSettings.adjustmentLength)
+    error('Primary light is at the limit of available settings');
+end 
 
 % Get spds of ideal match lights
 tSpd = lightSettings.testSpdsPredicted(:,tIndex);

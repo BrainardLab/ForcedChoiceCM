@@ -82,7 +82,7 @@ function OLRayleighMatch(subjectID, sessionNum, varargin)
 %    'switchInterval' - When using a simulated observer, number of
 %                       adjustments to make in a particular dimension
 %                       (luminance or RG) before switching. Default is 1.
-%    'numReversals'   - When using a simulated observer, number of
+%    'nReversals'     - When using a simulated observer, number of
 %                       reversals required before changing step size. Enter
 %                       as a 2-element vector - the first element is the
 %                       number of reversals for intermediate step sizes,
@@ -143,7 +143,7 @@ p.addParameter('simObserver',true,@(x)(islogical(x)));
 p.addParameter('observerParams',zeros(1,9),@(x)(isnumeric(x)));
 p.addParameter('nObserverMatches',1,@(x)(isnumeric(x)));
 p.addParameter('switchInterval',1,@(x)(isnumeric(x)));
-p.addParameter('numReversals',[1 4],@(x)(isnumeric(x)));
+p.addParameter('nReversals',[1 4],@(x)(isnumeric(x)));
 p.addParameter('thresholdMatching',false,@(x)(islogical(x)));
 p.addParameter('nBelowThreshold',1,@(x)(isnumeric(x)));
 p.addParameter('thresholdScaleFactor',2,@(x) (isnumeric(x)));
@@ -166,13 +166,13 @@ simObserver = p.Results.simObserver;
 observerParams = p.Results.observerParams;
 nObserverMatches = p.Results.nObserverMatches;
 switchInterval = p.Results.switchInterval;
-numReversals = p.Results.numReversals;
+nReversals = p.Results.nReversals;
 thresholdMatching = p.Results.thresholdMatching;
 nBelowThreshold = p.Results.nBelowThreshold;
 thresholdScaleFactor = p.Results.thresholdScaleFactor;
 
 % Input error checking
-if (length(numReversals)~=2)
+if (length(nReversals)~=2)
     error('Reversal vector must be 2x1');
 end
 if (length(observerParams)~=9)
@@ -261,15 +261,13 @@ testScales = lightSettings.testScales;
 % program will find the nominal match for the standard observer, not the
 % actual observer being used.
 idealForStandardObs = true;  
-pIdealIndex = 1; 
-tIdealIndex = 1;
-% if idealForStandardObs
-%     [~,~,tIdealIndex,pIdealIndex] = findNominalMatch(lightFileName,...
-%         zeros(1,9),'fieldSize',fieldSize);
-% else
-%     [~,~,tIdealIndex,pIdealIndex] = findNominalMatch(lightFileName,...
-%         observerParams,fieldSize);
-% end 
+if idealForStandardObs
+    [~,~,tIdealIndex,pIdealIndex] = findNominalMatch(lightFileName,...
+        zeros(1,9),'fieldSize',fieldSize);
+else
+    [~,~,tIdealIndex,pIdealIndex] = findNominalMatch(lightFileName,...
+        observerParams,fieldSize);
+end 
 
 %% Intialize OneLight and button box/keypresses
 ol = OneLight('simulate',(simObserver || simKeypad),...
@@ -347,8 +345,8 @@ if simObserver
     pStepPos = 1;         % Start both primary and test adjustment at
     tStepPos = 1;         % largest step size
     
-    numReversalsP = 0;    % Initially, have made 0 reversals for each
-    numReversalsT = 0;    % adjustment
+    nReversalsP = 0;    % Initially, have made 0 reversals for each
+    nReversalsT = 0;    % adjustment
 end
 
 % Optional plotting setup (set flag to false to stop plots from being made)
@@ -447,8 +445,8 @@ while(stillLooping)
                     nBelowThreshold) || (~thresholdMatching ...
                     && pStepPos == length(stepModes)...
                     && tStepPos == length(stepModes)...
-                    && (numReversalsP >= numReversals(2))...
-                    && (numReversalsT >= numReversals(2)))
+                    && (nReversalsP >= nReversals(2))...
+                    && (nReversalsT >= nReversals(2)))
                 % Matching case. In the adjustment version of the
                 % simulation, record match and reset loop if the required
                 % number of pairs below threshold have been found.
@@ -462,8 +460,8 @@ while(stillLooping)
                 adjustmentCount = 1;
                 pStepPos = 1;
                 tStepPos = 1;
-                numReversalsP = 0;
-                numReversalsT = 0;
+                nReversalsP = 0;
+                nReversalsT = 0;
                 countBelowThreshold = 0;
                 
             elseif adjustingP  % Adjust primary if match is not yet reached
@@ -471,7 +469,7 @@ while(stillLooping)
                 % Move as indicated if you are continuing in the same
                 % direction, or if it is a reversal and you have not yet
                 % reached the required number of reversals for that stage
-                if p1_up == p1_up_prev || numReversalsP < numReversals(1)...
+                if p1_up == p1_up_prev || nReversalsP < nReversals(1)...
                         || stepModePos == length(stepModes)
                     if p1_up
                         if primaryPos == adjustment_length
@@ -486,15 +484,15 @@ while(stillLooping)
                     end
                     adjustmentCount = adjustmentCount+1;
                     if p1_up ~= p1_up_prev && ~firstAdjustment
-                        numReversalsP = numReversalsP+1;
+                        nReversalsP = nReversalsP+1;
                         fprintf('Primary reversal %g, step size %g\n',...
-                            numReversalsP,(stepModes(stepModePos)/...
+                            nReversalsP,(stepModes(stepModePos)/...
                             (adjustment_length-1)));
                     end
                 else    % Lower step size
                     key.charCode = 's';
                     pStepPos = pStepPos+1;
-                    numReversalsP = 0;
+                    nReversalsP = 0;
                 end
                 p1_up_prev = p1_up;
                 
@@ -504,7 +502,7 @@ while(stillLooping)
                 % direction or if it is a reversal and you have not yet
                 % reached the required number of reversals for that stage
                 if t_up == t_up_prev || stepModePos == length(stepModes)...
-                        || numReversalsT < numReversals(1) 
+                        || nReversalsT < nReversals(1) 
                     if t_up
                         if testPos == adjustment_length
                             error('Test is at maximum setting');
@@ -518,15 +516,15 @@ while(stillLooping)
                     end
                     adjustmentCount = adjustmentCount+1;
                     if t_up ~= t_up_prev && ~firstAdjustment
-                        numReversalsT = numReversalsT+1;
+                        nReversalsT = nReversalsT+1;
                         fprintf('Test reversal %g, step size %g\n',...
-                            numReversalsT,(stepModes(stepModePos)/...
+                            nReversalsT,(stepModes(stepModePos)/...
                             (adjustment_length-1)));
                     end
                 else        % Lower step size
                     key.charCode = 's';
                     tStepPos = tStepPos+1;
-                    numReversalsT = 0;
+                    nReversalsT = 0;
                 end
                 t_up_prev = t_up;
             end
@@ -608,7 +606,7 @@ while(stillLooping)
                         'primaryStartStops','testStartStops','subjectID',...
                         'sessionNum','annulusData','sInterval','lInterval',...
                         'adjustment_length','foveal','white',...
-                        'numReversals','switchInterval','observer',...
+                        'nReversals','switchInterval','observer',...
                         'p1Scale','p2Scale','testScale','lightFileName',...
                         'thresholdMatching','thresholdScaleFactor',...
                         'nBelowThreshold','simObserver','simKeypad',...
