@@ -57,6 +57,7 @@ p.parse(varargin{:});
 observer = struct; 
 observer.colorDiffParams = DefaultColorDiffParams('opponentContrast'); 
 observer.coneParams = DefaultConeParams('cie_asano'); 
+observer.S = p.Results.S; % Wavelength sampling 
 
 % Reset age if needed
 if p.Results.age ~= 32

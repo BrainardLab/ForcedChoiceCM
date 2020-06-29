@@ -1,6 +1,6 @@
 function [tSpd,pSpd,tIndex,pIndex] = findNominalMatch(fName,coneParams,varargin)
 % Finds the nominal match for a given set of primary and test lights
-
+%
 % Syntax:
 %   findNominalMatch(fName,coneParams)
 %
@@ -26,7 +26,7 @@ function [tSpd,pSpd,tIndex,pIndex] = findNominalMatch(fName,coneParams,varargin)
 %
 % Optional key-value pairs:
 %    age               -Integer for subject age. Default is 32.
-%    fieldSize         -Integer field size in degrees. Default is 2. 
+%    fieldSize         -Integer field size in degrees. Default is 2.  
 
 % History
 %    dce    xx/xx/20  - Wrote it
@@ -45,7 +45,7 @@ lightSettings = load(fName);
 
 % Generate cone fundamentals for observer.
 observer = genRayleighObserver('age',p.Results.age,'fieldSize',...
-    p.Results.fieldSize,'coneVec',coneParams);
+    p.Results.fieldSize,'coneVec',coneParams,'S',lightSettings.cal.computed.pr650S);
 T_cones = observer.T_cones;
 
 % Initialize arrays
@@ -110,7 +110,7 @@ end
 % Plot cone effects and spds at the minimum error settings
 makePlots = false;
 if makePlots
-    wls = 380:2:780; 
+    wls = lightSettings.cal.computed.pr650wls; 
     OLPlotConeEffects(primaryConeEffects(pIndex,:)',...
         testConeEffects(tIndex,:)','Nominal Match',1);
     OLPlotSpdCheck(wls,lightSettings.testSpdsPredicted(:,tIndex));

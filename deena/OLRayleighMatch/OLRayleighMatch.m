@@ -172,7 +172,7 @@ switchInterval = p.Results.switchInterval;
 nReversals = p.Results.nReversals;
 thresholdMatching = p.Results.thresholdMatching;
 nBelowThreshold = p.Results.nBelowThreshold;
-thresholdScaleFactor = p.Results.thresholdScaleFactor;
+thresholdScaleFactor = p.Results.thresholdScaleFactor; 
 
 % Input error checking
 if (length(nReversals)~=2)
@@ -198,20 +198,6 @@ fileName = [subjectID,'_',num2str(sessionNum),'.mat'];
 fileLoc = fullfile(outputDir,fileName);
 if (exist(fileLoc,'file'))
     error('Specified output file %s already exists',fileName);
-end
-
-%% Initialize simulated observer if desired
-% If the experiment is run in simulation mode without a simulated observer,
-% the user can control the stimuli with keypresses
-observer = [];
-if foveal
-    fieldSize = 2;
-else
-    fieldSize = 10;
-end
-if simObserver
-    observer = genRayleighObserver('fieldSize', fieldSize,'age',age,...
-        'coneVec',observerParams);
 end
 
 %% Set up key interpretations
@@ -264,14 +250,28 @@ testScales = lightSettings.testScales;
 % Find nominal match settings. The idealForStandardObs flag means that the
 % program will find the nominal match for the standard observer, not the
 % actual observer being used.
+if foveal
+    fieldSize = 2;
+else
+    fieldSize = 10;
+end
 idealForStandardObs = true;  
 if idealForStandardObs
     [~,~,tIdealIndex,pIdealIndex] = findNominalMatch(lightFileName,...
         zeros(1,9),'fieldSize',fieldSize);
 else
     [~,~,tIdealIndex,pIdealIndex] = findNominalMatch(lightFileName,...
-        observerParams,fieldSize);
+        observerParams,'fieldSize',fieldSize);
 end 
+
+%% Initialize simulated observer if desired
+% If the experiment is run in simulation mode without a simulated observer,
+% the user can control the stimuli with keypresses
+observer = [];
+if simObserver
+    observer = genRayleighObserver('fieldSize', fieldSize,'age',age,...
+        'coneVec',observerParams,'S',cal.computed.pr650S);
+end
 
 %% Intialize OneLight and button box/keypresses
 ol = OneLight('simulate',(simObserver || simKeypad),...

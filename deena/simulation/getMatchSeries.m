@@ -1,6 +1,6 @@
 function [testSpds,primarySpds] = ...
     getMatchSeries(subjID,observerParams,p1Wls,p2Wls,testWls,method,varargin)
-% Finds a series of simulated Rayleigh matches 
+% Finds a series of simulated Rayleigh matches
 % Syntax:
 %   getMatchSeries(subjID,observerParams,p1Wls,p2Wls,testWls)
 %
@@ -10,14 +10,14 @@ function [testSpds,primarySpds] = ...
 %    Rayleigh matches for the given observer with each possible combination
 %    of the specified primary/test wavelengths. Returns the primary and
 %    test spds which were found by the observer for each match, collated
-%    into two matrices. Also saves results to a file. 
+%    into two matrices. Also saves results to a file.
 %
-%    There are three options for calculating the Rayleigh matches in this 
+%    There are three options for calculating the Rayleigh matches in this
 %    program, at varying levels of abstraction. Users can choose either
 %    computePredictedRayleighMatch (analytical calculation with
 %    monochromatic spds), findNominalMatch (finds the best match from a set
-%    of available primary/test lights), or OLRayleighMatch (full 
-%    simulation). Note that for the last option, some default parameters 
+%    of available primary/test lights), or OLRayleighMatch (full
+%    simulation). Note that for the last option, some default parameters
 %    differ from those of OLRayleighMatch.
 %
 % Inputs:
@@ -63,7 +63,10 @@ function [testSpds,primarySpds] = ...
 %                         Default is 1.
 %    'thresholdScaleFactor' -When using a simulated observer with
 %                            threshold matching, scale factor for matching
-%                            threshold. Default is 0.5.
+%                            threshold. Default is 0.5. 
+%    'sPredicted'        -Wavelength sampling for cone calculations when 
+%                         using the predicted match method. Comes in the
+%                         form [start delta nTerms]. Default is [400 1 301].
 
 % History:
 %   06/12/20  dce       Wrote it
@@ -73,6 +76,7 @@ function [testSpds,primarySpds] = ...
 % Input parsing
 p = inputParser;
 p.addParameter('foveal',true,@(x)(islogical(x)));
+p.addParameter('saveResults',true,@(x)(islogical(x)));
 p.addParameter('age',32,@(x)(isnumeric(x)));
 p.addParameter('p1Scale',1,@(x)(isnumeric(x)));
 p.addParameter('p2Scale',0.2,@(x)(isnumeric(x)));
@@ -81,7 +85,8 @@ p.addParameter('nObserverMatches',1,@(x)(isnumeric(x)));
 p.addParameter('thresholdMatch',true,@(x)(islogical(x)));
 p.addParameter('nReversals',[1 4],@(x)(isnumeric(x)));
 p.addParameter('nBelowThreshold',1,@(x)(isnumeric(x)));
-p.addParameter('thresholdScaleFactor',0.5,@(x) (isnumeric(x)));
+p.addParameter('thresholdScaleFactor',0.5,@(x)(isnumeric(x)));
+p.addParameter('sPredicted',[400 1 301],@(x)(isnumeric(x)));
 p.parse(varargin{:});
 
 % Check that a correct method has been entered
@@ -91,22 +96,24 @@ if ~strcmp(method,'predicted') && ~strcmp(method,'bestAvailable') && ...
 end
 
 % Set up subject directory
-outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),subjID);
-if (~exist(outputDir,'dir'))
-    mkdir(outputDir);
+if p.Results.saveResults
+    outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),subjID);
+    if (~exist(outputDir,'dir'))
+        mkdir(outputDir);
+    end
+    fName = [subjID, '_', method, '_allSpds.mat'];
+    file = fullfile(outputDir,fName);
+%     if exist(file,'file')
+%         error('Specified file already exists');
+%     end
 end
-fName = [subjID, '_', method, '_allSpds.mat'];
-file = fullfile(outputDir,fName);
-if exist(file,'file')
-    error('Specified file already exists'); 
-end 
 
-% Set field size 
+% Set field size
 if p.Results.foveal
     fieldSize = 2;
-else 
-    fieldSize = 10; 
-end 
+else
+    fieldSize = 10;
+end
 
 % Generate an array of wavelength combinations - first column is p1,
 % second is p2, third is test
@@ -118,7 +125,7 @@ testSpds = [];
 primarySpds = [];
 for i = 1:nCombos
     if strcmp(method,'simulation')  % Use OLRayleighMatch
-        % Run simulation 
+        % Run simulation
         OLRayleighMatch(subjID,i,'simObserver',true,'thresholdMatching',...
             p.Results.thresholdMatch,'observerParams',observerParams,'foveal',...
             p.Results.foveal,'p1',lightCombos(i,1),'p2',lightCombos(i,2),...
@@ -128,37 +135,41 @@ for i = 1:nCombos
             'thresholdScaleFactor',p.Results.thresholdScaleFactor,...
             'p2Scale',p.Results.p2Scale,'testScale',p.Results.testScale,...
             'p1Scale',p.Results.p1Scale);
-        % Extract spds from the data file 
+        % Extract spds from the data file
         simFile = [subjID,'_',num2str(i),'.mat'];
         simFilePath = fullfile(outputDir,simFile);
         [testSpd,primarySpd] = getMatchData(simFilePath);
         
-    elseif strcmp(method,'bestAvailable')  % Use findNominalMatch  
-        % What is the name of the file we're looking for? 
+    elseif strcmp(method,'bestAvailable')  % Use findNominalMatch
+        % What is the name of the file we're looking for?
         lightFile = sprintf('OLRayleighMatchFineSpectralSettings_%g_%g_%g_%g_%g_%g.mat',...
             lightCombos(i,1),lightCombos(i,2),lightCombos(i,3),...
             p.Results.p1Scale,p.Results.p2Scale,p.Results.testScale);
         lightFileName = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
             'precomputedStartStops',lightFile);
-        % If the lights file does not exist, create it 
+        % If the lights file does not exist, create it
         if ~exist(lightFileName,'file')
-        OLRayleighMatchLightSettings(lightCombos(i,1),lightCombos(i,2),...
-            lightCombos(i,3),'p1ScaleFactor',p.Results.p1Scale,...
-            'p2ScaleFactor',p.Results.p2Scale,'testScaleFactor',...
-            p.Results.testScale); 
-        end 
+            OLRayleighMatchLightSettings(lightCombos(i,1),lightCombos(i,2),...
+                lightCombos(i,3),'p1ScaleFactor',p.Results.p1Scale,...
+                'p2ScaleFactor',p.Results.p2Scale,'testScaleFactor',...
+                p.Results.testScale);
+        end
         % Find the ideal match among combinations of lights in the file
         [testSpd,primarySpd] = findNominalMatch(lightFileName,...
             observerParams,'age',p.Results.age,'fieldSize',fieldSize);
         
-    else  % Use computePredictedRayleighMatch 
+    else  % Use computePredictedRayleighMatch
+        S = [400 1 301];
         [testSpd,primarySpd] = computePredictedRayleighMatch(...
             lightCombos(i,1),lightCombos(i,2),lightCombos(i,3),...
-            observerParams,'age',p.Results.age,'fieldSize',fieldSize); 
+            observerParams,'age',p.Results.age,'fieldSize',fieldSize,...
+            'S',S);
     end
-    % Add calculated spds from the trial to the overall array, and save 
+    % Add calculated spds from the trial to the overall array, and save
     testSpds = [testSpds,testSpd];
     primarySpds = [primarySpds,primarySpd];
-    save(file,'testSpds','primarySpds','lightCombos','p');
+    if p.Results.saveResults
+        save(file,'testSpds','primarySpds','lightCombos','p');
+    end
 end
 end

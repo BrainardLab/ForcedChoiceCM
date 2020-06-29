@@ -59,7 +59,7 @@ fNames = {fName560,fName570,fName580,fName590,fName600,fName610,fName620,...
     fName630,fName640,fName650,fName660};
 
 % Various observer parameter vectors  (test one at a time)
-observerParams = zeros(1,9); 
+observerParams = zeros(1,9);
 % observerParams = [0 0 0 0 0 4 0 0 0]; % +4nm L
 % observerParams = [0 0 0 0 0 0 -2 0 0]; % -2nm M
 % observerParams = [0 0 0 0 0 -2 2 0 0]; % shift L and M
@@ -85,7 +85,7 @@ if checkSpdPlots
 end
 [observerParamsCalc,err] = findObserverParameters(testSpds,primarySpds);
 
-%% Tests using findNominalMatch - take 2  
+%% Tests using findNominalMatch - take 2
 % Scalars are 0.2 for test, 0.2 for p2. Test lights range from 560-640 nm
 filePath = '\Users\deena\Dropbox (Aguirre-Brainard Lab)\MELA_datadev\Experiments\ForcedChoiceCM\OLRayleighMatch\precomputedStartStops\';
 fName570 = [filePath,'OLRayleighMatchFineSpectralSettings_670_560_570_1_0.2_0.2.mat'];
@@ -99,7 +99,7 @@ fName640 = [filePath,'OLRayleighMatchFineSpectralSettings_670_560_640_1_0.2_0.2.
 fNames = {fName570,fName580,fName590,fName600,fName610,fName620,...
     fName630,fName640};
 % Various observer parameter vectors  (test one at a time)
-% observerParams = zeros(1,9); 
+% observerParams = zeros(1,9);
 % observerParams = [0 0 0 0 0 4 0 0 0]; % +4nm L
 % observerParams = [0 0 0 0 0 0 -2 0 0]; % -2nm M
 % observerParams = [0 0 0 0 0 -2 2 0 0]; % shift L and M
@@ -117,3 +117,35 @@ for i = 1:length(fNames)
 end
 [observerParamsCalc,err] = findObserverParameters(testSpds,primarySpds);
 [observerParamsCalc2,err2] = findObserverParameters(testSpds,primarySpds,'initialParams',[observerParams 0]);
+
+%% Tests using predicted matches
+observerParams1 = zeros(1,9);
+observerParams2 = [0 0 0 0 0 4 0 0 0]; % +4nm L
+observerParams3 = [0 0 0 0 0 0 -2 0 0]; % -2nm M
+observerParams4 = [0 0 0 0 0 -2 2 0 0]; % shift L and M
+observerParams5 = [0 0 30 0 0 0 0 0 0]; % Increase L cone OD
+observerParams6 = [0 0 -10 10 0 0 0 0 0]; % Change L and M ODs
+observerParams7 = [0 0 15 0 0 0 0 0 0]; % Change L cone OD
+observerParams = {observerParams1,observerParams2,observerParams3,...
+    observerParams4,observerParams5,observerParams6,observerParams7};
+
+calcParams = {};
+S = [400 1 301];
+
+for i = 1:length(observerParams)
+    currParams = cell2mat(observerParams(i));
+    initialObs = genRayleighObserver('coneVec',currParams,'S',S);
+    subjID = sprintf('observerParams_%g',i);
+    res = struct();
+    
+    [testSpds,primarySpds] = getMatchSeries(subjID,currParams,...
+        670,560,570:10:660,'predicted','sPredicted',S);
+    [res.observerParamsCalc,res.err] = findObserverParameters(testSpds,...
+        primarySpds,'S',S);
+    [res.observerParamsSetStart,res.errSetStart] = findObserverParameters(...
+        testSpds,primarySpds,'initialParams',[currParams 0],'S',S);
+    res.realParamsErr = findMatchError(currParams,initialObs,testSpds,...
+        primarySpds,'S',S);
+    res.observerParams = currParams;
+    calcParams{i} = res;
+end

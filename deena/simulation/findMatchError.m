@@ -1,4 +1,4 @@
-function error = findMatchError(paramsVec,initialObs,testSpds,primarySpds)
+function error = findMatchError(paramsVec,initialObs,testSpds,primarySpds,varargin)
 % Computes the error associated with a set of Rayleigh matches
 %
 % Syntax:
@@ -32,16 +32,23 @@ function error = findMatchError(paramsVec,initialObs,testSpds,primarySpds)
 %                 RG opponent contrast terms.
 %
 % Optional key-value pairs:
-%    None
+%    S           -Wavelength sampling for cone calculations, in the 
+%                 form [start increment numTerms]. Default is [380 2 201]  
 
 % History:
 %   06/12/20  dce       Wrote it.
 %   06/15/20  dce       Modified to take in multiple spds
 
+% Parse input 
+p = inputParser;
+p.addParameter('S',[380 2 201],@(x)(isnumeric(x)));
+p.parse(varargin{:});
+
 % Generate a model observer with the given parameters
 params = [paramsVec 0];          % Append noise
 observer = genRayleighObserver('age', initialObs.coneParams.ageYears,...
-    'fieldSize', initialObs.coneParams.fieldSizeDegrees,'coneVec',params);
+    'fieldSize', initialObs.coneParams.fieldSizeDegrees,...
+    'coneVec',params,'S',p.Results.S);
 
 [~,nMatches] = size(testSpds);   % How many match pairs do we have?
 pairError = zeros(1,nMatches);   % Array for storing error of each pair 

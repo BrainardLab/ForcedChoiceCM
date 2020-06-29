@@ -50,6 +50,9 @@ function [params, error, observer] = findObserverParameters(testSpds,primarySpds
 %                     deviations of their means. Default is true.
 %    'initialParams' -1x9 numerical vector of additional parameters.
 %                     Default is zeros(1,9);
+%    'S'             -Wavelength sampling for cone calculations, in the 
+%                     form [start increment numTerms]. Default is 
+%                     [380 2 201];  
 % History:
 %   06/12/20  dce       Wrote it.
 
@@ -61,11 +64,13 @@ p.addParameter('fieldSize',2,@(x)(isnumeric(x)));
 p.addParameter('LMEqualOD',false,@(x)(islogical(x)));
 p.addParameter('restrictBySd',true,@(x)(islogical(x)));
 p.addParameter('initialParams',zeros(1,9),@(x)(isnumeric(x)));
+p.addParameter('S',[380 2 201],@(x)(isnumeric(x)));
 p.parse(varargin{:});
 
 % Generate a standard observer with the given initial values 
 observer = genRayleighObserver('fieldSize',p.Results.fieldSize,'age',...
-    p.Results.age,'calcCones',false,'coneVec', p.Results.initialParams);
+    p.Results.age,'calcCones',false,'coneVec', p.Results.initialParams,...
+    'S',p.Results.S);
 
 %% Restrictions on parameters 
 Aeq = [];   % Linear equality constraint
@@ -97,17 +102,19 @@ options = optimset(options,'Diagnostics','off','Display','iter',...
     'LargeScale','off','Algorithm','active-set');
 
 % Find optimal parameters
-params = fmincon(@(x)findMatchError(x,observer,testSpds,primarySpds),...
-    p.Results.initialParams(1:8),[],[],Aeq,Beq,lb,ub,[],options);
+params = fmincon(@(x)findMatchError(x,observer,testSpds,primarySpds,...
+    'S',p.Results.S),p.Results.initialParams(1:8),[],[],Aeq,Beq,lb,ub,...
+    [],options);
 
 % Reset observer with the final parameters
 observer = ObserverVecToParams('basic', ...
     [params observer.colorDiffParams.noiseSd], observer);
 observer.T_cones = ComputeObserverFundamentals(observer.coneParams,...
-    [380 2 201]);
+    p.Results.S);
+sprintf('finished this fmincon round\n'); 
 
 % What is the error?
-error = findMatchError(params,observer,testSpds,primarySpds);
+error = findMatchError(params,observer,testSpds,primarySpds,'S',p.Results.S);
 
 %% Optional - plot LMS response
 plotLMS = false;
