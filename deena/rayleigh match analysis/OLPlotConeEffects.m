@@ -44,8 +44,6 @@ function OLPlotConeEffects(primaryCones, testCones, subjectID, sessionNum, varar
 %
 % Example: OLPlotConeEffects(p, t, 'Deena', 10)
 
-close all;
-
 % Parse input
 p = inputParser;
 p.addParameter('measured', false, @(x) (islogical(x)));

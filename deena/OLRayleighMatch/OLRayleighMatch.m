@@ -66,6 +66,7 @@ function OLRayleighMatch(subjectID, sessionNum, varargin)
 %    'foveal'         - logical indicating whether we are making foveal
 %                       matches, in which case the annulus is not turned
 %                       on. Default is true.
+%    'age'            - Integer age for observer. Default is 32.
 %    'white'          - logical indicating to run  a version of the
 %                       experiment where the lights are displayed with
 %                       white in between. Default is false.
@@ -134,7 +135,8 @@ p.addParameter('p2Scale',0.02,@(x)(isnumeric(x)));
 p.addParameter('testScale',0.07,@(x)(isnumeric(x)));
 p.addParameter('sInterval',0.25,@(x)(isnumeric(x)));
 p.addParameter('lInterval',1,@(x)(isnumeric(x)));
-p.addParameter('foveal', true,@(x)(islogical(x)));
+p.addParameter('foveal',true,@(x)(islogical(x)));
+p.addParameter('age',32,@(x)(isnumeric(x)));
 p.addParameter('white',false,@(x)(islogical(x)));
 p.addParameter('resetAnnulus',false,@(x)(islogical(x)));
 p.addParameter('silent',true,@(x)(islogical(x)));
@@ -158,6 +160,7 @@ testScale = p.Results.testScale;
 sInterval = p.Results.sInterval;
 lInterval = p.Results.lInterval;
 foveal = p.Results.foveal;
+age = p.Results.age; 
 white = p.Results.white;
 resetAnnulus = p.Results.resetAnnulus;
 silent = p.Results.silent;
@@ -207,7 +210,8 @@ else
     fieldSize = 10;
 end
 if simObserver
-    observer = genRayleighObserver('fieldSize', fieldSize,'coneVec',observerParams);
+    observer = genRayleighObserver('fieldSize', fieldSize,'age',age,...
+        'coneVec',observerParams);
 end
 
 %% Set up key interpretations

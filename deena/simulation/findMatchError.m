@@ -22,9 +22,9 @@ function error = findMatchError(paramsVec,initialObs,testSpds,primarySpds)
 %    initialObs  -Struct containing the initial settings for the observer.
 %                 Not modified by the program, but some fields are used
 %                 for reference.
-%    testSpd     -201 x n vector representation of the predicted spds for
+%    testSpd     -Vector representation of the predicted spds for
 %                 the chosen test light.
-%    primarySpd  -201 x n vector representation of the predicted spds for
+%    primarySpd  -Vector representation of the predicted spds for
 %                 the chosen primary light.
 %
 % Outputs:

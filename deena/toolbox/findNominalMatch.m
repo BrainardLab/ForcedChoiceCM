@@ -1,5 +1,5 @@
 function [tSpd,pSpd,tIndex,pIndex] = findNominalMatch(fName,coneParams,varargin)
-% Finds the nominal match for a Rayleigh matching experiment
+% Finds the nominal match for a given set of primary and test lights
 
 % Syntax:
 %   findNominalMatch(fName,coneParams)
@@ -112,7 +112,7 @@ makePlots = false;
 if makePlots
     wls = 380:2:780; 
     OLPlotConeEffects(primaryConeEffects(pIndex,:)',...
-        testConeEffects(tIndex,:)','Ideal',1);
+        testConeEffects(tIndex,:)','Nominal Match',1);
     OLPlotSpdCheck(wls,lightSettings.testSpdsPredicted(:,tIndex));
     title('Measured Test Spds for Ideal Match'); 
     OLPlotSpdCheck(wls,lightSettings.primarySpdsPredicted(:,pIndex));

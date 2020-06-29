@@ -25,9 +25,9 @@ function [params, error, observer] = findObserverParameters(testSpds,primarySpds
 %       observer.coneParams.indDiffParams.lambdaMaxShift(3) = x(8);
 %
 % Inputs:
-%    testSpd     -201xn vector representation of the predicted spds for
+%    testSpd     -Vector representation of the predicted spds for
 %                 the chosen test lights
-%    primarySpd  -201xn vector representation of the predicted spds for
+%    primarySpd  -Vector representation of the predicted spds for
 %                 the chosen primary lights
 %
 % Outputs:

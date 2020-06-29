@@ -35,6 +35,9 @@ function observer = genRayleighObserver(varargin)
 %    fieldSize         -Integer field size in degrees. Default is 2. 
 %    calcCones         -Logical indicating whether to calculate cone
 %                       fundamentals. Default is true.
+%    S                 -Wavelength sampling for cone calculations, in the 
+%                       form [start increment numTerms]. Default is 
+%                       [380 2 201];  
 
 % History:
 %   06/02/20  dce       Wrote initial code
@@ -42,16 +45,14 @@ function observer = genRayleighObserver(varargin)
 %   06/12/20  dce       Added age and field size as key-value pairs, 
 %                       made cone calculation optional 
 
-
 % Parse input 
 p = inputParser;
 p.addParameter('coneVec',[],@(x)(isvector(x)));
 p.addParameter('age',32,@(x)(isnumeric(x)));
 p.addParameter('fieldSize',2,@(x)(isnumeric(x))); 
 p.addParameter('calcCones',true,@(x)(islogical(x)));
+p.addParameter('S',[380 2 201],@(x)(isnumeric(x)));
 p.parse(varargin{:});
-
-S = [380 2 201];  % Wavelength sampling (following OneLight convention)
 
 observer = struct; 
 observer.colorDiffParams = DefaultColorDiffParams('opponentContrast'); 
@@ -74,6 +75,7 @@ end
 
 % Cone fundamentals
 if p.Results.calcCones
-    observer.T_cones = ComputeObserverFundamentals(observer.coneParams,S);
+    observer.T_cones = ComputeObserverFundamentals(observer.coneParams,...
+        p.Results.S);
 end 
 end 
