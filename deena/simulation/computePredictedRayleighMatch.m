@@ -10,7 +10,9 @@ function [testAdjustedSpd,primaryMixtureSpd,lambda,testIntensity] =...
 %    primary and test wavelengths and the individual difference parameters
 %    for the observer (based on the Asano model). Makes a monochromatic spd
 %    for each of the wavelengths, then solves a matrix equation to find the
-%    primary ratio and test intensity which would lead to a match. There is
+%    primary ratio and test intensity which would lead to a match. If a
+%    noise standard deviation is entered for the observer, then Gaussian
+%    noise is added to the lambda and testIntensity parameters. There is
 %    also an option to plot the chosen match spds and their cone effects.
 %
 % Inputs:
@@ -33,9 +35,9 @@ function [testAdjustedSpd,primaryMixtureSpd,lambda,testIntensity] =...
 %    fieldSize         -Integer field size in degrees. Default is 2.
 %    S                 -Wavelength sampling for cone calculations, in the
 %                       form [start delta nTerms]. Default is [400 1 301].
-
 % History
 %    dce    6/29/20   -Adapted from example code from dhb
+%    dce    7/1/20    -Added noise
 
 %% Parse input
 p = inputParser;
@@ -46,6 +48,7 @@ p.parse(varargin{:});
 
 %% Set up parameters
 wls = SToWls(p.Results.S);
+
 % Generate monochromatic spds
 p1Spd = zeros(size(wls));
 p1Spd(wls==p1) = 1;
@@ -66,6 +69,14 @@ T_LM = observer.T_cones(1:2,:);         % L and M cone fundamentals
 p1Res = T_LM*p1Spd;
 p2Res = T_LM*p2Spd;
 testRes = T_LM*testSpd;
+
+% If the observer is noisy, add Gaussian noise to the cone responses
+if observerParams(9)~=0
+    noise = normrnd(0,observerParams(9),6,1);
+    p1Res = p1Res + noise(1:2,:);
+    p2Res = p2Res + noise(3:4,:);
+    testRes = testRes + noise(5:6,:);
+end
 
 %% Set up a matrix equation to solve for the optimal primary ratio and
 %% test intensity
@@ -93,18 +104,19 @@ testIntensity = answer(2);
 
 % Check if the computed scale factors are reasonable
 if lambda < 0 || lambda > 1 || testIntensity < 0 || testIntensity > 1
-    error('Not possible to compute Rayleigh match for the given primaries');
+    error('Not possible to compute Rayleigh match. Try adjusting lights or reducing noise');
 end
 
 % Generate adjusted spds
 primaryMixtureSpd = lambda*p1Spd + (1-lambda)*p2Spd;
 testAdjustedSpd = testIntensity*testSpd;
-primaryLMS = observer.T_cones*primaryMixtureSpd;
-testLMS = observer.T_cones*testAdjustedSpd;
 
-% Make optional plots of the results
+% Make optional plots of the results (note that this does not include
+% noise)
 plotResults = false;
 if plotResults
+    primaryLMS = observer.T_cones*primaryMixtureSpd;
+    testLMS = observer.T_cones*testAdjustedSpd;
     OLPlotSpdCheck(wls,[primaryMixtureSpd,testAdjustedSpd]);
     legend('Primary','Test');
     title('Adjusted Spds');

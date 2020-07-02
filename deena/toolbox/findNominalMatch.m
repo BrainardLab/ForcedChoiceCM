@@ -45,7 +45,8 @@ lightSettings = load(fName);
 
 % Generate cone fundamentals for observer.
 observer = genRayleighObserver('age',p.Results.age,'fieldSize',...
-    p.Results.fieldSize,'coneVec',coneParams,'S',lightSettings.cal.computed.pr650S);
+    p.Results.fieldSize,'coneVec',coneParams,'S',...
+    lightSettings.cal.computed.pr650S);
 T_cones = observer.T_cones;
 
 % Initialize arrays

@@ -47,8 +47,8 @@ end
 %% Set preferences for project output
 %
 % This will need to be locally configured.
-setpref(projectName,'simulatedDataDir',fullfile(projectBaseDir,'SimulatedData'));
 setpref(projectName,'rayleighDataDir',fullfile(baseDir,'MELA_datadev','Experiments',projectName,'OLRayleighMatch'));
+setpref(projectName,'rayleighAnalysisDataDir',fullfile(baseDir,'MELA_data','Experiments',projectName,'OLRayleighMatch'));
 setpref(projectName,'rayleighAnalysisDir',fullfile(baseDir,'MELA_analysis','Experiments',projectName, 'OLRayleighMatch'));
 % setpref(projectName,'mainExpDir',projectBaseDir);
 % setpref(projectName,'analysisDir',fullfile(baseDir,'CNST_analysis',projectName));

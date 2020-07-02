@@ -1,4 +1,4 @@
-function [params, error, observer] = findObserverParameters(testSpds,primarySpds,varargin)
+function [params,error,observer] = findObserverParameters(testSpds,primarySpds,varargin)
 % Finds optimal cone paramters for an observer based on a Rayleigh match
 % they made
 
@@ -51,8 +51,7 @@ function [params, error, observer] = findObserverParameters(testSpds,primarySpds
 %    'initialParams' -1x9 numerical vector of additional parameters.
 %                     Default is zeros(1,9);
 %    'S'             -Wavelength sampling for cone calculations, in the 
-%                     form [start increment numTerms]. Default is 
-%                     [380 2 201];  
+%                     form [start delta nTerms]. Default is [380 2 201];  
 % History:
 %   06/12/20  dce       Wrote it.
 
@@ -62,7 +61,7 @@ p = inputParser;
 p.addParameter('age',32,@(x)(isnumeric(x)));
 p.addParameter('fieldSize',2,@(x)(isnumeric(x)));
 p.addParameter('LMEqualOD',false,@(x)(islogical(x)));
-p.addParameter('restrictBySd',true,@(x)(islogical(x)));
+p.addParameter('restrictBySd',false,@(x)(islogical(x)));
 p.addParameter('initialParams',zeros(1,9),@(x)(isnumeric(x)));
 p.addParameter('S',[380 2 201],@(x)(isnumeric(x)));
 p.parse(varargin{:});
@@ -108,10 +107,9 @@ params = fmincon(@(x)findMatchError(x,observer,testSpds,primarySpds,...
 
 % Reset observer with the final parameters
 observer = ObserverVecToParams('basic', ...
-    [params observer.colorDiffParams.noiseSd], observer);
+    [params observer.colorDiffParams.noiseSd],observer);
 observer.T_cones = ComputeObserverFundamentals(observer.coneParams,...
-    p.Results.S);
-sprintf('finished this fmincon round\n'); 
+    p.Results.S); 
 
 % What is the error?
 error = findMatchError(params,observer,testSpds,primarySpds,'S',p.Results.S);

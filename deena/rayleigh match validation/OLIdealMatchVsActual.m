@@ -9,9 +9,8 @@
 %% Parameters 
 % Experiment data files to analyze - one with subject data, one with ideal
 % matches
-file = '/Users/melanopsin/Dropbox (Aguirre-Brainard Lab)/MELA_data/Experiments/ForcedChoiceCM/OLRayleighMatch/DE/DE_23.mat'; 
-idealFile = '/Users/melanopsin/Dropbox (Aguirre-Brainard Lab)/MELA_data/Experiments/ForcedChoiceCM/OLRayleighMatch/ideal_meas.mat'; 
-
+file = fullfile(getpref('ForcedChoiceCM','rayleighAnalysisDataDir'),'DE','DE_23.mat'); 
+idealFile = fullfile(getpref('ForcedChoiceCM','rayleighAnalysisDataDir'),'ideal_meas.mat');
 % Calculate subject cone responses based on measured data
 measured = true; 
 

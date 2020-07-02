@@ -5,36 +5,36 @@
 
 % Case 1 - standard observer
 % Forced choice rule
-fName = '\Users\deena\Dropbox (Aguirre-Brainard Lab)\MELA_datadev\Experiments\ForcedChoiceCM\OLRayleighMatch\100\100_7.mat';
+fName = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),'100','100_7.mat');
 [testSpd, primarySpd] = getMatchData(fName);
 [standardFC, standardFCErr] = findObserverParameters(testSpd,primarySpd);
 
 % Adjustment Rule (with default settings)
-fName = '\Users\deena\Dropbox (Aguirre-Brainard Lab)\MELA_datadev\Experiments\ForcedChoiceCM\OLRayleighMatch\100\100_8.mat';
+fName = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),'100','100_8.mat');
 [testSpd, primarySpd] = getMatchData(fName);
 [standardAdjust, standardAdjustErr] = findObserverParameters(testSpd,primarySpd);
 
 % Case 2 - +2L
 % Forced choice rule
-fName = '\Users\deena\Dropbox (Aguirre-Brainard Lab)\MELA_datadev\Experiments\ForcedChoiceCM\OLRayleighMatch\100\100_9.mat';
+fName = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),'100','100_9.mat');
 [testSpd, primarySpd] = getMatchData(fName);
 [L, LErr] = findObserverParameters(testSpd,primarySpd);
 
 % Case 3 - +2L, -2M
 % Forced choice rule
-fName = '\Users\deena\Dropbox (Aguirre-Brainard Lab)\MELA_datadev\Experiments\ForcedChoiceCM\OLRayleighMatch\100\100_10.mat';
+fName = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),'100','100_10.mat');
 [testSpd, primarySpd] = getMatchData(fName);
 [LM, LMErr] = findObserverParameters(testSpd,primarySpd);
 
 % Case 4 - 20% OD increase for M cone
 % Forced choice rule
-fName = '\Users\deena\Dropbox (Aguirre-Brainard Lab)\MELA_datadev\Experiments\ForcedChoiceCM\OLRayleighMatch\100\100_11.mat';
+fName = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),'100','100_11.mat');
 [testSpd, primarySpd] = getMatchData(fName);
 [MOD, MODErr] = findObserverParameters(testSpd,primarySpd);
 
 % Case 5 - 20% OD decrease for L cone, +2nm for L cone
 % Forced choice rule
-fName = '\Users\deena\Dropbox (Aguirre-Brainard Lab)\MELA_datadev\Experiments\ForcedChoiceCM\OLRayleighMatch\100\100_12.mat';
+fName = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),'100','100_12.mat');
 [testSpd, primarySpd] = getMatchData(fName);
 [LBoth, LBothErr] = findObserverParameters(testSpd,primarySpd);
 save('paramSearchTest.mat');
@@ -43,18 +43,18 @@ save('paramSearchTest.mat');
 % Datasets of light settings at various test wavelengths. Search in these
 % for nominal matches
 % Scalars are 0.5 for test, 0.3 for p2. Test lights range from 560-640 nm
-filePath = '\Users\deena\Dropbox (Aguirre-Brainard Lab)\MELA_datadev\Experiments\ForcedChoiceCM\OLRayleighMatch\precomputedStartStops\';
-fName560 = [filePath,'OLRayleighMatchFineSpectralSettings_670_560_560_1_0.3_0.5.mat'];
-fName570 = [filePath,'OLRayleighMatchFineSpectralSettings_670_560_570_1_0.3_0.5.mat'];
-fName580 = [filePath,'OLRayleighMatchFineSpectralSettings_670_560_580_1_0.3_0.5.mat'];
-fName590 = [filePath,'OLRayleighMatchFineSpectralSettings_670_560_590_1_0.3_0.5.mat'];
-fName600 = [filePath,'OLRayleighMatchFineSpectralSettings_670_560_600_1_0.3_0.5.mat'];
-fName610 = [filePath,'OLRayleighMatchFineSpectralSettings_670_560_610_1_0.3_0.5.mat'];
-fName620 = [filePath,'OLRayleighMatchFineSpectralSettings_670_560_620_1_0.3_0.5.mat'];
-fName630 = [filePath,'OLRayleighMatchFineSpectralSettings_670_560_630_1_0.3_0.5.mat'];
-fName640 = [filePath,'OLRayleighMatchFineSpectralSettings_670_560_640_1_0.3_0.5.mat'];
-fName650 = [filePath,'OLRayleighMatchFineSpectralSettings_670_560_650_1_0.3_0.5.mat'];
-fName660 = [filePath,'OLRayleighMatchFineSpectralSettings_670_560_660_1_0.3_0.5.mat'];
+filePath = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),'precomputedStartStops');
+fName560 = fullfile(filePath,'OLRayleighMatchFineSpectralSettings_670_560_560_1_0.3_0.5.mat');
+fName570 = fullfile(filePath,'OLRayleighMatchFineSpectralSettings_670_560_570_1_0.3_0.5.mat');
+fName580 = fullfile(filePath,'OLRayleighMatchFineSpectralSettings_670_560_580_1_0.3_0.5.mat');
+fName590 = fullfile(filePath,'OLRayleighMatchFineSpectralSettings_670_560_590_1_0.3_0.5.mat');
+fName600 = fullfile(filePath,'OLRayleighMatchFineSpectralSettings_670_560_600_1_0.3_0.5.mat');
+fName610 = fullfile(filePath,'OLRayleighMatchFineSpectralSettings_670_560_610_1_0.3_0.5.mat');
+fName620 = fullfile(filePath,'OLRayleighMatchFineSpectralSettings_670_560_620_1_0.3_0.5.mat');
+fName630 = fullfile(filePath,'OLRayleighMatchFineSpectralSettings_670_560_630_1_0.3_0.5.mat');
+fName640 = fullfile(filePath,'OLRayleighMatchFineSpectralSettings_670_560_640_1_0.3_0.5.mat');
+fName650 = fullfile(filePath,'OLRayleighMatchFineSpectralSettings_670_560_650_1_0.3_0.5.mat');
+fName660 = fullfile(filePath,'OLRayleighMatchFineSpectralSettings_670_560_660_1_0.3_0.5.mat');
 fNames = {fName560,fName570,fName580,fName590,fName600,fName610,fName620,...
     fName630,fName640,fName650,fName660};
 
@@ -87,15 +87,15 @@ end
 
 %% Tests using findNominalMatch - take 2
 % Scalars are 0.2 for test, 0.2 for p2. Test lights range from 560-640 nm
-filePath = '\Users\deena\Dropbox (Aguirre-Brainard Lab)\MELA_datadev\Experiments\ForcedChoiceCM\OLRayleighMatch\precomputedStartStops\';
-fName570 = [filePath,'OLRayleighMatchFineSpectralSettings_670_560_570_1_0.2_0.2.mat'];
-fName580 = [filePath,'OLRayleighMatchFineSpectralSettings_670_560_580_1_0.2_0.2.mat'];
-fName590 = [filePath,'OLRayleighMatchFineSpectralSettings_670_560_590_1_0.2_0.2.mat'];
-fName600 = [filePath,'OLRayleighMatchFineSpectralSettings_670_560_600_1_0.2_0.2.mat'];
-fName610 = [filePath,'OLRayleighMatchFineSpectralSettings_670_560_610_1_0.2_0.2.mat'];
-fName620 = [filePath,'OLRayleighMatchFineSpectralSettings_670_560_620_1_0.2_0.2.mat'];
-fName630 = [filePath,'OLRayleighMatchFineSpectralSettings_670_560_630_1_0.2_0.2.mat'];
-fName640 = [filePath,'OLRayleighMatchFineSpectralSettings_670_560_640_1_0.2_0.2.mat'];
+filePath = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),'precomputedStartStops');
+fName570 = fullfile(filePath,'OLRayleighMatchFineSpectralSettings_670_560_570_1_0.2_0.2.mat');
+fName580 = fullfile(filePath,'OLRayleighMatchFineSpectralSettings_670_560_580_1_0.2_0.2.mat');
+fName590 = fullfile(filePath,'OLRayleighMatchFineSpectralSettings_670_560_590_1_0.2_0.2.mat');
+fName600 = fullfile(filePath,'OLRayleighMatchFineSpectralSettings_670_560_600_1_0.2_0.2.mat');
+fName610 = fullfile(filePath,'OLRayleighMatchFineSpectralSettings_670_560_610_1_0.2_0.2.mat');
+fName620 = fullfile(filePath,'OLRayleighMatchFineSpectralSettings_670_560_620_1_0.2_0.2.mat');
+fName630 = fullfile(filePath,'OLRayleighMatchFineSpectralSettings_670_560_630_1_0.2_0.2.mat');
+fName640 = fullfile(filePath,'OLRayleighMatchFineSpectralSettings_670_560_640_1_0.2_0.2.mat');
 fNames = {fName570,fName580,fName590,fName600,fName610,fName620,...
     fName630,fName640};
 % Various observer parameter vectors  (test one at a time)
@@ -123,11 +123,25 @@ observerParams1 = zeros(1,9);
 observerParams2 = [0 0 0 0 0 4 0 0 0]; % +4nm L
 observerParams3 = [0 0 0 0 0 0 -2 0 0]; % -2nm M
 observerParams4 = [0 0 0 0 0 -2 2 0 0]; % shift L and M
-observerParams5 = [0 0 30 0 0 0 0 0 0]; % Increase L cone OD
-observerParams6 = [0 0 -10 10 0 0 0 0 0]; % Change L and M ODs
-observerParams7 = [0 0 15 0 0 0 0 0 0]; % Change L cone OD
+observerParams5 = [0 0 15 0 0 0 0 0 0]; % Increase L cone OD
+observerParams6 = [0 0 -15 0 0 0 0 0 0]; % Decrease L cone OD
+observerParams7 = [0 0 0 15 0 0 0 0 0]; % Increase M cone OD
+observerParams8 = [0 0 0 -15 0 0 0 0 0]; % Decrease M cone OD
+observerParams9 = [0 0 -10 10 0 0 0 0 0]; % Change L and M ODs
+observerParams10 = [0 0 -20 0 0 2 0 0 0]; % Change L cone OD and lambda max in opposing direction 1 
+observerParams11 = [0 0 20 0 0 -2 0 0 0]; % Change L cone OD and lambda max in opposing direction 2
+observerParams12 = [0 0 -20 0 0 -2 0 0 0]; % Change L cone OD and lambda max in supporting direction 1
+observerParams13 = [0 0 20 0 0 2 0 0 0]; % Change L cone OD and lambda max in supporting direction 2
+observerParams14 = [0 0 0 20 0 0 -2 0 0]; % Change M cone OD and lambda max in opposing direction 1
+observerParams15 = [0 0 0 -20 0 0 2 0 0]; % Change M cone OD and lambda max in opposing direction 2
+observerParams16 = [0 0 0 -20 0 0 -2 0 0]; % Change M cone OD and lambda max in supporting direction 1
+observerParams17 = [0 0 0 20 0 0 2 0 0]; % Change M cone OD and lambda max in supporting direction 2
+observerParams18 = [0 0 0 20 0 -2 0 0 0]; % Change M cone OD and L cone lambda max
 observerParams = {observerParams1,observerParams2,observerParams3,...
-    observerParams4,observerParams5,observerParams6,observerParams7};
+    observerParams4,observerParams5,observerParams6,observerParams7,...
+    observerParams8,observerParams9,observerParams10,observerParams11,...
+    observerParams12,observerParams13,observerParams14,observerParams15...
+    observerParams16,observerParams17,observerParams18};
 
 calcParams = {};
 S = [400 1 301];
@@ -139,7 +153,7 @@ for i = 1:length(observerParams)
     res = struct();
     
     [testSpds,primarySpds] = getMatchSeries(subjID,currParams,...
-        670,560,570:10:660,'predicted','sPredicted',S);
+        670,560,570:2:660,'predicted','sPredicted',S,'saveResults',false);
     [res.observerParamsCalc,res.err] = findObserverParameters(testSpds,...
         primarySpds,'S',S);
     [res.observerParamsSetStart,res.errSetStart] = findObserverParameters(...

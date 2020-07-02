@@ -50,7 +50,11 @@ observer = genRayleighObserver('age', initialObs.coneParams.ageYears,...
     'fieldSize', initialObs.coneParams.fieldSizeDegrees,...
     'coneVec',params,'S',p.Results.S);
 
-[~,nMatches] = size(testSpds);   % How many match pairs do we have?
+[spdLength,nMatches] = size(testSpds);   
+% Throw error if matrix sizes do not match 
+if length(SToWls(p.Results.S)) ~= spdLength
+    error('Observer wavelength sampling and spd length do not match'); 
+end 
 pairError = zeros(1,nMatches);   % Array for storing error of each pair 
 
 % Calculate opponent contrast for each match 

@@ -9,16 +9,17 @@ function observer = genRayleighObserver(varargin)
 %    use with the OLRayleighMatch program to simulate Rayleigh matching
 %    experiments. 
 % 
-%    If no key-alue pairs are given, the program generates an observer with 
-%    standard cone fundamentals and a 2-degree field size. However, the
-%    user can also enter a vector of individual difference parameters as a 
-%    key-value pair (dlens, dmac, dphotopigments, lambdaMaxShifts, and 
-%    noiseSd). There is also an option to specify age and field size. 
+%    If no key-value pairs are given, the program generates an observer  
+%    with standard cone fundamentals and a 2-degree field size. However, 
+%    the user can also enter a vector of individual difference parameters 
+%    as a key-value pair (dlens, dmac, dphotopigments, lambdaMaxShifts, and 
+%    noiseSd). There is also an option to specify age, field size, and 
+%    wavelength sampling. 
 %   
 %    The output observer struct includes three fields: colorDiffParams 
 %    (opponent contrast weighting parameters), coneParams (individual
-%    difference/observer parameters), and (optionally) T_cones (cone 
-%    fundamentals). 
+%    difference/observer parameters), S (wavelength sampling), and 
+%    (optionally) T_cones (cone fundamentals). 
 % Inputs:
 %     none  
 %
@@ -44,6 +45,7 @@ function observer = genRayleighObserver(varargin)
 %   06/03/20  dce       Added field size correction
 %   06/12/20  dce       Added age and field size as key-value pairs, 
 %                       made cone calculation optional 
+%   06/29/20  dce       Added S field to observer
 
 % Parse input 
 p = inputParser;
@@ -71,7 +73,7 @@ end
 
 % Set individual difference parameters
 if ~isempty(p.Results.coneVec)
-    observer = ObserverVecToParams('basic', p.Results.coneVec, observer);  
+    observer = ObserverVecToParams('basic',p.Results.coneVec,observer);  
 end 
 
 % Cone fundamentals

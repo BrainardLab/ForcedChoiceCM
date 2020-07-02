@@ -39,6 +39,8 @@ function [testSpds,primarySpds] = ...
 % Optional key-value pairs:
 %    'foveal'            -logical indicating whether we are making foveal
 %                         matches. Default is true.
+%    'saveResults        -logical indicating whether we should save
+%                         calculated match spds. Default is true.
 %    'age'               -Integer age for simulated observer. Default is
 %                         32.
 %    'p1Scale'           -Numerical scale factor for the first primary
@@ -47,6 +49,9 @@ function [testSpds,primarySpds] = ...
 %                         light, between 0 and 1. Default is 0.2.
 %    'testScale'         -Numerical scale factor for the test light,
 %                         between 0 and 1. Default is 0.2.
+%    'sPredicted'        -Wavelength sampling for cone calculations when 
+%                         using the predicted match method. Comes in the
+%                         form [start delta nTerms]. Default is [400 1 301].
 %    'nObserverMatches'  -Number of matches to simulate for each set of
 %                         lights. Default is 1.
 %    'thresholdMatch'    -Make matches using the threshold rule, not the
@@ -64,9 +69,6 @@ function [testSpds,primarySpds] = ...
 %    'thresholdScaleFactor' -When using a simulated observer with
 %                            threshold matching, scale factor for matching
 %                            threshold. Default is 0.5. 
-%    'sPredicted'        -Wavelength sampling for cone calculations when 
-%                         using the predicted match method. Comes in the
-%                         form [start delta nTerms]. Default is [400 1 301].
 
 % History:
 %   06/12/20  dce       Wrote it
@@ -159,11 +161,10 @@ for i = 1:nCombos
             observerParams,'age',p.Results.age,'fieldSize',fieldSize);
         
     else  % Use computePredictedRayleighMatch
-        S = [400 1 301];
         [testSpd,primarySpd] = computePredictedRayleighMatch(...
             lightCombos(i,1),lightCombos(i,2),lightCombos(i,3),...
             observerParams,'age',p.Results.age,'fieldSize',fieldSize,...
-            'S',S);
+            'S',p.Results.sPredicted);
     end
     % Add calculated spds from the trial to the overall array, and save
     testSpds = [testSpds,testSpd];

@@ -1,5 +1,5 @@
-function [primary_redder, test_brighter, isMatch] = ...
-    observerRayleighDecision(observer, primarySpd, testSpd, varargin) 
+function [primary_redder,test_brighter,isMatch] = ...
+    observerRayleighDecision(observer,primarySpd,testSpd,varargin) 
 % Simulated observer decision making for a Rayleigh match experiment 
 %
 % Syntax:
@@ -49,30 +49,37 @@ function [primary_redder, test_brighter, isMatch] = ...
 %   06/03/20  dce       Added noise, style edits
 %   06/09/20  dce       Added match threshold calculation  
 %   06/11/20  dce       Added baseThreshold parameter
+%   07/1/20   dce       Added check on observer's wavelength sampling 
 
 % Parse input 
 p = inputParser;
-p.addParameter('noisy', false, @(x) (islogical(x)));
-p.addParameter('thresholdScale', 1, @(x) (isnumeric(x)));
-p.addParameter('baseThreshold', 0.02, @(x) (isnumeric(x)));
+p.addParameter('noisy',false, @(x) (islogical(x)));
+p.addParameter('thresholdScale',1, @(x) (isnumeric(x)));
+p.addParameter('baseThreshold',0.02,@(x) (isnumeric(x)));
 p.parse(varargin{:});
 
-% Cone responses for the given spectra 
-test_LMS = observer.T_cones * testSpd; 
-primary_LMS = observer.T_cones * primarySpd; 
+% Spds generated for OLRayleighMatch will always be sampled over S = 
+% [380 2 201]. Check if the simulated observer follows this convention.
+if ~all(observer.S == [380 2 201])
+    error('Observer wavelength sampling does not follow OneLight convention'); 
+end 
+
+% Cone responses for the given spectra
+test_LMS = observer.T_cones*testSpd; 
+primary_LMS = observer.T_cones*primarySpd; 
 
 % Opponent contrasts for the given spectra (primary mixing light relative 
 % to test light). The result has the form [LUM; RG; BY].
 opponentContrast = LMSToOpponentContrast(observer.colorDiffParams,...
-    test_LMS, primary_LMS);
+    test_LMS,primary_LMS);
 
 % Add noise
 % Sample three values from a Gaussian distribution, and add them to the
 % opponentContrast vector
 sd = observer.colorDiffParams.noiseSd; % Gaussian standard deviation
 if p.Results.noisy 
-    noise = normrnd(0, sd, 3, 1); 
-    opponentContrast = opponentContrast + noise; 
+    noise = normrnd(0,sd,3,1); 
+    opponentContrast = opponentContrast+noise; 
 end 
 
 % Check luminance 
@@ -91,13 +98,13 @@ end
 
 % Define matching threshold 
 if p.Results.noisy
-    threshold = sd * p.Results.thresholdScale;  
+    threshold = sd*p.Results.thresholdScale;  
 else 
-    threshold = p.Results.baseThreshold * p.Results.thresholdScale;
+    threshold = p.Results.baseThreshold*p.Results.thresholdScale;
 end
 
 % Check whether we're below the matching threshold  
-differenceVector = sqrt(opponentContrast(1)^2 + opponentContrast(2)^2); 
+differenceVector = sqrt(opponentContrast(1)^2+opponentContrast(2)^2); 
 if differenceVector < threshold
     isMatch = true; 
 else

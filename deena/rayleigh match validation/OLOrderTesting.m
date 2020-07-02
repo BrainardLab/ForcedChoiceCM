@@ -9,7 +9,8 @@
 %    dce    4/5/20    - Edited for style
 
 % Data file of choice 
-fName = '/Users/melanopsin/Dropbox (Aguirre-Brainard Lab)/MELA_data/Experiments/ForcedChoiceCM/OLRayleighMatch/DE_peripheral/DE_peripheral_1.mat';
+
+fName = fullfile(getpref('ForcedChoiceCM','rayleighAnalysisDataDir'),DE_peripheral,DE_peripheral_1.mat');
 name = 'DE_peripheral'; 
 
 % Cone responses to chosen matches (measured) 
