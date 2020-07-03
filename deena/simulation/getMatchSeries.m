@@ -49,7 +49,7 @@ function [testSpds,primarySpds] = ...
 %                         light, between 0 and 1. Default is 0.2.
 %    'testScale'         -Numerical scale factor for the test light,
 %                         between 0 and 1. Default is 0.2.
-%    'sPredicted'        -Wavelength sampling for cone calculations when 
+%    'sPredicted'        -Wavelength sampling for cone calculations when
 %                         using the predicted match method. Comes in the
 %                         form [start delta nTerms]. Default is [400 1 301].
 %    'nObserverMatches'  -Number of matches to simulate for each set of
@@ -68,7 +68,7 @@ function [testSpds,primarySpds] = ...
 %                         Default is 1.
 %    'thresholdScaleFactor' -When using a simulated observer with
 %                            threshold matching, scale factor for matching
-%                            threshold. Default is 0.5. 
+%                            threshold. Default is 0.5.
 
 % History:
 %   06/12/20  dce       Wrote it
@@ -93,22 +93,20 @@ p.parse(varargin{:});
 
 % Check that a correct method has been entered
 if ~strcmp(method,'predicted') && ~strcmp(method,'bestAvailable') && ...
-        ~strcmp(method,'simulation')
+        ~strcmp(method,'simulated')
     error('Unrecognized Rayleigh match method');
 end
 
 % Set up subject directory
-if p.Results.saveResults
-    outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),subjID);
-    if (~exist(outputDir,'dir'))
-        mkdir(outputDir);
-    end
-    fName = [subjID, '_', method, '_allSpds.mat'];
-    file = fullfile(outputDir,fName);
+outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),subjID);
+if (~exist(outputDir,'dir'))
+    mkdir(outputDir);
+end
+fName = [subjID, '_', method, '_allSpds.mat'];
+file = fullfile(outputDir,fName);
 %     if exist(file,'file')
 %         error('Specified file already exists');
 %     end
-end
 
 % Set field size
 if p.Results.foveal
@@ -126,7 +124,7 @@ nCombos = length(p1Wls)*length(p2Wls)*length(testWls);
 testSpds = [];
 primarySpds = [];
 for i = 1:nCombos
-    if strcmp(method,'simulation')  % Use OLRayleighMatch
+    if strcmp(method,'simulated')  % Use OLRayleighMatch
         % Run simulation
         OLRayleighMatch(subjID,i,'simObserver',true,'thresholdMatching',...
             p.Results.thresholdMatch,'observerParams',observerParams,'foveal',...

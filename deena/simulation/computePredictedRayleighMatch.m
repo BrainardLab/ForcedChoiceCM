@@ -38,6 +38,7 @@ function [testAdjustedSpd,primaryMixtureSpd,lambda,testIntensity] =...
 % History
 %    dce    6/29/20   -Adapted from example code from dhb
 %    dce    7/1/20    -Added noise
+%    dce    7/3/20    -Add noise to lambda and testIntensity, not cone res
 
 %% Parse input
 p = inputParser;
@@ -70,14 +71,6 @@ p1Res = T_LM*p1Spd;
 p2Res = T_LM*p2Spd;
 testRes = T_LM*testSpd;
 
-% If the observer is noisy, add Gaussian noise to the cone responses
-if observerParams(9)~=0
-    noise = normrnd(0,observerParams(9),6,1);
-    p1Res = p1Res + noise(1:2,:);
-    p2Res = p2Res + noise(3:4,:);
-    testRes = testRes + noise(5:6,:);
-end
-
 %% Set up a matrix equation to solve for the optimal primary ratio and
 %% test intensity
 % We want this to be true
@@ -102,6 +95,23 @@ answer = inv(M)*b;
 lambda = answer(1);
 testIntensity = answer(2);
 
+% If the observer is noisy, add noise to lambda and testIntensity
+if observerParams(9)~=0
+    noise = normrnd(0,observerParams(9),2,1);
+    lambda = lambda+noise(1); 
+    testIntensity = testIntensity+noise(2);  
+    % Check that adding noise didn't take you outside the limits
+    if lambda > 1 
+        lambda = 1; 
+    elseif lambda < 0
+        lambda = 0; 
+    elseif testIntensity > 1
+        testIntensity = 1; 
+    elseif testIntensity < 0
+        testIntensity = 0; 
+    end 
+end
+
 % Check if the computed scale factors are reasonable
 if lambda < 0 || lambda > 1 || testIntensity < 0 || testIntensity > 1
     error('Not possible to compute Rayleigh match. Try adjusting lights or reducing noise');
@@ -111,8 +121,7 @@ end
 primaryMixtureSpd = lambda*p1Spd + (1-lambda)*p2Spd;
 testAdjustedSpd = testIntensity*testSpd;
 
-% Make optional plots of the results (note that this does not include
-% noise)
+% Make optional plots of the results 
 plotResults = false;
 if plotResults
     primaryLMS = observer.T_cones*primaryMixtureSpd;

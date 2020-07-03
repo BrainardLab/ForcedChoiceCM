@@ -47,7 +47,7 @@ function [params,error,observer] = findObserverParameters(testSpds,primarySpds,v
 %                     Default is false.
 %    'restrictBySD'  -Logical. If true, adds lower and upper bounds on all
 %                     paramters to keep them within three standard
-%                     deviations of their means. Default is true.
+%                     deviations of their means. Default is false.
 %    'initialParams' -1x9 numerical vector of additional parameters.
 %                     Default is zeros(1,9);
 %    'S'             -Wavelength sampling for cone calculations, in the 
