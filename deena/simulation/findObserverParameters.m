@@ -25,9 +25,9 @@ function [params,error,observer] = findObserverParameters(testSpds,primarySpds,v
 %       observer.coneParams.indDiffParams.lambdaMaxShift(3) = x(8);
 %
 % Inputs:
-%    testSpd     -Vector representation of the predicted spds for
+%    testSpds     -Vector representation of the predicted spds for
 %                 the chosen test lights
-%    primarySpd  -Vector representation of the predicted spds for
+%    primarySpds  -Vector representation of the predicted spds for
 %                 the chosen primary lights
 %
 % Outputs:
@@ -50,12 +50,13 @@ function [params,error,observer] = findObserverParameters(testSpds,primarySpds,v
 %                     deviations of their means. Default is false.
 %    'initialParams' -1x9 numerical vector of additional parameters.
 %                     Default is zeros(1,9);
-%    'S'             -Wavelength sampling for cone calculations, in the 
-%                     form [start delta nTerms]. Default is [380 2 201];  
+%    'S'             -Wavelength sampling for cone calculations, in the
+%                     form [start delta nTerms]. Default is [380 2 201];
 % History:
 %   06/12/20  dce       Wrote it.
+%   07/06/20  dce       Added S setting and appropriate length checks.
 
-%% Initial Setup 
+%% Initial Setup
 % Parse input
 p = inputParser;
 p.addParameter('age',32,@(x)(isnumeric(x)));
@@ -66,35 +67,41 @@ p.addParameter('initialParams',zeros(1,9),@(x)(isnumeric(x)));
 p.addParameter('S',[380 2 201],@(x)(isnumeric(x)));
 p.parse(varargin{:});
 
-% Generate a standard observer with the given initial values 
+% Input check
+[spdLength,nMatches] = size(testSpds);
+if length(SToWls(p.Results.S)) ~= spdLength
+    error('Chosen S value is incompatible with spd length');
+end
+
+% Generate a standard observer with the given initial values
 observer = genRayleighObserver('fieldSize',p.Results.fieldSize,'age',...
     p.Results.age,'calcCones',false,'coneVec', p.Results.initialParams,...
     'S',p.Results.S);
 
-%% Restrictions on parameters 
+%% Restrictions on parameters
 Aeq = [];   % Linear equality constraint
 Beq = [];   % Linear equality constraint
 lb = [];    % Lower bounds
-ub = [];    % Upper bounds 
+ub = [];    % Upper bounds
 
-% Set lower and upper bounds based on the standard deviations for the 8 
-% parameters (from Asano 2015). The standard deviations are expressed as 
+% Set lower and upper bounds based on the standard deviations for the 8
+% parameters (from Asano 2015). The standard deviations are expressed as
 % percent deviations from the mean, except for last three parameters
 % (lambda max shifts) which are expressed as deviations in nm.
 sds = [18.7 36.5 9.0 9.0 7.4 2.0 1.5 1.3]; % Standard deviations
-scaleFactor = 2;    % Set limits at 2 standard deviations from the mean 
+scaleFactor = 2;    % Set limits at 2 standard deviations from the mean
 if p.Results.restrictBySd
     lb = -1*scaleFactor*sds;
     ub = scaleFactor*sds;
-end 
+end
 
-% Constrain L and M OD to be equal 
+% Constrain L and M OD to be equal
 if p.Results.LMEqualOD
     Aeq = [0 0 1 -1 0 0 0 0];
     Beq = 0;
 end
 
-%% Optimization procedure 
+%% Optimization procedure
 % Set fmincon options
 options = optimset('fmincon');
 options = optimset(options,'Diagnostics','off','Display','iter',...
@@ -109,7 +116,7 @@ params = fmincon(@(x)findMatchError(x,observer,testSpds,primarySpds,...
 observer = ObserverVecToParams('basic', ...
     [params observer.colorDiffParams.noiseSd],observer);
 observer.T_cones = ComputeObserverFundamentals(observer.coneParams,...
-    p.Results.S); 
+    p.Results.S);
 
 % What is the error?
 error = findMatchError(params,observer,testSpds,primarySpds,'S',p.Results.S);
@@ -117,7 +124,6 @@ error = findMatchError(params,observer,testSpds,primarySpds,'S',p.Results.S);
 %% Optional - plot LMS response
 plotLMS = false;
 if plotLMS
-    [~,nMatches] = size(testSpds);
     for i = 1:nMatches
         testCones = observer.T_cones*testSpds(:,i);
         primaryCones = observer.T_cones*primarySpds(:,i);

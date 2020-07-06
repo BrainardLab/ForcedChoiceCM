@@ -33,7 +33,8 @@ function error = findMatchError(paramsVec,initialObs,testSpds,primarySpds,vararg
 %
 % Optional key-value pairs:
 %    S           -Wavelength sampling for cone calculations, in the 
-%                 form [start increment numTerms]. Default is [380 2 201]  
+%                 form [start increment numTerms]. Default is [380 2 201] 
+%                 (OneLight convention)  
 
 % History:
 %   06/12/20  dce       Wrote it.

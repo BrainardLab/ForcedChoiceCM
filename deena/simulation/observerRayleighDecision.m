@@ -33,27 +33,26 @@ function [primary_redder,test_brighter,isMatch] = ...
 %                        lights are below the matching threshold.
 %
 % Optional key-value pairs:
-%     noisy             -Logical indicating whether to add Gaussian noise.
-%                        Default is false
 %     thresholdScale    -Number >0 which determines which scalar multiple 
 %                        of the observer standard deviation should be used
 %                        as the matching threshold. Default is 1. 
-%     baseThreshold     -Number >0. When 'noisy' is false, thresholdScale 
-%                        is multiplied by baseThreshold instead of by the 
-%                        the observer standard deviation. Default is 0.02,
-%                        an approximation of typical observer standard
-%                        deviation.
+%     baseThreshold     -Number >0. When the observer is noiseless, 
+%                        thresholdScale is multiplied by baseThreshold 
+%                        instead of by the observer standard deviation. 
+%                        Default is 0.02, an approximation of typical 
+%                        observer standard deviation.
 
 % History:
 %   06/02/20  dce       Wrote initial code
 %   06/03/20  dce       Added noise, style edits
 %   06/09/20  dce       Added match threshold calculation  
 %   06/11/20  dce       Added baseThreshold parameter
-%   07/1/20   dce       Added check on observer's wavelength sampling 
+%   07/01/20  dce       Added check on observer's wavelength sampling 
+%   07/06/20  dce       Got rid of "noisy" key-value pair, do noise based
+%                       on SD only
 
 % Parse input 
 p = inputParser;
-p.addParameter('noisy',false, @(x) (islogical(x)));
 p.addParameter('thresholdScale',1, @(x) (isnumeric(x)));
 p.addParameter('baseThreshold',0.02,@(x) (isnumeric(x)));
 p.parse(varargin{:});
@@ -76,9 +75,9 @@ opponentContrast = LMSToOpponentContrast(observer.colorDiffParams,...
 % Add noise
 % Sample three values from a Gaussian distribution, and add them to the
 % opponentContrast vector
-sd = observer.colorDiffParams.noiseSd; % Gaussian standard deviation
-if p.Results.noisy 
-    noise = normrnd(0,sd,3,1); 
+noiseSd = observer.colorDiffParams.noiseSd; % Gaussian standard deviation
+if noiseSd ~= 0
+    noise = normrnd(0,noiseSd,3,1); 
     opponentContrast = opponentContrast+noise; 
 end 
 
@@ -97,8 +96,8 @@ else
 end
 
 % Define matching threshold 
-if p.Results.noisy
-    threshold = sd*p.Results.thresholdScale;  
+if noiseSd ~= 0
+    threshold = noiseSd*p.Results.thresholdScale;  
 else 
     threshold = p.Results.baseThreshold*p.Results.thresholdScale;
 end

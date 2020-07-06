@@ -1,4 +1,4 @@
-function OLRayleighMatch(subjectID, sessionNum, varargin)
+function OLRayleighMatch(subjectID,sessionNum,varargin)
 % Program to run a Rayleigh match experiment on the OneLight, or as a
 % simulation
 %
@@ -6,7 +6,7 @@ function OLRayleighMatch(subjectID, sessionNum, varargin)
 %   OLRayleighMatch(subjectID, sessionNum)
 %
 % Description:
-%    Displays a mixture of two primary iights followed by a test light in
+%    Displays a mixture of two primary lights followed by a test light in
 %    alternation.
 %
 %    Default wavelengths are 600 for test, 670 for p1, and 560 for
@@ -100,7 +100,7 @@ function OLRayleighMatch(subjectID, sessionNum, varargin)
 %                             threshold matching, scale factor for matching
 %                             threshold. Default is 2.
 %    'nObserverMatches'     - When using a simulated observer, number of
-%                             matches to simulate. Default is 1.
+%                             matches to simulate. Default is 1. 
 
 % History:
 %   xx/xx/19  dce       Wrote it.
@@ -121,6 +121,8 @@ function OLRayleighMatch(subjectID, sessionNum, varargin)
 %                       matching
 %   06/15/20  dce       Removed prompts for user input
 %   06/18/20  dce       Debugged plotting and nominal match setting
+%   07/06/20  dce       Switched nominal match calculation to analytical
+%                       method.
 
 %% Close any stray figures
 close all;
@@ -257,12 +259,20 @@ else
 end
 idealForStandardObs = true;  
 if idealForStandardObs
-    [~,~,tIdealIndex,pIdealIndex] = findNominalMatch(lightFileName,...
-        zeros(1,9),'fieldSize',fieldSize);
+    [~,~,pRatio,testIntensity] =...
+        computePredictedRayleighMatch(p1,p2,test,zeros(1,9),'age',age,...
+        'fieldSize',fieldSize,'noisy',false,'S',cal.computed.pr650S,...
+        'monochromatic',false,'p1Scale',p1Scale,...
+        'p2Scale',p2Scale,'testScale',testScale);                
 else
-    [~,~,tIdealIndex,pIdealIndex] = findNominalMatch(lightFileName,...
-        observerParams,'fieldSize',fieldSize);
+    [~,~,pRatio,testIntensity] =...
+        computePredictedRayleighMatch(p1,p2,test,observerParams,'age',age,...
+        'fieldSize',fieldSize,'noisy',false,'S',cal.computed.pr650S,...
+        'monochromatic',false,'p1Scale',p1Scale,...
+        'p2Scale',p2Scale,'testScale',testScale);
 end 
+    [~,pIdealIndex] = min(abs(p1Scales-pRatio));
+    [~,tIdealIndex] = min(abs(testScales-testIntensity)); 
 
 %% Initialize simulated observer if desired
 % If the experiment is run in simulation mode without a simulated observer,
@@ -432,8 +442,7 @@ while(stillLooping)
                 observerRayleighDecision(observer,...
                 primarySpdsPredicted(:,primaryPos),...
                 testSpdsPredicted(:,testPos),...
-                'thresholdScale',thresholdScaleFactor, 'noisy',...
-                logical(observerParams(end)));
+                'thresholdScale',thresholdScaleFactor);
             % If we are making threshold matches, record whether this
             % combination of lights is below the threshold
             if thresholdMatching && isBelowThreshold
@@ -623,12 +632,12 @@ while(stillLooping)
                         figure(nPlots);
                         subplot(2,1,1)
                         p1 = plot(nAdjustments+1,matches(end,2),'r* ',...
-                            nAdjustments+1,p1Scales(pIdealIndex),'gs',...
+                            nAdjustments+1,pRatio,'gs',...
                             'MarkerSize',7);
                         legend(p1,'Subject Match','Nominal Match');
                         subplot(2,1,2);
                         p2 = plot(nAdjustments+1,matches(end,1),'r* ',...
-                            nAdjustments+1,testScales(tIdealIndex),'gs',...
+                            nAdjustments+1,testIntensity,'gs',...
                             'MarkerSize',7);
                         legend(p2,'Subject Match','Nominal Match');
                         
@@ -637,8 +646,8 @@ while(stillLooping)
                         hold on;
                         p3 = plot(matches(end,1),matches(end,2),'r* ',...
                             'MarkerSize',10,'LineWidth',1.5);
-                        p4 = plot(testScales(tIdealIndex),...
-                            p1Scales(pIdealIndex),'gs','MarkerFaceColor','g');
+                        p4 = plot(testIntensity,pRatio,'gs',...
+                            'MarkerFaceColor','g');
                         legend([p3,p4],'Subject Match','Nominal Match');
                         
                         % Prepare for next match

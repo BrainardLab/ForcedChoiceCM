@@ -210,22 +210,21 @@ observerParams6 = [0 0 20 20 0 0 2 0 0];    % Change dphotopigment and M cone - 
 observerParams = {observerParams1,observerParams2,observerParams3,...
     observerParams4,observerParams5,observerParams6};
 calcParams = {};
-S = [400 1 301];
 
 for i = 1:length(observerParams)
     currParams = cell2mat(observerParams(i));
-    initialObs = genRayleighObserver('coneVec',currParams,'S',S);
-    subjID = sprintf('observerParams_%g',i);
+    initialObs = genRayleighObserver('coneVec',currParams,'S',[380 2 201]);
+    subjID = sprintf('observerParams1_%g',i);
     res = struct();
     
     [testSpds,primarySpds] = getMatchSeries(subjID,currParams,...
-        670,560,570:5:660,'predicted','sPredicted',S,'saveResults',false);
+        670,560,570:5:660,'predicted','sPredicted',[380 2 201]);
     [res.observerParamsCalc,res.err] = findObserverParameters(testSpds,...
-        primarySpds,'S',S,'LMEqualOD',true);
+        primarySpds,'LMEqualOD',true);
     [res.observerParamsSetStart,res.errSetStart] = findObserverParameters(...
         testSpds,primarySpds,'initialParams',[currParams 0],'S',S,'LMEqualOD',true);
     res.realParamsErr = findMatchError(currParams,initialObs,testSpds,...
-        primarySpds,'S',S);
+        primarySpds);
     res.observerParams = currParams;
     calcParams{i} = res;
 end
