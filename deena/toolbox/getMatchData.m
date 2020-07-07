@@ -1,9 +1,10 @@
-function [testSpds,primarySpds,primaryRatio,testIntensity] = getMatchData(fName, varargin)
+function [testSpds,primarySpds,testIntensities,primaryRatios] =...
+    getMatchData(fName,varargin)
 % Helper function that takes in a data file produced by OLRayleighMatch and
 % returns the predicted primary and test spds associated with its matches.
 % Returns all of the matches by default, but you can also specify an index
 % so it returns a specific match. Also returns the primary ratio and test
-% intensity, relative to the base OneLight spectra
+% intensity, relative to the scaled OneLight spectra.
 %
 % Syntax:
 %   getMatchData(fName)
@@ -36,7 +37,7 @@ theData = load(fName);   % OLRayleighMatch dataset
 testSpds = [];           % Output test spds
 primarySpds = [];        % Output primary spds
 primaryRatios = [];      % Primary ratio settings
-testIntensity = [];      % Test intensity settings
+testIntensities = [];      % Test intensity settings
 
 % Find match position indices
 if ind == 0   % Return spds for all matches
@@ -63,14 +64,13 @@ for i = 1:length(tMatchInds)
     % Find primary ratio and test intensity for each spd. If an index is
     % not an integer, average the scale factors of the indices above and
     % below it.
-    p1Ratio = mean(theData.p1Scales(ceil(pMatchInds(i))),...
-        theData.p1Scales(floor(pMatchInds(i)))); 
-    testIntensity = mean(theData.testScales(ceil(tMatchInds(i))),...
-        theData.testScales(floor(tMatchInds(i)))); 
+    primaryRatio = mean([theData.p1Scales(ceil(pMatchInds(i))),...
+        theData.p1Scales(floor(pMatchInds(i)))]); 
+    primaryRatios = [primaryRatios,primaryRatio]; 
+    
+    testIntensity = mean([theData.testScales(ceil(tMatchInds(i))),...
+        theData.testScales(floor(tMatchInds(i)))]);
+    testIntensities = [testIntensities,testIntensity];
 end
-
-
-
-
 end
 

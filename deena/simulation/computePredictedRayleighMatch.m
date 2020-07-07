@@ -1,4 +1,4 @@
-function [testAdjustedSpd,primaryMixtureSpd,lambda,testIntensity] =...
+function [testAdjustedSpd,primaryMixtureSpd,testIntensity,lambda] =...
     computePredictedRayleighMatch(p1,p2,test,observerParams,varargin)
 % Calculates a predicted Rayleigh match analytically
 
@@ -38,10 +38,11 @@ function [testAdjustedSpd,primaryMixtureSpd,lambda,testIntensity] =...
 %    'noisy'           -Logical indicating whether to add noise. Default is
 %                       false.
 %    'S'               -Wavelength sampling for cone calculations, in the
-%                       form [start delta nTerms]. Default is [380 2 201], 
-%                       which is the OneLight convention. Note that if
-%                       OneLight spectra are used and the chosen S is not 
-%                       compatible, the user setting will simply be ignored.
+%                       form [start delta nTerms]. Default is [380 2 201],
+%                       which is the OneLight convention. Note that S can
+%                       only vary from the OneLight convention when
+%                       monochromatic lights are used. Otherwise, the
+%                       program will throw an error.
 %    'p1Scale'         -Numerical scale factor for the first primary
 %                       light, between 0 and 1. Default is 1.
 %    'p2Scale'         -Numerical scale factor for the second primary
@@ -70,13 +71,13 @@ p.parse(varargin{:});
 %% Set up parameters
 % Check that if you're using OneLight spectra, you have the right S
 if ~p.Results.monochromatic && ~all(p.Results.S==[380 2 201])
-    error('Chosen S does not match OneLight convention'); 
-end 
+    error('Chosen S does not match OneLight convention');
+end
 
 % Generate spds
 if p.Results.monochromatic % Generate monochromatic spds
     wls = SToWls(p.Results.S);
-    darkSpd = zeros(size(wls)); 
+    darkSpd = zeros(size(wls));
     
     p1Spd = zeros(size(wls));
     p1Spd(wls==p1) = 1*p.Results.p1Scale;
@@ -86,30 +87,47 @@ if p.Results.monochromatic % Generate monochromatic spds
     
     testSpd = zeros(size(wls));
     testSpd(wls==test) = 1*p.Results.testScale;
-else                      % Generate OneLight spds
-    % Information needed for setup. 
-    fullWidthHalfMax = 20;
-    lambda = 0.001;
-    cal = OLGetCalibrationStructure('CalibrationType','BoxBRandomizedLongCableAEyePiece1_12_10_19');
-    [~,settingsLength] = size(cal.computed.pr650M);
-    wls = cal.computed.pr650Wls; 
+else                      % OneLight spds
+    % Load spds from precomputed files if possible, otherwise compute
+    baseFile = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
+        'precomputedSpds','OLRayleighPrimary_');
+    % Dark spd
+    darkSpdFile = [baseFile '0.mat'];
+    if ~exist(darkSpdFile,'file')
+        makeOLRayleighPrimary(0);
+    end
+    darkSpdData = load(darkSpdFile);
+    darkSpd = darkSpdData.spd;
     
-    % Generate spds 
-    darkSpd = OLPrimaryToSpd(cal,zeros(settingsLength,1));
+    % P1
+    p1SpdFile = [baseFile sprintf('%g.mat',p1)];
+    if ~exist(p1SpdFile,'file')
+        makeOLRayleighPrimary(p1);
+    end
+    p1SpdData = load(p1SpdFile);
+    p1Spd = p1SpdData.spd*p.Results.p1Scale;
     
-    testSpdRel = OLMakeMonochromaticSpd(cal,test,fullWidthHalfMax);
-    testSpd = OLMaximizeSpd(cal,testSpdRel,'lambda',lambda)...
-        *p.Results.testScale;
+    % P2
+    p2SpdFile = [baseFile sprintf('%g.mat',p2)];
+    if ~exist(p2SpdFile,'file')
+        makeOLRayleighPrimary(p2,'p2',true);
+    end
+    p2SpdData = load(p2SpdFile);
+    if p2SpdData.p2 == false
+        makeOLRayleighPrimary(p2,'p2',true);
+        p2SpdData = load(p2SpdFile);
+    end
+    p2Spd = p2SpdData.spd*p.Results.p2Scale;
     
-    p1SpdRel = OLMakeMonochromaticSpd(cal,p1,fullWidthHalfMax);
-    p1Spd = OLMaximizeSpd(cal, p1SpdRel,'lambda',lambda)...
-        *p.Results.p1Scale;
-    
-    p2SpdRel = OLMakeMonochromaticSpd(cal,p2,fullWidthHalfMax)/3;
-    p2Spd = OLMaximizeSpd(cal, p2SpdRel,'lambda',lambda)...
-        *p.Results.p2Scale;
-    
+    % Test
+    testSpdFile = [baseFile sprintf('%g.mat',test)];
+    if ~exist(testSpdFile,'file')
+        makeOLRayleighPrimary(test);
+    end
+    testSpdData = load(testSpdFile);
+    testSpd = testSpdData.spd*p.Results.testScale;
 end
+
 % Construct a simulated observer with the specified parameters
 observer = genRayleighObserver('fieldSize',p.Results.fieldSize,'age',...
     p.Results.age,'coneVec',observerParams,'S',p.Results.S);

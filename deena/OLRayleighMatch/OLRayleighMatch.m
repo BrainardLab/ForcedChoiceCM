@@ -101,6 +101,8 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %                             threshold. Default is 2.
 %    'nObserverMatches'     - When using a simulated observer, number of
 %                             matches to simulate. Default is 1. 
+%    'plotResponses'        - Logical indicating to make plots of the 
+%                             experimental timecourse. Default is true.
 
 % History:
 %   xx/xx/19  dce       Wrote it.
@@ -133,8 +135,8 @@ p.addParameter('p1',670,@(x)(isnumeric(x)));
 p.addParameter('p2',560,@(x)(isnumeric(x)));
 p.addParameter('test',600,@(x)(isnumeric(x)));
 p.addParameter('p1Scale',1,@(x)(isnumeric(x)));
-p.addParameter('p2Scale',0.02,@(x)(isnumeric(x)));
-p.addParameter('testScale',0.07,@(x)(isnumeric(x)));
+p.addParameter('p2Scale',0.01,@(x)(isnumeric(x)));
+p.addParameter('testScale',0.5,@(x)(isnumeric(x)));
 p.addParameter('sInterval',0.25,@(x)(isnumeric(x)));
 p.addParameter('lInterval',1,@(x)(isnumeric(x)));
 p.addParameter('foveal',true,@(x)(islogical(x)));
@@ -151,6 +153,7 @@ p.addParameter('nReversals',[1 4],@(x)(isnumeric(x)));
 p.addParameter('thresholdMatching',false,@(x)(islogical(x)));
 p.addParameter('nBelowThreshold',1,@(x)(isnumeric(x)));
 p.addParameter('thresholdScaleFactor',2,@(x) (isnumeric(x)));
+p.addParameter('plotResponses',true,@(x) (islogical(x)));
 
 p.parse(varargin{:});
 p1 = p.Results.p1;
@@ -175,6 +178,7 @@ nReversals = p.Results.nReversals;
 thresholdMatching = p.Results.thresholdMatching;
 nBelowThreshold = p.Results.nBelowThreshold;
 thresholdScaleFactor = p.Results.thresholdScaleFactor; 
+plotResponses = p.Results.plotResponses; 
 
 % Input error checking
 if (length(nReversals)~=2)
@@ -257,15 +261,15 @@ if foveal
 else
     fieldSize = 10;
 end
-idealForStandardObs = true;  
+idealForStandardObs = false;  
 if idealForStandardObs
-    [~,~,pRatio,testIntensity] =...
+    [~,~,testIntensity,pRatio] =...
         computePredictedRayleighMatch(p1,p2,test,zeros(1,9),'age',age,...
         'fieldSize',fieldSize,'noisy',false,'S',cal.computed.pr650S,...
         'monochromatic',false,'p1Scale',p1Scale,...
         'p2Scale',p2Scale,'testScale',testScale);                
 else
-    [~,~,pRatio,testIntensity] =...
+    [~,~,testIntensity,pRatio] =...
         computePredictedRayleighMatch(p1,p2,test,observerParams,'age',age,...
         'fieldSize',fieldSize,'noisy',false,'S',cal.computed.pr650S,...
         'monochromatic',false,'p1Scale',p1Scale,...
@@ -364,8 +368,7 @@ if simObserver
 end
 
 % Optional plotting setup (set flag to false to stop plots from being made)
-plot_responses = true;
-if plot_responses
+if plotResponses
     nPlots = 2;           % Counter for current figure index
     matchSettingInd = 1;  % SubjectSettings position for current match start
 end
@@ -405,7 +408,7 @@ while(stillLooping)
     % Until time limit runs out, check for user input
     while(mglGetSecs < nowTime+lightTimes(lightModePos))
         % Make new plots if it's the start of a match
-        if plot_responses && firstAdjustment
+        if plotResponses && firstAdjustment
             % Plot with primary and test settings separately
             figure(nPlots);
             title1 = sprintf('Subject Settings Over Time, Match %g',nPlots/2);
@@ -626,7 +629,7 @@ while(stillLooping)
                         'p1Scales','testScales','observerParams',...
                         'nObserverMatches','pIdealIndex','tIdealIndex',...
                         'idealForStandardObs');
-                    if plot_responses
+                    if plotResponses
                         nAdjustments = length(subjectSettings(matchSettingInd:end,1));
                         % Individual trajectory figure
                         figure(nPlots);
@@ -767,7 +770,7 @@ while(stillLooping)
                     firstAdjustment = false;
             end
             % Edit plots if the lights were adjusted
-            if plot_responses && (key.charCode == keyCodes.decreaseP1...
+            if plotResponses && (key.charCode == keyCodes.decreaseP1...
                     || key.charCode == keyCodes.increaseP1...
                     || key.charCode == keyCodes.decreaseIntensity...
                     || key.charCode == keyCodes.increaseIntensity)
@@ -798,7 +801,7 @@ elseif ~simObserver && ~foveal
 end
 
 % Close extra plots
-if plot_responses && simObserver
+if plotResponses && simObserver
     close(figure(nPlots),figure(nPlots+1));
 end
 end

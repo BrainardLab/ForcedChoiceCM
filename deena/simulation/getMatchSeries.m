@@ -1,4 +1,4 @@
-function [testSpds,primarySpds] = ...
+function [testSpds,primarySpds,testIntensities,primaryRatios] = ...
     getMatchSeries(subjID,observerParams,p1Wls,p2Wls,testWls,method,varargin)
 % Finds a series of simulated Rayleigh matches
 % Syntax:
@@ -33,10 +33,16 @@ function [testSpds,primarySpds] = ...
 %    method             -Character vector for match method. Choose either
 %                        'predicted', 'threshold', or 'forcedChoice'.
 % Outputs:
-%    testSpds           -201 x n vector representation of the predicted
-%                        spds for the chosen test lights
-%    primarySpds        -201 x n vector representation of the predicted
-%                        spds for the chosen primary lights
+%    testSpds           -spdLength x n vector representation of the 
+%                        predicted spds for the chosen test lights
+%    primarySpds        -spdLength x n vector representation of the 
+%                        predicted spds for the chosen primary lights
+%    testIntensities    -1 x n vector representation of the test intensity
+%                        settings for each match, relative to the scaled 
+%                        spds used.
+%    primaryRatios      -1 x n vector representation of the primary ratio
+%                        settings for each match, relative to the scaled 
+%                        spds used.
 %
 % Optional key-value pairs:
 %    'foveal'            -logical indicating whether we are making foveal
@@ -70,12 +76,15 @@ function [testSpds,primarySpds] = ...
 %    'sPredicted'        -Wavelength sampling for cone calculations when
 %                         using the predicted match method. Comes in the
 %                         form [start delta nTerms]. Default is [380 2 201].
+%    'rayleighPlots'     -Logical indicating to make OLRayleighMatch plots.
+%                         Default is true.
 
 % History:
 %   06/12/20  dce       Wrote it
 %   06/25/20  dce       Added key-value pairs
 %   06/29/20  dce       Adapted to have choice of three matching methods
 %   07/06/20  dce       Changed matching methods.
+%   07/07/20  dce       Added primary ratio and test intensity as outputs
 
 % Input parsing
 p = inputParser;
@@ -90,6 +99,7 @@ p.addParameter('nBelowThreshold',1,@(x)(isnumeric(x)));
 p.addParameter('thresholdScaleFactor',0.5,@(x)(isnumeric(x)));
 p.addParameter('sPredicted',[380 2 201],@(x)(isnumeric(x)));
 p.addParameter('monochromatic',false,@(x)(islogical(x)));
+p.addParameter('rayleighPlots',true,@(x)(islogical(x)));
 p.parse(varargin{:});
 
 % Check that a correct method has been entered
@@ -124,6 +134,8 @@ nCombos = length(p1Wls)*length(p2Wls)*length(testWls);
 % Calculate Rayleigh matches for each of the light combinations
 testSpds = [];
 primarySpds = [];
+testIntensities = []; 
+primaryRatios = []; 
 for i = 1:nCombos
     if strcmp(method,'threshold')  % Use OLRayleighMatch threshold
         % Run simulation
@@ -135,11 +147,13 @@ for i = 1:nCombos
             'nBelowThreshold',p.Results.nBelowThreshold,...
             'thresholdScaleFactor',p.Results.thresholdScaleFactor,...
             'p2Scale',p.Results.p2Scale,'testScale',p.Results.testScale,...
-            'p1Scale',p.Results.p1Scale);
+            'p1Scale',p.Results.p1Scale,'plotResponses',...
+            p.Results.rayleighPlots);
         % Extract spds from the data file
         simFile = [subjID,'_',num2str(i),'.mat'];
         simFilePath = fullfile(outputDir,simFile);
-        [testSpd,primarySpd] = getMatchData(simFilePath);
+        [testSpd,primarySpd,testIntensity,primaryRatio] =...
+            getMatchData(simFilePath);
         
     elseif strcmp(method,'forcedChoice')  % Use OLRayleighMatch forced choice
         OLRayleighMatch(subjID,i,'simObserver',true,'observerParams',observerParams,'foveal',...
@@ -147,21 +161,28 @@ for i = 1:nCombos
             'test',lightCombos(i,3),'age',p.Results.age,'nObserverMatches',...
             p.Results.nObserverMatches,'nReversals',p.Results.nReversals,...
             'p2Scale',p.Results.p2Scale,'testScale',p.Results.testScale,...
-            'p1Scale',p.Results.p1Scale);
+            'p1Scale',p.Results.p1Scale,'plotResponses',p.Results.rayleighPlots);
         % Extract spds from the data file
         simFile = [subjID,'_',num2str(i),'.mat'];
         simFilePath = fullfile(outputDir,simFile);
-        [testSpd,primarySpd] = getMatchData(simFilePath);
+        [testSpd,primarySpd,testIntensity,primaryRatio] =...
+            getMatchData(simFilePath);
         
     else  % Use computePredictedRayleighMatch
-        [testSpd,primarySpd] = computePredictedRayleighMatch(...
-            lightCombos(i,1),lightCombos(i,2),lightCombos(i,3),...
-            observerParams,'age',p.Results.age,'fieldSize',fieldSize,...
-            'S',p.Results.sPredicted,'monochromatic',p.Results.monochromatic);
+        [testSpd,primarySpd,testIntensity,primaryRatio] =...
+            computePredictedRayleighMatch(lightCombos(i,1),...
+            lightCombos(i,2),lightCombos(i,3),observerParams,'age',...
+            p.Results.age,'fieldSize',fieldSize,'S',p.Results.sPredicted,...
+            'monochromatic',p.Results.monochromatic,'p1Scale',...
+            p.Results.p1Scale,'p2Scale',p.Results.p2Scale,'testScale',...
+            p.Results.testScale);
     end
     % Add calculated spds from the trial to the overall array, and save
     testSpds = [testSpds,testSpd];
     primarySpds = [primarySpds,primarySpd];
-    save(file,'testSpds','primarySpds','lightCombos','p');
+    testIntensities = [testIntensities,testIntensity]; 
+    primaryRatios = [primaryRatios,primaryRatio]; 
+%     save(file,'testSpds','primarySpds','testIntensities',...
+%         'primaryRatios','lightCombos','p');
 end
 end

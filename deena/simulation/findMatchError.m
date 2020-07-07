@@ -45,18 +45,18 @@ p = inputParser;
 p.addParameter('S',[380 2 201],@(x)(isnumeric(x)));
 p.parse(varargin{:});
 
-% Generate a model observer with the given parameters
-params = [paramsVec 0];          % Append noise
-observer = genRayleighObserver('age', initialObs.coneParams.ageYears,...
-    'fieldSize', initialObs.coneParams.fieldSizeDegrees,...
-    'coneVec',params,'S',p.Results.S);
-
 [spdLength,nMatches] = size(testSpds);   
 % Throw error if matrix sizes do not match 
 if length(SToWls(p.Results.S)) ~= spdLength
     error('Observer wavelength sampling and spd length do not match'); 
 end 
-pairError = zeros(1,nMatches);   % Array for storing error of each pair 
+pairError = zeros(1,nMatches);   % Array for storing error of each pair
+
+% Generate a model observer with the given parameters
+params = [paramsVec 0];          % Append noise
+observer = genRayleighObserver('age', initialObs.coneParams.ageYears,...
+    'fieldSize', initialObs.coneParams.fieldSizeDegrees,...
+    'coneVec',params,'S',p.Results.S); 
 
 % Calculate opponent contrast for each match 
 for i = 1:nMatches
