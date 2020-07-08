@@ -81,7 +81,7 @@ testScales = linspace(0,1,adjustmentLength);
 %
 % Use it to set some device related parameters.
 % numCols is number of mirrors in each OL column
-cal = OLGetCalibrationStructure('CalibrationType', 'BoxBRandomizedLongCableAEyePiece1_12_10_19');
+cal = OLGetCalibrationStructure('CalibrationType',getpref('ForcedChoiceCM','currentCal'));
 [spdLength,settingsLength] = size(cal.computed.pr650M);
 numCols = cal.describe.numColMirrors;
 wls = cal.computed.pr650Wls;

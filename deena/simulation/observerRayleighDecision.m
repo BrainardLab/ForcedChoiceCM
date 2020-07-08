@@ -53,8 +53,8 @@ function [primary_redder,test_brighter,isMatch] = ...
 
 % Parse input 
 p = inputParser;
-p.addParameter('thresholdScale',1, @(x) (isnumeric(x)));
-p.addParameter('baseThreshold',0.02,@(x) (isnumeric(x)));
+p.addParameter('thresholdScale',1, @(x)(isnumeric(x)));
+p.addParameter('baseThreshold',0.02,@(x)(isnumeric(x)));
 p.parse(varargin{:});
 
 % Spds generated for OLRayleighMatch will always be sampled over S = 

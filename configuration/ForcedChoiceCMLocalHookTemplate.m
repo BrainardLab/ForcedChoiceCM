@@ -50,6 +50,7 @@ end
 setpref(projectName,'rayleighDataDir',fullfile(baseDir,'MELA_datadev','Experiments',projectName,'OLRayleighMatch'));
 setpref(projectName,'rayleighAnalysisDataDir',fullfile(baseDir,'MELA_data','Experiments',projectName,'OLRayleighMatch'));
 setpref(projectName,'rayleighAnalysisDir',fullfile(baseDir,'MELA_analysis','Experiments',projectName, 'OLRayleighMatch'));
+setpref(projectName,'currentCal','BoxBRandomizedLongCableAEyePiece1_12_10_19');   % Most recent calibration. Update as needed.
 % setpref(projectName,'mainExpDir',projectBaseDir);
 % setpref(projectName,'analysisDir',fullfile(baseDir,'CNST_analysis',projectName));
 % setpref(projectName,'stimulusFolder',fullfile(baseDir,'CNST_materials',projectName,'E3'));

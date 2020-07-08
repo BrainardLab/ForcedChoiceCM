@@ -1,4 +1,6 @@
-function plotSampledRayleighMatch(nObservers,baseParams,paramsToVary,...
+function [sampledParams,recoveredParams,testIntensitiesSim,...
+    testIntensitiesPred,primaryRatiosSim,primaryRatiosPred] =...
+    plotSampledRayleighMatch(nObservers,baseParams,paramsToVary,...
     p1,p2,test,method,varargin)
 % Tests the OLRayleighMatch simulation and makes associated sampling plots.
 
@@ -26,9 +28,8 @@ function plotSampledRayleighMatch(nObservers,baseParams,paramsToVary,...
 %    from the recovered parameters.
 %
 %    For both the second and third plot types, one figure is produced for
-%    each observer. For this reason, these two plot types are optional, and
-%    it is generally best not to include them when sampling a large number
-%    of observers.
+%    each observer. These two plot types are optional, and it is generally 
+%    best not to include them when sampling a large number of observers.
 %
 % Inputs:
 %    nObservers     -Number of simulated observers to sample.
@@ -54,8 +55,10 @@ function plotSampledRayleighMatch(nObservers,baseParams,paramsToVary,...
 %    Produces a series of plots
 %
 % Optional key-value pairs:
-%    'foveal'            -logical indicating whether we are making foveal
-%                         matches. Default is true.
+%    'makeIndPlots'      -logical indicating whether we are plotting the
+%                         cone spectral sensitivities and generalized Pitt
+%                         diagrams for each observer. Default is true.
+%    'fieldSize          -Integer field size, in degrees. Default is 2.
 %    'age'               -Integer age for simulated observer. Default is
 %                         32.
 %    'p1Scale'           -Numerical scale factor for the first primary
@@ -85,9 +88,13 @@ function plotSampledRayleighMatch(nObservers,baseParams,paramsToVary,...
 % History:
 %   07/06/20  dce       Wrote it.
 
+% Close stray figures
+close all; 
+
 % Parse input
 p = inputParser;
-p.addParameter('foveal',true,@(x)(islogical(x)));
+p.addParameter('makeIndPlots',true,@(x)(islogical(x)));
+p.addParameter('fieldSize',2,@(x)(isnumeric(x)));
 p.addParameter('age',32,@(x)(isnumeric(x)));
 p.addParameter('p1Scale',1,@(x)(isnumeric(x)));
 p.addParameter('p2Scale',0.01,@(x)(isnumeric(x)));
@@ -121,12 +128,12 @@ for i = 1:nObservers
         end
     end
     sampledParams = [sampledParams;observerParams];
-    subjID = mat2str(observerParams);
+    subjID = 'test_series';
     
     % Make a series of Rayleigh matches for the observer
     [testSpds,primarySpds,testIntensitiesSimObs,primaryRatiosSimObs] = ...
-        getMatchSeries(subjID,observerParams,p1,p2,test,method,'foveal',...
-        p.Results.foveal,'age',p.Results.age,'p1Scale',p.Results.p1Scale,...
+        getMatchSeries(subjID,observerParams,p1,p2,test,method,'fieldSize',...
+        p.Results.fieldSize,'age',p.Results.age,'p1Scale',p.Results.p1Scale,...
         'p2Scale',p.Results.p2Scale,'testScale',p.Results.testScale,...
         'monochromatic',p.Results.monochromatic,'nObserverMatches',...
         p.Results.nObserverMatches,'nReversals',p.Results.nReversals,...
@@ -136,21 +143,16 @@ for i = 1:nObservers
     primaryRatiosSim = [primaryRatiosSim;primaryRatiosSimObs];
     
     % Recover observer parameters
-    if p.Results.foveal
-        fieldSize = 2;
-    else
-        fieldSize = 10;
-    end
     [calcParams,error] = findObserverParameters(testSpds,primarySpds,...
-        'age',p.Results.age,'fieldSize',fieldSize);
+        'age',p.Results.age,'fieldSize',p.Results.fieldSize);
     recoveredParams = [recoveredParams;calcParams];
     
     % Recover predicted test intensity and primary ratio based on
     % recovered parameters
     [~,~,testIntensitiesPredObs,primaryRatiosPredObs] = ...
-        getMatchSeries([subjID,'_pred'],[calcParams 0],p1,p2,test,...
-        'predicted','foveal',...
-        p.Results.foveal,'age',p.Results.age,'p1Scale',p.Results.p1Scale,...
+        getMatchSeries(subjID,[calcParams 0],p1,p2,test,...
+        'predicted','fieldSize',p.Results.fieldSize,...
+        'age',p.Results.age,'p1Scale',p.Results.p1Scale,...
         'p2Scale',p.Results.p2Scale,'testScale',p.Results.testScale,...
         'monochromatic',p.Results.monochromatic);
     testIntensitiesPred = [testIntensitiesPred;testIntensitiesPredObs];
@@ -168,41 +170,50 @@ for k = 1:length(paramsToVary)
     yVals = recoveredParams(:,k); % Recovered params
     figure();
     hold on;
-    plot(xVals,yVals,'b* ');
-    refline(1,0);
+    l1 = plot(xVals,yVals,'b* ');
+    l2 = lsline(); 
+    l3 = refline(1,0);
     theTitle = sprintf('%s Predicted vs Actual',cell2mat(coneParamNames(k)));
     title(theTitle);
     xlabel('Sampled Parameters');
     ylabel('Recovered Parameters');
-    legend('Parameters','y=x');
+    legend([l1 l2 l3],'Parameters','Least-Squares Regression','y=x');
 end
 
-%% Cone spectral sensitivities
-for k = 1:nObservers
-    S = [380 2 201];
-    sampledObserver = genRayleighObserver('coneVec',...
-        [sampledParams(k,:) 0],'S',S);
-    recoveredObserver = genRayleighObserver('coneVec',...
-        [recoveredParams(k,:) 0],'S',S);
-    
-    figure();
-    plot(SToWls(S),sampledObserver.T_cones(1:2,:),'b-',SToWls(S),...
-        recoveredObserver.T_cones(1:2,:),'r-');
-    legend('sampled observer','recovered observer'); % need to fix legend
-    theTitle = sprintf('L and M Cone Spectral Sensitivities, observer %g', k);
-    title(theTitle);
+if p.Results.makeIndPlots
+    for k = 1:nObservers
+        % Cone spectral sensitivities
+        S = [380 2 201];
+        sampledObserver = genRayleighObserver('coneVec',...
+            [sampledParams(k,:) 0],'S',S);
+        recoveredObserver = genRayleighObserver('coneVec',...
+            [recoveredParams(k,:) 0],'S',S);
+        figure();
+        hold on;
+        l1 = plot(SToWls(S),sampledObserver.T_cones(1:2,:),'b-');
+        l2 = plot(SToWls(S),recoveredObserver.T_cones(1:2,:),'r-');
+        legend([l1(1) l2(1)],'sampled observer','recovered observer');
+        theTitle = sprintf('L and M Cone Spectral Sensitivities, observer %g', k);
+        title(theTitle);
+        
+        % Generalized Pitt diagram
+        figure();
+        hold on;
+        l1 = plot(primaryRatiosSim(k,:),testIntensitiesSim(k,:),'b-o');
+        l2 = plot(primaryRatiosPred(k,:),testIntensitiesPred(k,:),'r-o');
+        theTitle = sprintf('Generalized Pitt Diagram, observer %g',k);
+        title(theTitle);
+        xlabel('Primary Ratio');
+        ylabel('Test Intensity');
+        legend([l1 l2],'Simulated','Predicted');
+       
+        % Add wavelength labels (assume test wavelength is being changed)
+        labels = test';
+        labelsText = cellstr(num2str(labels));
+        dx = -0.01;
+        dy = 0.03; 
+        text(primaryRatiosSim(k,:)+dx,testIntensitiesSim(k,:)+dy,...
+            labelsText);
+    end  
 end
-
-%% Generalized Pitt diagram
-for i = 1:nObservers
-    figure();
-    plot(primaryRatiosSim(i,:),testIntensitiesSim(i,:),'b-o',...
-        primaryRatiosPred(i,:),testIntensitiesPred(i,:),'r-o');
-    theTitle = sprintf('Generalized Pitt Diagram, observer %g',i);
-    title(theTitle);
-    xlabel('Primary Ratio');
-    ylabel('Test Intensity');
-    legend('Simulated','Predicted');
-end
-
 end
