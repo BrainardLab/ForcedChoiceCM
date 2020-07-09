@@ -28,7 +28,7 @@ function [sampledParams,recoveredParams,testIntensitiesSim,...
 %    from the recovered parameters.
 %
 %    For both the second and third plot types, one figure is produced for
-%    each observer. These two plot types are optional, and it is generally 
+%    each observer. These two plot types are optional, and it is generally
 %    best not to include them when sampling a large number of observers.
 %
 % Inputs:
@@ -89,7 +89,7 @@ function [sampledParams,recoveredParams,testIntensitiesSim,...
 %   07/06/20  dce       Wrote it.
 
 % Close stray figures
-close all; 
+close all;
 
 % Parse input
 p = inputParser;
@@ -138,7 +138,8 @@ for i = 1:nObservers
         'monochromatic',p.Results.monochromatic,'nObserverMatches',...
         p.Results.nObserverMatches,'nReversals',p.Results.nReversals,...
         'nBelowThreshold',p.Results.nBelowThreshold,'thresholdScaleFactor',...
-        p.Results.thresholdScaleFactor,'rayleighPlots',false);
+        p.Results.thresholdScaleFactor,'rayleighPlots',false,...
+        'saveResults',false);
     testIntensitiesSim = [testIntensitiesSim;testIntensitiesSimObs];
     primaryRatiosSim = [primaryRatiosSim;primaryRatiosSimObs];
     
@@ -154,7 +155,7 @@ for i = 1:nObservers
         'predicted','fieldSize',p.Results.fieldSize,...
         'age',p.Results.age,'p1Scale',p.Results.p1Scale,...
         'p2Scale',p.Results.p2Scale,'testScale',p.Results.testScale,...
-        'monochromatic',p.Results.monochromatic);
+        'monochromatic',p.Results.monochromatic,'saveResults',false);
     testIntensitiesPred = [testIntensitiesPred;testIntensitiesPredObs];
     primaryRatiosPred = [primaryRatiosPred;primaryRatiosPredObs];
 end
@@ -171,8 +172,9 @@ for k = 1:length(paramsToVary)
     figure();
     hold on;
     l1 = plot(xVals,yVals,'b* ');
-    l2 = lsline(); 
     l3 = refline(1,0);
+    set(l3,'color','r')
+    l2 = lsline();
     theTitle = sprintf('%s Predicted vs Actual',cell2mat(coneParamNames(k)));
     title(theTitle);
     xlabel('Sampled Parameters');
@@ -206,14 +208,14 @@ if p.Results.makeIndPlots
         xlabel('Primary Ratio');
         ylabel('Test Intensity');
         legend([l1 l2],'Simulated','Predicted');
-       
+        
         % Add wavelength labels (assume test wavelength is being changed)
         labels = test';
         labelsText = cellstr(num2str(labels));
         dx = -0.01;
-        dy = 0.03; 
+        dy = 0.03;
         text(primaryRatiosSim(k,:)+dx,testIntensitiesSim(k,:)+dy,...
             labelsText);
-    end  
+    end
 end
 end

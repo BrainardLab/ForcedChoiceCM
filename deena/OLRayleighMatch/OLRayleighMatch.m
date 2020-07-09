@@ -643,7 +643,7 @@ while(stillLooping)
                             'MarkerSize',7);
                         legend(p1,'Subject Match','Nominal Match');
                         subplot(2,1,2);
-                        p2 = plot(nAdjustments+1,matches(end,1),'r* ',...
+                        p2 = plot(nAdjustments+1,matches(end,1),'r*',...
                             nAdjustments+1,testIntensity,'gs',...
                             'MarkerSize',7);
                         legend(p2,'Subject Match','Nominal Match');
@@ -655,7 +655,7 @@ while(stillLooping)
                             'MarkerSize',10,'LineWidth',1.5);
                         p4 = plot(testIntensity,pRatio,'gs',...
                             'MarkerFaceColor','g');
-                        legend([p3,p4],'Subject Match','Nominal Match');
+                        legend([p3 p4],'Subject Match','Nominal Match');
                         
                         % Prepare for next match
                         nPlots = nPlots+2; 

@@ -73,10 +73,10 @@ p.parse(varargin{:});
 if ~p.Results.monochromatic && ~all(p.Results.S==[380 2 201])
     error('Chosen S does not match OneLight convention');
 end
+wls = SToWls(p.Results.S);
 
 % Generate spds
 if p.Results.monochromatic % Generate monochromatic spds
-    wls = SToWls(p.Results.S);
     darkSpd = zeros(size(wls));
     
     p1Spd = zeros(size(wls));
