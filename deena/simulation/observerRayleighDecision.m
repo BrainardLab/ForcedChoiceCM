@@ -1,4 +1,4 @@
-function [primary_redder,test_brighter,isMatch] = ...
+function [primary_redder,test_brighter,isMatch,differenceVector] = ...
     observerRayleighDecision(observer,primarySpd,testSpd,varargin) 
 % Simulated observer decision making for a Rayleigh match experiment 
 %
@@ -103,7 +103,7 @@ else
 end
 
 % Check whether we're below the matching threshold  
-differenceVector = sqrt(opponentContrast(1)^2+opponentContrast(2)^2); 
+differenceVector = norm(opponentContrast(1),opponentContrast(2)); 
 if differenceVector < threshold
     isMatch = true; 
 else

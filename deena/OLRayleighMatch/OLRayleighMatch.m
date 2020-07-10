@@ -234,7 +234,7 @@ end
 
 %% Find light settings
 % Find precomputed spectra, or compute if they do not exist
-lightFile = sprintf('OLRayleighMatchFineSpectralSettings_%g_%g_%g_%g_%g_%g.mat',...
+lightFile = sprintf('OLRayleighMatchFinerSpectralSettings_%g_%g_%g_%g_%g_%g.mat',...
     p1,p2,test,p1Scale,p2Scale,testScale);
 lightFileName = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
     'precomputedStartStops',lightFile);
@@ -286,7 +286,7 @@ end
 % the user can control the stimuli with keypresses
 observer = [];
 if simObserver
-    observer = genRayleighObserver('fieldSize', fieldSize,'age',age,...
+    observer = genRayleighObserver('fieldSize',fieldSize,'age',age,...
         'coneVec',observerParams,'S',cal.computed.pr650S);
 end
 
@@ -321,7 +321,8 @@ end
 %% Display parameters
 % Possible step sizes (relative to adjustment_length)
 stepModes = [floor(adjustment_length/5),floor(adjustment_length/20),...
-    floor(adjustment_length/100),floor(adjustment_length/200)];
+    floor(adjustment_length/100),floor(adjustment_length/200),...
+    floor(adjustment_length/400)];
 
 % The experiment includes an option to switch the order that primary and
 % test lights are displayed. If rev is set to true, lights will be

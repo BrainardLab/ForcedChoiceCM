@@ -49,7 +49,7 @@ function observer = genRayleighObserver(varargin)
 
 % Parse input 
 p = inputParser;
-p.addParameter('coneVec',[],@(x)(isvector(x)));
+p.addParameter('coneVec',zeros(1,9),@(x)(isvector(x)));
 p.addParameter('age',32,@(x)(isnumeric(x)));
 p.addParameter('fieldSize',2,@(x)(isnumeric(x))); 
 p.addParameter('calcCones',true,@(x)(islogical(x)));
@@ -60,6 +60,11 @@ observer = struct;
 observer.colorDiffParams = DefaultColorDiffParams('opponentContrast'); 
 observer.coneParams = DefaultConeParams('cie_asano'); 
 observer.S = p.Results.S; % Wavelength sampling 
+
+% Input check 
+if length(p.Results.coneVec) ~= 9
+    error('Parameters vector must have 9 elements'); 
+end 
 
 % Reset age if needed
 if p.Results.age ~= 32
