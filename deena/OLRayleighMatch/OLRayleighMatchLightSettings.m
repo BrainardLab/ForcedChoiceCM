@@ -37,6 +37,8 @@ function OLRayleighMatchLightSettings(p1, p2, test, varargin)
 % History:
 %   02/4/20    dce       Separated from OLRayleighMatch
 %   06/09/20   dce       Added scaling factors as key-value pairs
+%   07/14/20   dce       Removed division by 3 from p2 calculation, removed
+%                        figure saving
 
 %% Parse input
 p = inputParser;
@@ -125,7 +127,7 @@ testIncrSpdRel = OLMakeMonochromaticSpd(cal, test, fullWidthHalfMax);
 testIncrSpd = OLMaximizeSpd(cal,testIncrSpdRel,'lambda',lambda);
 primary1IncrSpdRel = OLMakeMonochromaticSpd(cal, p1, fullWidthHalfMax);
 primary1IncrSpd = OLMaximizeSpd(cal, primary1IncrSpdRel,'lambda',lambda);
-primary2IncrSpdRel = OLMakeMonochromaticSpd(cal, p2, fullWidthHalfMax)/3;
+primary2IncrSpdRel = OLMakeMonochromaticSpd(cal, p2, fullWidthHalfMax);
 primary2IncrSpd = OLMaximizeSpd(cal, primary2IncrSpdRel,'lambda',lambda);
 
 %% Get set of test lights varying in intensity and primary lights varying
@@ -149,23 +151,16 @@ end
 %% Take a look at spectra (optional)
 makePlots = false;
 if makePlots
-    f1 = OLPlotSpdCheck(cal.computed.pr650Wls, testSpdsPredicted);
+    OLPlotSpdCheck(cal.computed.pr650Wls, testSpdsPredicted);
     title('Test');
     
-    f2 = OLPlotSpdCheck(cal.computed.pr650Wls, primarySpdsPredicted);
+    OLPlotSpdCheck(cal.computed.pr650Wls, primarySpdsPredicted);
     title('Primaries');
 end
 
 %% Save results
 file = sprintf('OLRayleighMatch%gSpectralSettings_%g_%g_%g_%g_%g_%g.mat',...
     adjustmentLength, p1, p2, test, p1ScaleFactor, p2ScaleFactor, testScaleFactor);
-filepath = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
-    'precomputedStartStops', file);
-if makePlots
-    saveas(f1, [filepath(1:end-4), '_test.tiff'], 'tiff');
-    saveas(f2, [filepath(1:end-4), '_primaries.tiff'], 'tiff');
-    close(f1, f2);
-end
 save(fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
     'precomputedStartStops', file));
 end
