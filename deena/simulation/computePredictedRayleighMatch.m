@@ -74,7 +74,8 @@ if ~p.Results.monochromatic && ~all(p.Results.S==[380 2 201])
     error('Chosen S does not match OneLight convention');
 end
 wls = SToWls(p.Results.S);
-
+cal = OLGetCalibrationStructure('CalibrationType',getpref('ForcedChoiceCM','currentCal'));
+spdLambda = 0.001;
 % Generate spds
 if p.Results.monochromatic % Generate monochromatic spds
     darkSpd = zeros(size(wls));
@@ -189,6 +190,11 @@ end
 % Generate adjusted spds
 primaryMixtureSpd = lambda*p1Spd + (1-lambda)*p2Spd + darkSpd;
 testAdjustedSpd = testIntensity*testSpd + darkSpd;
+
+% [~,~,primaryMixtureSpd] = OLSpdToSettings(cal,primaryMixtureSpdNominal,...
+%     'lambda',spdLambda);
+% [~,~,testAdjustedSpd] = OLSpdToSettings(cal,testAdjustedSpdNominal,...
+%     'lambda',spdLambda);
 
 % Make optional plots of the results
 plotResults = false;

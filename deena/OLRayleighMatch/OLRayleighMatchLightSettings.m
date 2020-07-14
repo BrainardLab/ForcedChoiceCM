@@ -157,8 +157,8 @@ if makePlots
 end
 
 %% Save results
-file = sprintf('OLRayleighMatchFinerSpectralSettings_%g_%g_%g_%g_%g_%g.mat',...
-    p1, p2, test, p1ScaleFactor, p2ScaleFactor, testScaleFactor);
+file = sprintf('OLRayleighMatch%gSpectralSettings_%g_%g_%g_%g_%g_%g.mat',...
+    adjustmentLength, p1, p2, test, p1ScaleFactor, p2ScaleFactor, testScaleFactor);
 filepath = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
     'precomputedStartStops', file);
 if makePlots

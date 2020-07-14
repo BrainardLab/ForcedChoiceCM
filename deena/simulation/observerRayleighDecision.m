@@ -103,7 +103,7 @@ else
 end
 
 % Check whether we're below the matching threshold  
-differenceVector = norm(opponentContrast(1),opponentContrast(2)); 
+differenceVector = norm([opponentContrast(1) opponentContrast(2)]); 
 if differenceVector < threshold
     isMatch = true; 
 else
