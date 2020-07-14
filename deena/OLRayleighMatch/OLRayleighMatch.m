@@ -137,6 +137,7 @@ p.addParameter('test',600,@(x)(isnumeric(x)));
 p.addParameter('p1Scale',1,@(x)(isnumeric(x)));
 p.addParameter('p2Scale',0.01,@(x)(isnumeric(x)));
 p.addParameter('testScale',0.5,@(x)(isnumeric(x)));
+p.addParameter('adjustment_length',3201,@(x) (islogical(x)));
 p.addParameter('sInterval',0.25,@(x)(isnumeric(x)));
 p.addParameter('lInterval',1,@(x)(isnumeric(x)));
 p.addParameter('foveal',true,@(x)(islogical(x)));
@@ -162,6 +163,7 @@ test = p.Results.test;
 p1Scale = p.Results.p1Scale;
 p2Scale = p.Results.p2Scale;
 testScale = p.Results.testScale;
+adjustment_length = p.Results.adjustment_length; 
 sInterval = p.Results.sInterval;
 lInterval = p.Results.lInterval;
 foveal = p.Results.foveal;
@@ -234,13 +236,14 @@ end
 
 %% Find light settings
 % Find precomputed spectra, or compute if they do not exist
-lightFile = sprintf('OLRayleighMatch3201SpectralSettings_%g_%g_%g_%g_%g_%g.mat',...
-    p1,p2,test,p1Scale,p2Scale,testScale);
+lightFile = sprintf('OLRayleighMatch%gSpectralSettings_%g_%g_%g_%g_%g_%g.mat',...
+    adjustment_length,p1,p2,test,p1Scale,p2Scale,testScale);
 lightFileName = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
     'precomputedStartStops',lightFile);
 if ~exist(lightFileName,'file')
     OLRayleighMatchLightSettings(p1,p2,test,'p1ScaleFactor',p1Scale,...
-        'p2ScaleFactor',p2Scale,'testScaleFactor',testScale,'adjustmentLength',801);
+        'p2ScaleFactor',p2Scale,'testScaleFactor',testScale,...
+        'adjustmentLength',adjustment_length);
 end
 
 % Load light settings and save some variables locally
@@ -252,7 +255,6 @@ testSpdsNominal = lightSettings.testSpdsNominal;
 testSpdsPredicted = lightSettings.testSpdsPredicted;
 primaryStartStops = lightSettings.primaryStartStops;
 testStartStops = lightSettings.testStartStops;
-adjustment_length = lightSettings.adjustmentLength;
 p1Scales = lightSettings.p1Scales;
 testScales = lightSettings.testScales;
 
