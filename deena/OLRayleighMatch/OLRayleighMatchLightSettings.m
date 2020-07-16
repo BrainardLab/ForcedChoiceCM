@@ -49,7 +49,6 @@ p.addParameter('whiteScaleFactor', 0.05, @(x) (isnumeric(x)));
 p.addParameter('adjustmentLength', 201, @(x) (isnumeric(x)));
 p.parse(varargin{:});
 
-
 %% Set up parameters
 % Spectrum-generating parameters
 fullWidthHalfMax = 20;

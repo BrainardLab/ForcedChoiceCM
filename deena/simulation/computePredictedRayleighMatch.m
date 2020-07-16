@@ -133,11 +133,18 @@ else                      % OneLight spds
     % Convert nominal spds to predicted (subtract dark spd first to avoid
     % scaling issues)
     if p.Results.predicted   
-        [~,~,p1Spd] = OLSpdToSettings(cal,p1Spd-darkSpd,'lambda',spdLambda);
-        [~,~,p2Spd] = OLSpdToSettings(cal,p2Spd-darkSpd,'lambda',spdLambda);      
-        [~,~,testSpd] = OLSpdToSettings(cal,testSpd-darkSpd,'lambda',spdLambda);
+        [~,~,p1SpdPred] = OLSpdToSettings(cal,p1Spd+darkSpd,'lambda',...
+            spdLambda);
+        p1Spd = p1SpdPred-darkSpd;
+        
+        [~,~,p2SpdPred] = OLSpdToSettings(cal,p2Spd+darkSpd,'lambda',...
+            spdLambda);      
+        p2Spd = p2SpdPred-darkSpd;
+        
+        [~,~,testSpdPred] = OLSpdToSettings(cal,testSpd+darkSpd,'lambda',...
+            spdLambda);
+        testSpd = testSpdPred-darkSpd;
     end 
-    
 end
 
 % Construct a simulated observer with the specified parameters
@@ -195,7 +202,7 @@ end
 
 % Check if the computed scale factors are reasonable
 if lambda < 0 || lambda > 1 || testIntensity < 0 || testIntensity > 1
-    error('Not possible to compute Rayleigh match. Try adjusting lights or reducing noise');
+    error('Not possible to compute Rayleigh match');
 end
 
 % Generate adjusted spds

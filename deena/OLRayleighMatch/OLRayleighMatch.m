@@ -103,6 +103,9 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %                             matches to simulate. Default is 1. 
 %    'plotResponses'        - Logical indicating to make plots of the 
 %                             experimental timecourse. Default is true.
+%    'adjustment_length'    - Number of possible steps available for
+%                             adjusting the primary and test lights. 
+%                             Default is 3201.
 
 % History:
 %   xx/xx/19  dce       Wrote it.
@@ -125,6 +128,8 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %   06/18/20  dce       Debugged plotting and nominal match setting
 %   07/06/20  dce       Switched nominal match calculation to analytical
 %                       method.
+%   07/14/20  dce       Changed nominal match to use predicted spds.
+%                       Changed default adjustment length.
 
 %% Close any stray figures
 close all;
@@ -451,9 +456,6 @@ while(stillLooping)
         % which adjustment to make
         if simObserver
             % Prompt the observer for a decision
-            if testPos==51
-                fprintf('should match now');
-            end 
             [p1_up,t_up,isBelowThreshold] = ...
                 observerRayleighDecision(observer,...
                 primarySpdsPredicted(:,primaryPos),...
@@ -648,13 +650,19 @@ while(stillLooping)
                         % Individual trajectory figure
                         figure(nPlots);
                         subplot(2,1,1)
+%                         p1 = plot(nAdjustments+1,matches(end,2),'r* ',...
+%                             nAdjustments+1,idealPRatio,'gs',...
+%                             'MarkerSize',7);
                         p1 = plot(nAdjustments+1,matches(end,2),'r* ',...
-                            nAdjustments+1,idealPRatio,'gs',...
+                            nAdjustments+1,p1Scales(pIdealIndex),'gs',...
                             'MarkerSize',7);
                         legend(p1,'Subject Match','Nominal Match');
                         subplot(2,1,2);
+%                         p2 = plot(nAdjustments+1,matches(end,1),'r*',...
+%                             nAdjustments+1,idealTestIntensity,'gs',...
+%                             'MarkerSize',7);
                         p2 = plot(nAdjustments+1,matches(end,1),'r*',...
-                            nAdjustments+1,idealTestIntensity,'gs',...
+                            nAdjustments+1,testScales(tIdealIndex),'gs',...
                             'MarkerSize',7);
                         legend(p2,'Subject Match','Nominal Match');
                         
@@ -663,8 +671,10 @@ while(stillLooping)
                         hold on;
                         p3 = plot(matches(end,1),matches(end,2),'r* ',...
                             'MarkerSize',10,'LineWidth',1.5);
-                        p4 = plot(idealTestIntensity,idealPRatio,'gs',...
+                        p4 = plot(testScales(tIdealIndex),p1Scales(pIdealIndex),'gs',...
                             'MarkerFaceColor','g');
+%                         p4 = plot(idealTestIntensity,idealPRatio,'gs',...
+%                             'MarkerFaceColor','g');
                         legend([p3 p4],'Subject Match','Nominal Match');
                         
                         % Prepare for next match
