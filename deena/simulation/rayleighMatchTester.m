@@ -104,12 +104,12 @@ end
 diffs2 = res2(:,4);
 [~,row2] = min(diffs2);
 
-%% Spd scaling tricks
+%% Spd scaling tests
 file = load('\Users\deena\Dropbox (Aguirre-Brainard Lab)\MELA_datadev\Experiments\ForcedChoiceCM\OLRayleighMatch\precomputedStartStops\OLRayleighMatch3201SpectralSettings_670_560_600_1_0.02_0.5.mat');
 % Base spds 
-p1Base = makeOLRayleighPrimary(file.p1);
-p2Base = makeOLRayleighPrimary(file.p2);
-testBase = makeOLRayleighPrimary(file.test);
+p1Base = makeOLRayleighPrimary(file.p1,'nominal',true);
+p2Base = makeOLRayleighPrimary(file.p2,'nominal',true);
+testBase = makeOLRayleighPrimary(file.test,'nominal',true);
 darkSpd = makeOLRayleighPrimary(0);
 
 primaryScale = 0.975;
@@ -125,7 +125,7 @@ primarySpdNominal = p1Base*primaryScale + p2Base*(1-primaryScale)...
     'lambda',file.lambda);
 
 % Convert to predicted at the beginning and sum after
-[~,~,p1BaseScale] = OLSpdToSettings(file.cal,p1Base+darkSpd,'lambda',file.lambda);
+[~,~,p1BaseScale] = OLSpdToSettings(file.cal,p1Base,'lambda',file.lambda);
 [~,~,p2BaseScale] = OLSpdToSettings(file.cal,p2Base+darkSpd,'lambda',file.lambda);
 [~,~,testBaseScale] = OLSpdToSettings(file.cal,testBase+darkSpd,'lambda',file.lambda);
 p1BaseScale = p1BaseScale - darkSpd;
@@ -145,11 +145,11 @@ OLPlotSpdCheck(SToWls([380 2 201]),[primarySpdSumEarly primarySpdSumEnd]);
 title('Primary spds');
 legend('Sum Early','Sum End');
 
-%% Testing for a single p2 spd - is the issue with scaling?
+%% Testing for a single p2 spd - is the issue with scaling? This works well
 file = load('\Users\deena\Dropbox (Aguirre-Brainard Lab)\MELA_datadev\Experiments\ForcedChoiceCM\OLRayleighMatch\precomputedStartStops\OLRayleighMatch3201SpectralSettings_670_560_600_1_0.02_0.5.mat');
-p2Spd = makeOLRayleighPrimary(560);
+p2Spd = makeOLRayleighPrimary(560)*0.01;
 darkSpd = makeOLRayleighPrimary(0);
-scaleFactor = 0.01;
+scaleFactor = 0.5;
 
 % Scale after summing
 [~,~,p2ScaleFirst] = OLSpdToSettings(file.cal,p2Spd*scaleFactor+darkSpd,...
@@ -158,15 +158,15 @@ scaleFactor = 0.01;
 % Sum after scaling
 [~,~,p2] = OLSpdToSettings(file.cal,p2Spd+darkSpd,'lambda',...
     file.lambda);
-p2ScaleAfter = (p2-darkSpd)*scaleFactor + darkSpd;
 
+p2ScaleAfter = (p2-darkSpd)*scaleFactor + darkSpd;
 OLPlotSpdCheck(SToWls([380 2 201]),[p2ScaleFirst p2ScaleAfter]);
 
 %% Testing for two unscaled spds - is the issue with adding?
 file = load('\Users\deena\Dropbox (Aguirre-Brainard Lab)\MELA_datadev\Experiments\ForcedChoiceCM\OLRayleighMatch\precomputedStartStops\OLRayleighMatch3201SpectralSettings_670_560_600_1_0.02_0.5.mat');
-p1Spd = makeOLRayleighPrimary(670);
-p2Spd = makeOLRayleighPrimary(560)*0.02;
-darkSpd = makeOLRayleighPrimary(0);
+p1Spd = makeOLRayleighPrimary(670,'nominal',true);
+p2Spd = makeOLRayleighPrimary(560,'nominal',true)*0.02;
+darkSpd = makeOLRayleighPrimary(0,'nominal',true);
 
 % Scale after summing 
 [~,~,spdSumFirst] = OLSpdToSettings(file.cal,p2Spd+p1Spd+darkSpd,...
@@ -179,21 +179,23 @@ darkSpd = makeOLRayleighPrimary(0);
     file.lambda);
 spdSumAfter = (p1Scaled-darkSpd)+(p2Scaled-darkSpd)+darkSpd;
 
-% Comparative plots - individual spectra 
-OLPlotSpdCheck(SToWls([380 2 201]),[p1Spd p1Scaled-darkSpd]);
-title('p1 with dark subtracted');
-legend('nominal','predicted');
-OLPlotSpdCheck(SToWls([380 2 201]),[p1Spd p1Scaled]);
-title('p1 without dark subtracted');
-legend('nominal','predicted');
-
-OLPlotSpdCheck(SToWls([380 2 201]),[p2Spd p2Scaled-darkSpd]);
-title('p2 with dark subtracted');
-legend('nominal','predicted');
-OLPlotSpdCheck(SToWls([380 2 201]),[p2Spd p2Scaled]);
-title('p2 without dark subtracted'); 
-legend('nominal','predicted');
-
 % Comparative plots - combined
 OLPlotSpdCheck(SToWls([380 2 201]),[spdSumFirst spdSumAfter]);
-legend('summed first','summed after');
+legend('Converted to Predicted at End','Converted to Predicted Before Adding');
+
+%% Timing of adding the dark spd to p2
+file = load('\Users\deena\Dropbox (Aguirre-Brainard Lab)\MELA_datadev\Experiments\ForcedChoiceCM\OLRayleighMatch\precomputedStartStops\OLRayleighMatch3201SpectralSettings_670_560_600_1_0.02_0.5.mat');
+p2Spd = makeOLRayleighPrimary(560,'nominal',true)*0.02;
+darkSpd = makeOLRayleighPrimary(0,'nominal',true);
+
+[~,~,addDark] = OLSpdToSettings(file.cal,p2Spd+darkSpd,...
+    'lambda',file.lambda);
+addDark = addDark - darkSpd;
+
+[~,~,noDark] = OLSpdToSettings(file.cal,p2Spd,...
+    'lambda',file.lambda);
+noDark = noDark - darkSpd;
+
+OLPlotSpdCheck(SToWls([380 2 201]),[p2Spd addDark noDark]);
+title('Sample Predicted spds - 560nm'); 
+legend('Nominal Spd', 'Dark spd added before converting','Dark spd not added'); 

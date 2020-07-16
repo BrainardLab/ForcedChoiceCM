@@ -58,20 +58,17 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %    'testScale'      - Numerical scale factor for the test light, between
 %                       0 and 1. Default is 0.07.
 %    'sInterval'      - length of time in s that the short stimulus is
-%                       displayed for (or both stimuli when white light is
-%                       used). Default is 0.25.
+%                       displayed for. Default is 0.25.
 %    'lInterval'      - length of time in s that the long stimulus is
-%                       displayed for (or the iti white light if it is
-%                       used). Default is 1.
+%                       displayed for. Default is 1.
 %    'foveal'         - logical indicating whether we are making foveal
 %                       matches, in which case the annulus is not turned
 %                       on. Default is true.
 %    'age'            - Integer age for observer. Default is 32.
-%    'white'          - logical indicating to run  a version of the
-%                       experiment where the lights are displayed with
-%                       white in between. Default is false.
 %    'resetAnnulus'   - logical indicating to run a script that lets the
 %                       experimenter reset the annulus. Default is false.
+%    'plotResponses'  - Logical indicating to make plots of the
+%                       experimental timecourse. Default is true.
 %    'silent'         - logical. Set to true to turn off feedback beeps.
 %                       Default is true.
 %    'simKeypad'      - logical. Set to true to run a simulation with
@@ -98,14 +95,15 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %                             Default is 1.
 %    'thresholdScaleFactor' - When using a simulated observer with
 %                             threshold matching, scale factor for matching
-%                             threshold. Default is 2.
+%                             threshold. Default is 0.5.
 %    'nObserverMatches'     - When using a simulated observer, number of
-%                             matches to simulate. Default is 1. 
-%    'plotResponses'        - Logical indicating to make plots of the 
-%                             experimental timecourse. Default is true.
-%    'adjustment_length'    - Number of possible steps available for
-%                             adjusting the primary and test lights. 
+%                             matches to simulate. Default is 1.
+%    'adjustmentLength'     - Number of possible steps available for
+%                             adjusting the primary and test lights.
 %                             Default is 3201.
+%    'simNominalLights'     - Logical indicating to run the simulation with
+%                             nominal, rather than predicted, spds. Default
+%                             is false.
 
 % History:
 %   xx/xx/19  dce       Wrote it.
@@ -142,13 +140,13 @@ p.addParameter('test',600,@(x)(isnumeric(x)));
 p.addParameter('p1Scale',1,@(x)(isnumeric(x)));
 p.addParameter('p2Scale',0.01,@(x)(isnumeric(x)));
 p.addParameter('testScale',0.5,@(x)(isnumeric(x)));
-p.addParameter('adjustment_length',3201,@(x)(isnumeric(x)));
+p.addParameter('adjustmentLength',3201,@(x)(isnumeric(x)));
 p.addParameter('sInterval',0.25,@(x)(isnumeric(x)));
 p.addParameter('lInterval',1,@(x)(isnumeric(x)));
 p.addParameter('foveal',true,@(x)(islogical(x)));
 p.addParameter('age',32,@(x)(isnumeric(x)));
-p.addParameter('white',false,@(x)(islogical(x)));
 p.addParameter('resetAnnulus',false,@(x)(islogical(x)));
+p.addParameter('plotResponses',true,@(x) (islogical(x)));
 p.addParameter('silent',true,@(x)(islogical(x)));
 p.addParameter('simKeypad',false,@(x)(islogical(x)));
 p.addParameter('simObserver',true,@(x)(islogical(x)));
@@ -158,8 +156,8 @@ p.addParameter('switchInterval',1,@(x)(isnumeric(x)));
 p.addParameter('nReversals',[1 4],@(x)(isnumeric(x)));
 p.addParameter('thresholdMatching',false,@(x)(islogical(x)));
 p.addParameter('nBelowThreshold',1,@(x)(isnumeric(x)));
-p.addParameter('thresholdScaleFactor',2,@(x) (isnumeric(x)));
-p.addParameter('plotResponses',true,@(x) (islogical(x)));
+p.addParameter('thresholdScaleFactor',0.5,@(x)(isnumeric(x)));
+p.addParameter('simNominalLights',false,@(x)(islogical(x)));
 
 p.parse(varargin{:});
 p1 = p.Results.p1;
@@ -168,12 +166,11 @@ test = p.Results.test;
 p1Scale = p.Results.p1Scale;
 p2Scale = p.Results.p2Scale;
 testScale = p.Results.testScale;
-adjustment_length = p.Results.adjustment_length; 
+adjustmentLength = p.Results.adjustmentLength;
 sInterval = p.Results.sInterval;
 lInterval = p.Results.lInterval;
 foveal = p.Results.foveal;
-age = p.Results.age; 
-white = p.Results.white;
+age = p.Results.age;
 resetAnnulus = p.Results.resetAnnulus;
 silent = p.Results.silent;
 simKeypad = p.Results.simKeypad;
@@ -184,8 +181,9 @@ switchInterval = p.Results.switchInterval;
 nReversals = p.Results.nReversals;
 thresholdMatching = p.Results.thresholdMatching;
 nBelowThreshold = p.Results.nBelowThreshold;
-thresholdScaleFactor = p.Results.thresholdScaleFactor; 
-plotResponses = p.Results.plotResponses; 
+thresholdScaleFactor = p.Results.thresholdScaleFactor;
+plotResponses = p.Results.plotResponses;
+simNominalLights = p.Results.simNominalLights;
 
 % Input error checking
 if (length(nReversals)~=2)
@@ -209,11 +207,11 @@ end
 % file already exists with that name.
 fileName = [subjectID,'_',num2str(sessionNum),'.mat'];
 fileLoc = fullfile(outputDir,fileName);
-if exist(fileLoc,'file') 
+if exist(fileLoc,'file')
     if (length(subjectID)~=length('test_series'))...
             || ~all(subjectID=='test_series')
         error('Specified output file %s already exists',fileName);
-    end 
+    end
 end
 
 %% Set up key interpretations
@@ -242,13 +240,13 @@ end
 %% Find light settings
 % Find precomputed spectra, or compute if they do not exist
 lightFile = sprintf('OLRayleighMatch%gSpectralSettings_%g_%g_%g_%g_%g_%g.mat',...
-    adjustment_length,p1,p2,test,p1Scale,p2Scale,testScale);
+    adjustmentLength,p1,p2,test,p1Scale,p2Scale,testScale);
 lightFileName = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
     'precomputedStartStops',lightFile);
 if ~exist(lightFileName,'file')
     OLRayleighMatchLightSettings(p1,p2,test,'p1ScaleFactor',p1Scale,...
         'p2ScaleFactor',p2Scale,'testScaleFactor',testScale,...
-        'adjustmentLength',adjustment_length);
+        'adjustmentLength',adjustmentLength);
 end
 
 % Load light settings and save some variables locally
@@ -271,22 +269,55 @@ if foveal
 else
     fieldSize = 10;
 end
-idealForStandardObs = false;  
+
+% Load data from precomputed spd files if it exists, otherwise create the
+% spds
+baseFile = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
+    'precomputedSpds','OLRayleighPrimary_');
+if p.Results.simNominalLights
+    p1File = [baseFile num2str(p1) '_' num2str(p.Results.p1Scale) '_nominal.mat'];
+    p2File = [baseFile num2str(p2) '_' num2str(p.Results.p2Scale) '_nominal.mat'];
+    testFile = [baseFile num2str(test) '_' num2str(p.Results.testScale) '_nominal.mat'];
+else
+    p1File = [baseFile num2str(p1) '_' num2str(p.Results.p1Scale) '_predicted.mat'];
+    p2File = [baseFile num2str(p2) '_' num2str(p.Results.p2Scale) '_predicted.mat'];
+    testFile = [baseFile num2str(test) '_' num2str(p.Results.testScale) '_predicted.mat'];
+end
+if exist(p1File,'file')
+    p1f = load(p1File);
+    p1Spd = p1f.spd;
+else
+    p1Spd = makeOLRayleighPrimary(p1,'scaleFactor',...
+        p.Results.p1Scale,'nominal',p.Results.simNominalLights);
+end
+if exist(p2File,'file')
+    p2f = load(p2File);
+    p2Spd = p2f.spd;
+else
+    p2Spd = makeOLRayleighPrimary(p2,'scaleFactor',...
+        p.Results.p2Scale,'nominal',p.Results.simNominalLights);
+end
+if exist(testFile,'file')
+    testf = load(testFile);
+    tSpd = testf.spd;
+else
+    tSpd = makeOLRayleighPrimary(test,'scaleFactor',...
+        p.Results.testScale,'nominal',p.Results.simNominalLights);
+end
+
+% Compute the nominal match
+idealForStandardObs = false;
 if idealForStandardObs
     [idealTestSpd,idealPrimarySpd,idealTestIntensity,idealPRatio] =...
-        computePredictedRayleighMatch(p1,p2,test,zeros(1,9),'age',age,...
-        'fieldSize',fieldSize,'noisy',false,'S',cal.computed.pr650S,...
-        'monochromatic',false,'p1Scale',p1Scale,'p2Scale',p2Scale,...
-        'testScale',testScale,'predicted',true);                
+        computePredictedRayleighMatch(p1Spd,p2Spd,tSpd,zeros(1,9),'age',...
+        age,'fieldSize',fieldSize,'noisy',false,'S',cal.computed.pr650S);
 else
     [idealTestSpd,idealPrimarySpd,idealTestIntensity,idealPRatio] =...
-        computePredictedRayleighMatch(p1,p2,test,observerParams,'age',age,...
-        'fieldSize',fieldSize,'noisy',false,'S',cal.computed.pr650S,...
-        'monochromatic',false,'p1Scale',p1Scale,'p2Scale',p2Scale,...
-        'testScale',testScale,'predicted',true);
-end 
-    [~,pIdealIndex] = min(abs(p1Scales-idealPRatio));
-    [~,tIdealIndex] = min(abs(testScales-idealTestIntensity)); 
+        computePredictedRayleighMatch(p1Spd,p2Spd,tSpd,observerParams,'age',...
+        age,'fieldSize',fieldSize,'noisy',false,'S',cal.computed.pr650S);
+end
+[~,pIdealIndex] = min(abs(p1Scales-idealPRatio));
+[~,tIdealIndex] = min(abs(testScales-idealTestIntensity));
 
 %% Initialize simulated observer if desired
 % If the experiment is run in simulation mode without a simulated observer,
@@ -326,28 +357,20 @@ if ~simObserver && ~simKeypad && ~foveal
 end
 
 %% Display parameters
-% Possible step sizes (relative to adjustment_length)
-stepModes = [floor(adjustment_length/5),floor(adjustment_length/20),...
-    floor(adjustment_length/100),floor(adjustment_length/200),...
-    floor(adjustment_length/400),floor(adjustment_length/800),...
-    floor(adjustment_length/1600),floor(adjustment_length/3200)];
+% Possible step sizes (relative to adjustmentLength)
+stepModes = [floor(adjustmentLength/5),floor(adjustmentLength/20),...
+    floor(adjustmentLength/100),floor(adjustmentLength/200),...
+    floor(adjustmentLength/400),floor(adjustmentLength/800),...
+    floor(adjustmentLength/1600),floor(adjustmentLength/3200)];
 stepModes = stepModes(stepModes ~= 0);
 
 % The experiment includes an option to switch the order that primary and
 % test lights are displayed. If rev is set to true, lights will be
 % displayed in the order specified by lightModeRev instead of the order
-% specified by lightMode. When the white light is used, it is displayed for
-% a short time between primary and test lights and a long time between test
-% and primary lights.
-if white
-    lightMode = ['p' 'w' 't' 'w']; % Possible lights - primary, test, white
-    lightModeRev = ['t' 'w' 'p' 'w']; % Switch test and primary order
-    lightTimes = [sInterval sInterval sInterval lInterval]; % Durations
-else
-    lightMode = ['p' 't'];     % Possible lights - primary, test
-    lightModeRev = ['t' 'p'];  % Switch primary and test lights
-    lightTimes = [lInterval sInterval]; % Durations
-end
+% specified by lightMode.
+lightMode = ['p' 't'];     % Possible lights - primary, test
+lightModeRev = ['t' 'p'];  % Switch primary and test lights
+lightTimes = [lInterval sInterval]; % Durations
 
 % Initial display settings
 primaryPos = 1;             % Start with first position in primary array
@@ -404,7 +427,7 @@ while(stillLooping)
         tI = testPos;
     end
     
-    % Display primary, test, or white light.
+    % Display primary or test light.
     nowTime = mglGetSecs;
     switch lights(lightModePos)
         case 'p'
@@ -413,9 +436,6 @@ while(stillLooping)
         case 't'
             ol.setMirrors(squeeze(testStartStops(tI,1,:))',...
                 squeeze(testStartStops(tI,2,:))');
-        case 'w'
-            ol.setMirrors(lightSettings.whiteStarts,...
-                lightSettings.whiteStops);
     end
     
     % Until time limit runs out, check for user input
@@ -449,18 +469,26 @@ while(stillLooping)
             title2 = sprintf('Subject Settings Over Time, Match %g',nPlots/2);
             title(title2);
             plot(idealTestIntensity,idealPRatio,'gs',...
-                            'MarkerFaceColor','g');
+                'MarkerFaceColor','g');
         end
         
         % If using a simulated observer, perform calculations to figure out
         % which adjustment to make
         if simObserver
             % Prompt the observer for a decision
-            [p1_up,t_up,isBelowThreshold] = ...
-                observerRayleighDecision(observer,...
-                primarySpdsPredicted(:,primaryPos),...
-                testSpdsPredicted(:,testPos),...
-                'thresholdScale',thresholdScaleFactor);
+            if simNominalLights
+                [p1_up,t_up,isBelowThreshold] = ...
+                    observerRayleighDecision(observer,...
+                    primarySpdsNominal(:,primaryPos),...
+                    testSpdsNominal(:,testPos),...
+                    'thresholdScale',thresholdScaleFactor);
+            else
+                [p1_up,t_up,isBelowThreshold] = ...
+                    observerRayleighDecision(observer,...
+                    primarySpdsPredicted(:,primaryPos),...
+                    testSpdsPredicted(:,testPos),...
+                    'thresholdScale',thresholdScaleFactor);
+            end
             % If we are making threshold matches, record whether this
             % combination of lights is below the threshold
             if thresholdMatching && isBelowThreshold
@@ -503,7 +531,7 @@ while(stillLooping)
                 if p1_up == p1_up_prev || nReversalsP < nReversals(1)...
                         || stepModePos == length(stepModes)
                     if p1_up
-                        if primaryPos == adjustment_length
+                        if primaryPos == adjustmentLength
                             error('Primary is at maximum setting');
                         end
                         key.charCode = 'r';
@@ -518,7 +546,7 @@ while(stillLooping)
                         nReversalsP = nReversalsP+1;
                         fprintf('Primary reversal %g, step size %g\n',...
                             nReversalsP,(stepModes(stepModePos)/...
-                            (adjustment_length-1)));
+                            (adjustmentLength-1)));
                     end
                 else    % Lower step size
                     key.charCode = 's';
@@ -533,9 +561,9 @@ while(stillLooping)
                 % direction or if it is a reversal and you have not yet
                 % reached the required number of reversals for that stage
                 if t_up == t_up_prev || stepModePos == length(stepModes)...
-                        || nReversalsT < nReversals(1) 
+                        || nReversalsT < nReversals(1)
                     if t_up
-                        if testPos == adjustment_length
+                        if testPos == adjustmentLength
                             error('Test is at maximum setting');
                         end
                         key.charCode = 'u';
@@ -550,7 +578,7 @@ while(stillLooping)
                         nReversalsT = nReversalsT+1;
                         fprintf('Test reversal %g, step size %g\n',...
                             nReversalsT,(stepModes(stepModePos)/...
-                            (adjustment_length-1)));
+                            (adjustmentLength-1)));
                     end
                 else        % Lower step size
                     key.charCode = 's';
@@ -592,13 +620,13 @@ while(stillLooping)
                     end
                     if simObserver && adjustingP
                         fprintf('User switched primary step size to %g\n',...
-                            (stepModes(stepModePos)/(adjustment_length-1)));
+                            (stepModes(stepModePos)/(adjustmentLength-1)));
                     elseif simObserver
                         fprintf('User switched test step size to %g\n',...
-                            (stepModes(stepModePos)/(adjustment_length-1)));
+                            (stepModes(stepModePos)/(adjustmentLength-1)));
                     else
                         fprintf('User switched step size to %g\n',...
-                            (stepModes(stepModePos)/(adjustment_length-1)));
+                            (stepModes(stepModePos)/(adjustmentLength-1)));
                     end
                     
                 case keyCodes.foundMatch  % Subject found a match
@@ -636,7 +664,7 @@ while(stillLooping)
                         'testSpdsNominal','testSpdsPredicted',...
                         'primaryStartStops','testStartStops','subjectID',...
                         'sessionNum','annulusData','sInterval','lInterval',...
-                        'adjustment_length','foveal','white',...
+                        'adjustmentLength','foveal','simNominalLights',...
                         'nReversals','switchInterval','observer',...
                         'p1Scale','p2Scale','testScale','lightFileName',...
                         'thresholdMatching','thresholdScaleFactor',...
@@ -650,19 +678,13 @@ while(stillLooping)
                         % Individual trajectory figure
                         figure(nPlots);
                         subplot(2,1,1)
-%                         p1 = plot(nAdjustments+1,matches(end,2),'r* ',...
-%                             nAdjustments+1,idealPRatio,'gs',...
-%                             'MarkerSize',7);
                         p1 = plot(nAdjustments+1,matches(end,2),'r* ',...
-                            nAdjustments+1,p1Scales(pIdealIndex),'gs',...
+                            nAdjustments+1,idealPRatio,'gs',...
                             'MarkerSize',7);
                         legend(p1,'Subject Match','Nominal Match');
                         subplot(2,1,2);
-%                         p2 = plot(nAdjustments+1,matches(end,1),'r*',...
-%                             nAdjustments+1,idealTestIntensity,'gs',...
-%                             'MarkerSize',7);
                         p2 = plot(nAdjustments+1,matches(end,1),'r*',...
-                            nAdjustments+1,testScales(tIdealIndex),'gs',...
+                            nAdjustments+1,idealTestIntensity,'gs',...
                             'MarkerSize',7);
                         legend(p2,'Subject Match','Nominal Match');
                         
@@ -671,21 +693,19 @@ while(stillLooping)
                         hold on;
                         p3 = plot(matches(end,1),matches(end,2),'r* ',...
                             'MarkerSize',10,'LineWidth',1.5);
-                        p4 = plot(testScales(tIdealIndex),p1Scales(pIdealIndex),'gs',...
+                        p4 = plot(idealTestIntensity,idealPRatio,'gs',...
                             'MarkerFaceColor','g');
-%                         p4 = plot(idealTestIntensity,idealPRatio,'gs',...
-%                             'MarkerFaceColor','g');
                         legend([p3 p4],'Subject Match','Nominal Match');
                         
                         % Prepare for next match
-                        nPlots = nPlots+2; 
+                        nPlots = nPlots+2;
                         matchSettingInd = length(subjectSettings(:,1))+1;
                     end
                     % Reset initial condition, and reset lights randomly
                     stepModePos = 1;
                     firstAdjustment = true;
-                    primaryPos = randi(adjustment_length);
-                    testPos = randi(adjustment_length);
+                    primaryPos = randi(adjustmentLength);
+                    testPos = randi(adjustmentLength);
                     subjectSettings = [subjectSettings;...
                         [testScales(testPos),p1Scales(primaryPos)]];
                     fprintf('Reset at %g test, %g primary\n',...
@@ -723,8 +743,8 @@ while(stillLooping)
                     
                 case keyCodes.increaseIntensity % Scale up test intensity
                     testPos = testPos+stepModes(stepModePos);
-                    if testPos > adjustment_length
-                        testPos = adjustment_length;
+                    if testPos > adjustmentLength
+                        testPos = adjustmentLength;
                         if ~silent
                             Snd('Play',sin(0:5000));
                         end
@@ -759,8 +779,8 @@ while(stillLooping)
                     
                 case keyCodes.increaseP1 % Move towards p1
                     primaryPos = primaryPos+stepModes(stepModePos);
-                    if primaryPos > adjustment_length
-                        primaryPos = adjustment_length;
+                    if primaryPos > adjustmentLength
+                        primaryPos = adjustmentLength;
                         if ~silent
                             Snd('Play',sin(0:5000));
                         end

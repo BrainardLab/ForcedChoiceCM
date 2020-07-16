@@ -15,24 +15,24 @@ function [sampledParams,recoveredParams,error,rayleighSettings] = ...
 %    (OLRayleighMatch or computePredictedRayleighMatch) and uses the match
 %    results to recover the individual difference parameters
 %    (findObserverParameters). Then, conducts a few basic analyses to
-%    validate how similar the recovered parameters are to the sampled 
-%    (true) parameters. 
+%    validate how similar the recovered parameters are to the sampled
+%    (true) parameters.
 %
-%    The program produces four types of plots. The first is a plot of 
-%    sampled vs predicted values for each parameter, aggregated across all 
+%    The program produces four types of plots. The first is a plot of
+%    sampled vs predicted values for each parameter, aggregated across all
 %    observers. The second is a bar plot of the difference between the cone
-%    sensitivities of the sampled and recovered parameters for each 
-%    observer (root mean square error), compared to the difference for 
+%    sensitivities of the sampled and recovered parameters for each
+%    observer (root mean square error), compared to the difference for
 %    the sampled parameters and the standard observer. The third is a
-%    comparative plot of cone spectral sensitivities based on the sampled 
-%    and recovered parameters for each observer. The third, a "generalized 
-%    Pitt diagram," plots primary ratio and test intensity settings that 
-%    were found in the simulation for each observer, comparing them to the 
+%    comparative plot of cone spectral sensitivities based on the sampled
+%    and recovered parameters for each observer. The third, a "generalized
+%    Pitt diagram," plots primary ratio and test intensity settings that
+%    were found in the simulation for each observer, comparing them to the
 %    settings predicted from the recovered parameters.
 %
 %    By default, the third and fourth plot types are produced for the best
 %    and the worst observers (identified based on how different their cone
-%    spectral sensitivities are). However, there is also an option to 
+%    spectral sensitivities are). However, there is also an option to
 %    produce the plots for every observer.
 %
 % Inputs:
@@ -62,10 +62,8 @@ function [sampledParams,recoveredParams,error,rayleighSettings] = ...
 %                      difference parameters.
 %    error            -Struct with data on the cone spectral sensitivity
 %                      error. Fields include coneErr (sampled vs recovered
-%                      excitations), coneStandardErr (sampled vs standard
-%                      observer excitations), coneErr540, and
-%                      coneStandardErr540 (same as the previous two, but
-%                      calculated for wavelengths over 540nm).
+%                      excitations) and coneStandardErr (sampled vs
+%                      standard observer excitations).
 %    rayleighSettings -Struct with data on Rayleigh match settings. Fields
 %                      include testIntensitiesSim (test intensities based
 %                      on calculated parameters), testIntensitiesPred (test
@@ -86,7 +84,7 @@ function [sampledParams,recoveredParams,error,rayleighSettings] = ...
 %    'p1Scale'           -Numerical scale factor for the first primary
 %                         light, between 0 and 1. Default is 1.
 %    'p2Scale'           -Numerical scale factor for the second primary
-%                         light, between 0 and 1. Default is 0.01.
+%                         light, between 0 and 1. Default is 0.02.
 %    'testScale'         -Numerical scale factor for the test light,
 %                         between 0 and 1. Default is 0.5.
 %    'monochromatic'     -When using predicted matches, logical indicating
@@ -110,6 +108,7 @@ function [sampledParams,recoveredParams,error,rayleighSettings] = ...
 % History:
 %   07/06/20  dce       Wrote it.
 %   07/10/20  dce       Edited plotting and added rms error output.
+%   07/16/20  dce       Got rid of 540nm cone error plots
 
 % Close stray figures
 close all;
@@ -120,13 +119,14 @@ p.addParameter('makeAllPlots',false,@(x)(islogical(x)));
 p.addParameter('fieldSize',2,@(x)(isnumeric(x)));
 p.addParameter('age',32,@(x)(isnumeric(x)));
 p.addParameter('p1Scale',1,@(x)(isnumeric(x)));
-p.addParameter('p2Scale',0.01,@(x)(isnumeric(x)));
+p.addParameter('p2Scale',0.02,@(x)(isnumeric(x)));
 p.addParameter('testScale',0.5,@(x)(isnumeric(x)));
 p.addParameter('monochromatic',false,@(x)(islogical(x)));
 p.addParameter('nObserverMatches',1,@(x)(isnumeric(x)));
 p.addParameter('nReversals',[1 4],@(x)(isnumeric(x)));
 p.addParameter('nBelowThreshold',1,@(x)(isnumeric(x)));
 p.addParameter('thresholdScaleFactor',0.5,@(x)(isnumeric(x)));
+p.addParameter('simNominalLights',false,@(x)(islogical(x)));
 p.parse(varargin{:});
 
 % Standard deviation of parameters (Asano 2015)
@@ -136,19 +136,17 @@ sds = [18.7 36.5 9.0 9.0 7.4 2.0 1.5 1.3];
 sampledParams = [];           % Sampled cone parameters
 recoveredParams = [];         % Cone parameters recovered by simulation
 testIntensitiesSim = [];      % Calculated test intensities
-testIntensitiesPred = [];     % Test intensities predicted from recovered params 
+testIntensitiesPred = [];     % Test intensities predicted from recovered params
 primaryRatiosSim = [];        % Calculated primary ratios
 primaryRatiosPred = [];       % Primary ratios predicted from recovered params
 
-% Arrays for spectral sensitivity error data, both across the gamut and at 
+% Arrays for spectral sensitivity error data, both across the gamut and at
 % wavelengths greather than 540nm. The first two hold rms error for
 % the sampled parameters relative to the recovered parameters, while the
 % second two hold rms error for the sampled parameters relative to the
-% standard observer. 
-coneErr = zeros(nObservers,1); 
-coneErr540 = zeros(nObservers,1); 
-coneStandardErr = zeros(nObservers,1);  
-coneStandardErr540 = zeros(nObservers,1);  
+% standard observer.
+coneErr = zeros(nObservers,1);
+coneStandardErr = zeros(nObservers,1);
 
 % For each observer: sample parameters, make matches, and use matches to
 % recover parameters
@@ -194,20 +192,17 @@ for i = 1:nObservers
     
     % Calculate root mean square error of the spectral sensitivities for
     % two sets of parameters, and for the sampled parameters compared to
-    % the standard observer. 
-    [coneErr(i),coneErr540(i)] = findConeSensitivityError(observerParams,...
+    % the standard observer.
+    [coneErr(i)] = findConeSensitivityError(observerParams,...
         [calcParams 0],'age',p.Results.age,'fieldSize',p.Results.fieldSize);
-    [coneStandardErr(i),coneStandardErr540(i)] = ...
-        findConeSensitivityError(observerParams,zeros(1,9),'age',...
-        p.Results.age,'fieldSize',p.Results.fieldSize);
+    [coneStandardErr(i)] = findConeSensitivityError(observerParams,...
+        zeros(1,9),'age',p.Results.age,'fieldSize',p.Results.fieldSize);
 end
 
 % Output structs
 error = struct();           % Cone spectra sensitivity error
-error.coneErr = coneErr; 
+error.coneErr = coneErr;
 error.coneStandardErr = coneStandardErr;
-error.coneErr540 = coneErr540;
-error.coneStandardErr540 = coneStandardErr540;
 
 rayleighSettings = struct(); % Primary ratio and test intensity settings
 rayleighSettings.testIntensitiesSim = testIntensitiesSim;
@@ -228,7 +223,7 @@ for k = 1:length(paramsToVary)
     if (k == 6) || (k==7) || (k==8)  % Lambda max shifts, in nm
         limits = [-4 4];
     else                             % Density shifts, in %
-        limits = [-30 30]; 
+        limits = [-30 30];
     end
     xlim(limits);
     ylim(limits);
@@ -241,36 +236,17 @@ for k = 1:length(paramsToVary)
     legend([l1 l2],'Parameters','y=x');
 end
 
-% Comparative cone error plot - all wavelengths 
+% Comparative cone error plot - all wavelengths
 combinedConeErr = [coneErr coneStandardErr];
 figure();
 bar(combinedConeErr);
 title('Cone Spectral Sensitivity Error');
 legend('Sampled vs Recovered Params', 'Sampled vs Standard Params');
-ylabel('Error'); 
-xlabel('Observer'); 
-if (length(method) == 9) && all(method=='predicted')
-    ylim([0 0.005]);
-else
-    ylim([0 0.01]);
-end 
-
-% Comparative cone error plot - wavelengths over 540nm 
-combinedConeErr540 = [coneErr540 coneStandardErr540];
-figure();
-bar(combinedConeErr540);
-title('Cone Spectral Sensitivity Error Above 540nm');
-legend('Sampled vs Recovered Params', 'Sampled vs Standard Params');
-ylabel('Error'); 
+ylabel('Error');
 xlabel('Observer');
 ylim([0 0.01]);
-if (length(method)==9) && all(method=='predicted')
-    ylim([0 0.005]);
-else
-    ylim([0 0.01]);
-end 
 
-% Cone spectral sensitivities and generalized Pitt diagrams 
+% Cone spectral sensitivities and generalized Pitt diagrams
 %
 % For which observers are we making the plots?
 if p.Results.makeAllPlots
@@ -325,27 +301,27 @@ end
 if ~p.Results.makeAllPlots
     figure(length(paramsToVary)+3);
     theTitle = sprintf('L and M Cone Spectral Sensitivities, observer %g (best)',bestObs);
-    title(theTitle); 
+    title(theTitle);
+    
+    figure(length(paramsToVary)+3);
+    theTitle = sprintf('Generalized Pitt Diagram, observer %g (best)',bestObs);
+    title(theTitle);
     
     figure(length(paramsToVary)+4);
-    theTitle = sprintf('Generalized Pitt Diagram, observer %g (best)',bestObs);   
-    title(theTitle); 
-    
-    figure(length(paramsToVary)+5);    
     theTitle = sprintf('L and M Cone Spectral Sensitivities, observer %g (worst)',worstObs);
-    title(theTitle); 
-
-    figure(length(paramsToVary)+6);
-    theTitle = sprintf('Generalized Pitt Diagram, observer %g (worst)',worstObs);   
-    title(theTitle); 
+    title(theTitle);
+    
+    figure(length(paramsToVary)+5);
+    theTitle = sprintf('Generalized Pitt Diagram, observer %g (worst)',worstObs);
+    title(theTitle);
     
     for i = 1:length(paramsToVary)
-        figure(i) 
+        figure(i)
         plot(sampledParams(bestObs,i),recoveredParams(bestObs,i),'gs',...
             'MarkerSize',10,'LineWidth',2);
         plot(sampledParams(worstObs,i),recoveredParams(worstObs,i),'rs',...
             'MarkerSize',8,'LineWidth',1.5);
         legend('parameter','y = x','best observer','worst observer');
-    end 
+    end
 end
-end 
+end

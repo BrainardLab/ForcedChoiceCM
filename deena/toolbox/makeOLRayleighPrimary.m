@@ -1,4 +1,4 @@
-function spd = makeOLRayleighPrimary(wavelength)
+function spd = makeOLRayleighPrimary(wavelength,varargin)
 % Generates a narrowband spd for use in OneLight Rayleigh calculations
 %
 % Syntax:
@@ -14,37 +14,66 @@ function spd = makeOLRayleighPrimary(wavelength)
 %    future use.
 
 % Inputs:
-%    wavelength  -Integer wavelength for spd peak.
+%    wavelength     -Integer wavelength for spd peak.
 %
 % Outputs:
-%    none (saves a file)
+%    spd            -Column vector of the narrowband spd.
 %
 % Optional key-value pairs:
+%    scaleFactor   -Number between 0 and 1 that scales the height of the
+%                   spd. Default is 1.
+%    nominal       -Logical indicating to return nominal spds rather than
+%                   predicted values. Default is false.
 
 % History
 %    dce    07/08/20  - Wrote it
 %    dce    07/14/20  - Got rid of division by 3 for p2
+%    dce    07/16/20  - Added scaling to this file
+
+% Parse input
+p = inputParser;
+p.addParameter('scaleFactor',1,@(x)(isnumeric(x)));
+p.addParameter('nominal',false,@(x)(islogical(x)));
+p.parse(varargin{:});
+
+% Base parameters
+fullWidthHalfMax = 20;
+lambda = 0.001;
 
 % Load default calibration
-cal = OLGetCalibrationStructure('CalibrationType',getpref('ForcedChoiceCM','currentCal'));
+cal = OLGetCalibrationStructure('CalibrationType',...
+    getpref('ForcedChoiceCM','currentCal'));
+[~,settingsLength] = size(cal.computed.pr650M);
+darkSpd = OLPrimaryToSpd(cal,zeros(settingsLength,1));
 
-% Make spd
-if wavelength == 0 % Make dark spd
-    [~,settingsLength] = size(cal.computed.pr650M);
-    spd = OLPrimaryToSpd(cal,zeros(settingsLength,1));
-    
-else               % Make narrowband spd
-    % Base parameters
-    fullWidthHalfMax = 20;
-    lambda = 0.001;
-    
-    % Calculation
+if wavelength == 0
+    spd = darkSpd;
+else
+    % Find spd
     spdRel = OLMakeMonochromaticSpd(cal,wavelength,fullWidthHalfMax);
-    spd = OLMaximizeSpd(cal,spdRel,'lambda',lambda);
+    spdNominal = OLMaximizeSpd(cal,spdRel,'lambda',lambda)...
+        *p.Results.scaleFactor;
+    
+    % Convert to predicted spd
+    if p.Results.nominal
+        spd = spdNominal;
+    else
+        [~,~,spdPred] = OLSpdToSettings(cal,spdNominal+darkSpd,'lambda',...
+            lambda);
+        spd = spdPred-darkSpd;
+    end
 end
 
 % Save results
-file = sprintf('OLRayleighPrimary_%g.mat',wavelength);
+if wavelength==0
+    file = sprintf('OLRayleighPrimary_dark.mat');
+elseif p.Results.nominal 
+    file = sprintf('OLRayleighPrimary_%g_%g_nominal.mat',wavelength,...
+        p.Results.scaleFactor);
+else 
+    file = sprintf('OLRayleighPrimary_%g_%g_predicted.mat',wavelength,...
+        p.Results.scaleFactor);
+end 
 save(fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
     'precomputedSpds', file),'spd');
 end
