@@ -24,16 +24,21 @@ function spd = makeOLRayleighPrimary(wavelength,varargin)
 %                   spd. Default is 1.
 %    nominal       -Logical indicating to return nominal spds rather than
 %                   predicted values. Default is false.
+%    subtractDark  -Logical indicating to subtract the dark spd from the
+%                   final predicted spd (if it is not nominal). Defult is 
+%                   true.
 
 % History
 %    dce    07/08/20  - Wrote it
 %    dce    07/14/20  - Got rid of division by 3 for p2
 %    dce    07/16/20  - Added scaling to this file
+%    dce    07/17/20  - Made subtractDark optional
 
 % Parse input
 p = inputParser;
 p.addParameter('scaleFactor',1,@(x)(isnumeric(x)));
 p.addParameter('nominal',false,@(x)(islogical(x)));
+p.addParameter('subtractDark',true,@(x)(islogical(x)));
 p.parse(varargin{:});
 
 % Base parameters
@@ -58,9 +63,11 @@ else
     if p.Results.nominal
         spd = spdNominal;
     else
-        [~,~,spdPred] = OLSpdToSettings(cal,spdNominal+darkSpd,'lambda',...
+        [~,~,spd] = OLSpdToSettings(cal,spdNominal+darkSpd,'lambda',...
             lambda);
-        spd = spdPred-darkSpd;
+        if p.Results.subtractDark
+            spd = spd-darkSpd;
+        end 
     end
 end
 

@@ -69,7 +69,7 @@ function [testSpds,primarySpds,testIntensities,primaryRatios] = ...
 %    'thresholdScaleFactor' -When using a simulated observer with
 %                            threshold matching, scale factor for matching
 %                            threshold. Default is 0.5.
-%    'nominal'           - Logical indicating to run the simulation with
+%    'nominal'           -Logical indicating to run the simulation with
 %                         nominal, rather than predicted, spds. Default
 %                         is false.
 %    'monochromatic'     -When using predicted matches, logical indicating
@@ -156,7 +156,7 @@ for i = 1:nCombos
         simFile = [subjID,'_',num2str(i),'.mat'];
         simFilePath = fullfile(outputDir,simFile);
         [testSpd,primarySpd,testIntensity,primaryRatio] =...
-            getMatchData(simFilePath);
+            getMatchData(simFilePath,'nominal',p.Results.nominal);
         
     elseif strcmp(method,'forcedChoice')% Use OLRayleighMatch forced choice
         OLRayleighMatch(subjID,i,'simObserver',true,'observerParams',...
@@ -172,7 +172,7 @@ for i = 1:nCombos
         simFile = [subjID,'_',num2str(i),'.mat'];
         simFilePath = fullfile(outputDir,simFile);
         [testSpd,primarySpd,testIntensity,primaryRatio] =...
-            getMatchData(simFilePath);
+            getMatchData(simFilePath,'nominal',p.Results.nominal);
         
     elseif p.Results.monochromatic  % Use computePredictedRayleighMatch monochromatic
         p1Spd = makeMonochromaticSpd(lightCombos(i,1),...
