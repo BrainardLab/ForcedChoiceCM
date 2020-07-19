@@ -123,6 +123,10 @@ p.parse(varargin{:});
 % Standard deviation of parameters (Asano 2015)
 sds = [18.7 36.5 9.0 9.0 7.4 2.0 1.5 1.3];
 
+% Standard observer, used for comparison 
+stdObs = genRayleighObserver('age',p.Results.age,'fieldSize',...
+    p.Results.fieldSize,'coneVec',zeros(1,9)); 
+
 % Create directory for saving results
 outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
     'paramsSearch',subjID);
@@ -140,13 +144,15 @@ testIntensitiesPred = [];     % Test intensities predicted from recovered params
 primaryRatiosSim = [];        % Calculated primary ratios
 primaryRatiosPred = [];       % Primary ratios predicted from recovered params
 
-% Arrays for spectral sensitivity error data, both across the gamut and at
-% wavelengths greather than 540nm. The first two hold rms error for
-% the sampled parameters relative to the recovered parameters, while the
-% second two hold rms error for the sampled parameters relative to the
-% standard observer.
+% Arrays for error data. ConeErr refers to the rms error of the sampled
+% cone sensitivities relative to the recovered cone sensitivities. MatchErr
+% refers to the rms error of opponent contrast differences across the
+% Rayleigh matches.
 coneErr = zeros(nObservers,1);
 coneStandardErr = zeros(nObservers,1);
+matchErr = zeros(nObservers,1);
+matchStandardErr = zeros(nObservers,1);
+matchSampledErr = zeros(nObservers,1);
 
 % For each observer: sample parameters, make matches, and use matches to
 % recover parameters
@@ -174,13 +180,23 @@ for i = 1:nObservers
     testIntensitiesSim = [testIntensitiesSim;testIntensitiesSimObs];
     primaryRatiosSim = [primaryRatiosSim;primaryRatiosSimObs];
     
-    % Recover observer parameters
-    [calcParams,~] = findObserverParameters(testSpds,primarySpds,...
+    % Recover observer parameters and associated match error 
+    [calcParams,calcErr] = findObserverParameters(testSpds,primarySpds,...
         'age',p.Results.age,'fieldSize',p.Results.fieldSize);
     recoveredParams = [recoveredParams;calcParams];
+    matchErr(i) = calcErr;  
+    
+    % Recover match error for the standard observer and the sampled
+    % observer
+    matchStandardErr(i) = findMatchError(zeros(1,8),stdObs,testSpds,...
+        primarySpds);
+    matchSampledErr(i) = findMatchError(observerParams(1:8),...
+        genRayleighObserver('coneVec',observerParams,'age',p.Results.age,...
+        'fieldSize',p.Results.fieldSize),testSpds,primarySpds);
     
     % Calculate predicted test intensity and primary ratio based on
-    % recovered parameters
+    % recovered parameters. This will be compared to the actual values
+    % found by the simulation.
     [~,~,testIntensitiesPredObs,primaryRatiosPredObs] = ...
         getMatchSeries(testingID,[calcParams 0],p1,p2,test,...
         'predicted','fieldSize',p.Results.fieldSize,...
@@ -237,6 +253,16 @@ ylabel('Error');
 xlabel('Observer');
 ylim([0 0.02]);
 
+% Comparative match error plot 
+combinedMatchErr = [matchSampledErr matchErr matchStandardErr];
+figure();
+bar(combinedMatchErr);
+title('Match Spectral Sensitivity Error');
+legend('Sampled Params', 'Recovered Params', 'Standard Params');
+ylabel('Error');
+xlabel('Observer');
+ylim([0 0.15]);
+
 % Cone spectral sensitivities and generalized Pitt diagrams
 %
 % For which observers are we making the plots?
@@ -251,9 +277,11 @@ end
 for k = plottingInds
     % Cone spectral sensitivity plot
     S = [380 2 201];
-    sampledObserver = genRayleighObserver('coneVec',...
+    sampledObserver = genRayleighObserver('age',p.Results.age,...
+        'fieldSize',p.Results.fieldSize,'coneVec',...
         sampledParams(k,:),'S',S);
-    recoveredObserver = genRayleighObserver('coneVec',...
+    recoveredObserver = genRayleighObserver('age',p.Results.age,...
+        'fieldSize',p.Results.fieldSize,'coneVec',...
         [recoveredParams(k,:) 0],'S',S);
     figure();
     hold on;
@@ -300,21 +328,20 @@ if ~p.Results.makeAllPlots
             'MarkerSize',8,'LineWidth',1.5);
         legend('parameter','y = x','best observer','worst observer');
     end
-    figure(length(paramsToVary)+1);
     
-    figure(length(paramsToVary)+2);
+    figure(length(paramsToVary)+3);
     theTitle = sprintf('L and M Cone Spectral Sensitivities, observer %g (best)',bestObs);
     title(theTitle);
     
-    figure(length(paramsToVary)+3);
+    figure(length(paramsToVary)+4);
     theTitle = sprintf('Generalized Pitt Diagram, observer %g (best)',bestObs);
     title(theTitle);
     
-    figure(length(paramsToVary)+4);
+    figure(length(paramsToVary)+5);
     theTitle = sprintf('L and M Cone Spectral Sensitivities, observer %g (worst)',worstObs);
     title(theTitle);
     
-    figure(length(paramsToVary)+5);
+    figure(length(paramsToVary)+6);
     theTitle = sprintf('Generalized Pitt Diagram, observer %g (worst)',worstObs);
     title(theTitle);
 end
@@ -322,6 +349,7 @@ end
 % Save figures 
 figs =  findobj('type','figure');
 for i = 1:length(figs)
+    figure(i)
     print(fullfile(outputDir,[subjID '_' num2str(i)]),'-dtiff');
 end 
 end
