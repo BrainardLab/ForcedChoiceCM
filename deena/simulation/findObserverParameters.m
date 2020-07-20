@@ -79,8 +79,10 @@ observer = genRayleighObserver('fieldSize',p.Results.fieldSize,'age',...
     'S',p.Results.S);
 
 %% Restrictions on parameters
-Aeq = [];   % Linear equality constraint
-Beq = [];   % Linear equality constraint
+Aeq = [1 0 0 0 0 0 0 0];   % Linear equality constraint
+Beq = 0;   % Linear equality constraint
+% Aeq = [];
+% Beq = [];
 lb = [];    % Lower bounds
 ub = [];    % Upper bounds
 

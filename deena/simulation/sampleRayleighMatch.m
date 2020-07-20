@@ -182,7 +182,7 @@ for i = 1:nObservers
     
     % Recover observer parameters and associated match error 
     [calcParams,calcErr] = findObserverParameters(testSpds,primarySpds,...
-        'age',p.Results.age,'fieldSize',p.Results.fieldSize);
+        'age',p.Results.age,'fieldSize',p.Results.fieldSize,'restrictBySd',true);
     recoveredParams = [recoveredParams;calcParams];
     matchErr(i) = calcErr;  
     
@@ -261,7 +261,7 @@ title('Match Spectral Sensitivity Error');
 legend('Sampled Params', 'Recovered Params', 'Standard Params');
 ylabel('Error');
 xlabel('Observer');
-ylim([0 0.15]);
+ylim([0 1]);
 
 % Cone spectral sensitivities and generalized Pitt diagrams
 %

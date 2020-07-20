@@ -72,6 +72,6 @@ for i = 1:nMatches
     pairError(i) = norm(opponentContrast(1:2));
 end
 
-% Report the root mean square error 
-error = sqrt(mean(pairError.^2)); 
+% Report the root mean square error (scaled by 100 to improve search)
+error = sqrt(mean(pairError.^2))*100; 
 end
