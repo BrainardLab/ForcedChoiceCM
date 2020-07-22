@@ -68,7 +68,8 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %    'resetAnnulus'   - logical indicating to run a script that lets the
 %                       experimenter reset the annulus. Default is false.
 %    'plotResponses'  - Logical indicating to make plots of the
-%                       experimental timecourse. Default is true.
+%                       experimental timecourse and print output. Default
+%                       is true.
 %    'silent'         - logical. Set to true to turn off feedback beeps.
 %                       Default is true.
 %    'simKeypad'      - logical. Set to true to run a simulation with
@@ -128,6 +129,7 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %                       method.
 %   07/14/20  dce       Changed nominal match to use predicted spds.
 %                       Changed default adjustment length.
+%   07/21/20  dce       Changed method for calculating nominal matches
 
 %% Close any stray figures
 close all;
@@ -196,6 +198,12 @@ if (simKeypad && simObserver)
     error('Only one simulation method can be chosen');
 end
 
+if foveal
+    fieldSize = 2;
+else
+    fieldSize = 10;
+end
+
 %% Set up directory for saving results
 % Create directory named subjectID for saving data, if it doesn't exist
 outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),subjectID);
@@ -260,61 +268,35 @@ primaryStartStops = lightSettings.primaryStartStops;
 testStartStops = lightSettings.testStartStops;
 p1Scales = lightSettings.p1Scales;
 testScales = lightSettings.testScales;
+darkSpd = lightSettings.darkSpd;
+wls = lightSettings.cal.computed.pr650Wls;
 
-% Find nominal match settings. The idealForStandardObs flag means that the
+% Find spds for computing nominal match.
+p2SpdForSearch = primarySpdsPredicted(:,1)-darkSpd;
+tSpdForSearch = testSpdsPredicted(:,end)-darkSpd;
+p1SpdForSearch = primarySpdsPredicted(:,end);
+
+% Scale p1 down in the p2 region to prevent the combined p2 from being too
+% tall
+ind1 = find(wls==p2-lightSettings.fullWidthHalfMax);
+ind2 = find(wls==p2+lightSettings.fullWidthHalfMax);
+p1SpdForSearch(ind1:ind2) =  primarySpdsNominal(ind1:ind2,end);
+p1SpdForSearch = p1SpdForSearch-darkSpd;
+
+% Compute the nominal match. The idealForStandardObs flag means that the
 % program will find the nominal match for the standard observer, not the
 % actual observer being used.
-if foveal
-    fieldSize = 2;
-else
-    fieldSize = 10;
-end
-
-% Load data from precomputed spd files if it exists, otherwise create the
-% spds
-baseFile = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
-    'precomputedSpds','OLRayleighPrimary_');
-if p.Results.simNominalLights
-    p1File = [baseFile num2str(p1) '_' num2str(p.Results.p1Scale) '_nominal.mat'];
-    p2File = [baseFile num2str(p2) '_' num2str(p.Results.p2Scale) '_nominal.mat'];
-    testFile = [baseFile num2str(test) '_' num2str(p.Results.testScale) '_nominal.mat'];
-else
-    p1File = [baseFile num2str(p1) '_' num2str(p.Results.p1Scale) '_predicted.mat'];
-    p2File = [baseFile num2str(p2) '_' num2str(p.Results.p2Scale) '_predicted.mat'];
-    testFile = [baseFile num2str(test) '_' num2str(p.Results.testScale) '_predicted.mat'];
-end
-if exist(p1File,'file')
-    p1f = load(p1File);
-    p1Spd = p1f.spd;
-else
-    p1Spd = makeOLRayleighPrimary(p1,'scaleFactor',...
-        p.Results.p1Scale,'nominal',p.Results.simNominalLights);
-end
-if exist(p2File,'file')
-    p2f = load(p2File);
-    p2Spd = p2f.spd;
-else
-    p2Spd = makeOLRayleighPrimary(p2,'scaleFactor',...
-        p.Results.p2Scale,'nominal',p.Results.simNominalLights);
-end
-if exist(testFile,'file')
-    testf = load(testFile);
-    tSpd = testf.spd;
-else
-    tSpd = makeOLRayleighPrimary(test,'scaleFactor',...
-        p.Results.testScale,'nominal',p.Results.simNominalLights);
-end
-
-% Compute the nominal match
 idealForStandardObs = false;
 if idealForStandardObs
     [idealTestSpd,idealPrimarySpd,idealTestIntensity,idealPRatio] =...
-        computePredictedRayleighMatch(p1Spd,p2Spd,tSpd,zeros(1,9),'age',...
-        age,'fieldSize',fieldSize,'noisy',false,'S',cal.computed.pr650S);
+        computePredictedRayleighMatch(p1SpdForSearch,p2SpdForSearch,...
+        tSpdForSearch,zeros(1,9),'age',age,'fieldSize',fieldSize,...
+        'noisy',false,'S',cal.computed.pr650S,'darkSpd',darkSpd);
 else
     [idealTestSpd,idealPrimarySpd,idealTestIntensity,idealPRatio] =...
-        computePredictedRayleighMatch(p1Spd,p2Spd,tSpd,observerParams,'age',...
-        age,'fieldSize',fieldSize,'noisy',false,'S',cal.computed.pr650S);
+        computePredictedRayleighMatch(p1SpdForSearch,p2SpdForSearch,...
+        tSpdForSearch,observerParams,'age',age,'fieldSize',fieldSize,...
+        'noisy',false,'S',cal.computed.pr650S,'darkSpd',darkSpd);
 end
 [~,pIdealIndex] = min(abs(p1Scales-idealPRatio));
 [~,tIdealIndex] = min(abs(testScales-idealTestIntensity));
@@ -329,12 +311,12 @@ if simObserver
 end
 
 %% Intialize OneLight and button box/keypresses
-ol = OneLight('simulate',(simObserver || simKeypad),...
-    'plotWhenSimulating',false);
 if simKeypad
     ListenChar(2);
     FlushEvents;
 elseif ~simObserver && ~simKeypad
+    ol = OneLight('simulate',(simObserver || simKeypad),...
+        'plotWhenSimulating',false);
     gamePad = GamePad();
 end
 
@@ -429,13 +411,15 @@ while(stillLooping)
     
     % Display primary or test light.
     nowTime = mglGetSecs;
-    switch lights(lightModePos)
-        case 'p'
-            ol.setMirrors(squeeze(primaryStartStops(pI,1,:))',...
-                squeeze(primaryStartStops(pI,2,:))');
-        case 't'
-            ol.setMirrors(squeeze(testStartStops(tI,1,:))',...
-                squeeze(testStartStops(tI,2,:))');
+    if ~simObserver && ~simKeypad
+        switch lights(lightModePos)
+            case 'p'
+                ol.setMirrors(squeeze(primaryStartStops(pI,1,:))',...
+                    squeeze(primaryStartStops(pI,2,:))');
+            case 't'
+                ol.setMirrors(squeeze(testStartStops(tI,1,:))',...
+                    squeeze(testStartStops(tI,2,:))');
+        end
     end
     
     % Until time limit runs out, check for user input
@@ -475,6 +459,7 @@ while(stillLooping)
         % If using a simulated observer, perform calculations to figure out
         % which adjustment to make
         if simObserver
+            [row,~] = size(matches);
             % Prompt the observer for a decision
             if simNominalLights
                 [p1_up,t_up,isBelowThreshold] = ...
@@ -493,10 +478,11 @@ while(stillLooping)
             % combination of lights is below the threshold
             if thresholdMatching && isBelowThreshold
                 countBelowThreshold = countBelowThreshold+1;
-                fprintf('Below threshold: %g\n',countBelowThreshold);
+                if plotResponses
+                    fprintf('Below threshold: %g\n',countBelowThreshold);
+                end
             end
             % Quit if all matches have been made
-            [row,~] = size(matches);
             if row == nObserverMatches
                 key.charCode = 'q';
                 
@@ -531,22 +517,22 @@ while(stillLooping)
                 if p1_up == p1_up_prev || nReversalsP < nReversals(1)...
                         || stepModePos == length(stepModes)
                     if p1_up
-                        if primaryPos == adjustmentLength
-                            error('Primary is at maximum setting');
+                        if primaryPos == adjustmentLength && row == 0
+                            % Flag for reaching primary limit
+                            Snd('Play',sin(0:5000));
                         end
                         key.charCode = 'r';
                     else
-                        if primaryPos == 1
-                            error('Primary is at minimum setting');
-                        end
                         key.charCode = 'l';
                     end
                     adjustmentCount = adjustmentCount+1;
                     if p1_up ~= p1_up_prev && ~firstAdjustment
                         nReversalsP = nReversalsP+1;
-                        fprintf('Primary reversal %g, step size %g\n',...
-                            nReversalsP,(stepModes(stepModePos)/...
-                            (adjustmentLength-1)));
+                        if plotResponses
+                            fprintf('Primary reversal %g, step size %g\n',...
+                                nReversalsP,(stepModes(stepModePos)/...
+                                (adjustmentLength-1)));
+                        end
                     end
                 else    % Lower step size
                     key.charCode = 's';
@@ -563,22 +549,18 @@ while(stillLooping)
                 if t_up == t_up_prev || stepModePos == length(stepModes)...
                         || nReversalsT < nReversals(1)
                     if t_up
-                        if testPos == adjustmentLength
-                            error('Test is at maximum setting');
-                        end
                         key.charCode = 'u';
                     else
-                        if testPos == 1
-                            error('Test is at minimum setting');
-                        end
                         key.charCode = 'd';
                     end
                     adjustmentCount = adjustmentCount+1;
                     if t_up ~= t_up_prev && ~firstAdjustment
                         nReversalsT = nReversalsT+1;
-                        fprintf('Test reversal %g, step size %g\n',...
-                            nReversalsT,(stepModes(stepModePos)/...
-                            (adjustmentLength-1)));
+                        if plotResponses
+                            fprintf('Test reversal %g, step size %g\n',...
+                                nReversalsT,(stepModes(stepModePos)/...
+                                (adjustmentLength-1)));
+                        end
                     end
                 else        % Lower step size
                     key.charCode = 's';
@@ -618,15 +600,17 @@ while(stillLooping)
                             Snd('Play',sin(0:5000));
                         end
                     end
-                    if simObserver && adjustingP
-                        fprintf('User switched primary step size to %g\n',...
-                            (stepModes(stepModePos)/(adjustmentLength-1)));
-                    elseif simObserver
-                        fprintf('User switched test step size to %g\n',...
-                            (stepModes(stepModePos)/(adjustmentLength-1)));
-                    else
-                        fprintf('User switched step size to %g\n',...
-                            (stepModes(stepModePos)/(adjustmentLength-1)));
+                    if plotResponses
+                        if simObserver && adjustingP
+                            fprintf('User switched primary step size to %g\n',...
+                                (stepModes(stepModePos)/(adjustmentLength-1)));
+                        elseif simObserver
+                            fprintf('User switched test step size to %g\n',...
+                                (stepModes(stepModePos)/(adjustmentLength-1)));
+                        else
+                            fprintf('User switched step size to %g\n',...
+                                (stepModes(stepModePos)/(adjustmentLength-1)));
+                        end
                     end
                     
                 case keyCodes.foundMatch  % Subject found a match
@@ -708,14 +692,14 @@ while(stillLooping)
                     testPos = randi(adjustmentLength);
                     subjectSettings = [subjectSettings;...
                         [testScales(testPos),p1Scales(primaryPos)]];
-                    fprintf('Reset at %g test, %g primary\n',...
-                        testScales(testPos),p1Scales(primaryPos));
                     
                 case keyCodes.quit % Quit
                     if ~silent
                         Snd('Play',sin(0:5000));
                     end
-                    fprintf('User exited program\n');
+                    if plotResponses
+                        fprintf('User exited program\n');
+                    end
                     stillLooping = false;
                     break;
                     
@@ -728,17 +712,21 @@ while(stillLooping)
                             Snd('Play',sin(0:5000)/ 20);
                         end
                     end
-                    fprintf('User switched order of primary and test lights\n');
+                    if plotResponses
+                        fprintf('User switched order of primary and test lights\n');
+                    end
                     
                 case keyCodes.idealMatch % Switch to showing ideal match
                     ideal = ~ideal;
                     if ~silent
                         Snd('Play',sin(0:5000));
                     end
-                    if ideal
-                        fprintf('User switched to ideal match\n');
-                    else
-                        fprintf('User switched off ideal match\n');
+                    if plotResponses
+                        if ideal
+                            fprintf('User switched to ideal match\n');
+                        else
+                            fprintf('User switched off ideal match\n');
+                        end
                     end
                     
                 case keyCodes.increaseIntensity % Scale up test intensity
@@ -748,13 +736,17 @@ while(stillLooping)
                         if ~silent
                             Snd('Play',sin(0:5000));
                         end
-                        fprintf('User reached upper test limit\n');
+                        if plotResponses
+                            fprintf('User reached upper test limit\n');
+                        end
                     end
                     if ~silent
                         Snd('Play',sin(0:5000)/100);
                     end
-                    fprintf('User pressed key. Test intensity = %g, red primary = %g\n',...
-                        testScales(testPos),p1Scales(primaryPos));
+                    if plotResponses
+                        fprintf('User pressed key. Test intensity = %g, red primary = %g\n',...
+                            testScales(testPos),p1Scales(primaryPos));
+                    end
                     subjectSettings = [subjectSettings;...
                         [testScales(testPos),p1Scales(primaryPos)]];
                     firstAdjustment = false;
@@ -766,13 +758,17 @@ while(stillLooping)
                         if ~silent
                             Snd('Play',sin(0:5000));
                         end
-                        fprintf('User reached lower test limit\n');
+                        if plotResponses
+                            fprintf('User reached lower test limit\n');
+                        end
                     end
                     if ~silent
                         Snd('Play',sin(0:5000)/100);
                     end
-                    fprintf('User pressed key. Test intensity = %g, red primary = %g\n',...
-                        testScales(testPos),p1Scales(primaryPos));
+                    if plotResponses
+                        fprintf('User pressed key. Test intensity = %g, red primary = %g\n',...
+                            testScales(testPos),p1Scales(primaryPos));
+                    end
                     subjectSettings = [subjectSettings;...
                         [testScales(testPos),p1Scales(primaryPos)]];
                     firstAdjustment = false;
@@ -784,13 +780,17 @@ while(stillLooping)
                         if ~silent
                             Snd('Play',sin(0:5000));
                         end
-                        fprintf('User reached upper primary limit\n');
+                        if plotResponses
+                            fprintf('User reached upper primary limit\n');
+                        end
                     end
                     if ~silent
                         Snd('Play',sin(0:5000)/100);
                     end
-                    fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
-                        testScales(testPos),p1Scales(primaryPos));
+                    if plotResponses
+                        fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
+                            testScales(testPos),p1Scales(primaryPos));
+                    end
                     subjectSettings = [subjectSettings;...
                         [testScales(testPos),p1Scales(primaryPos)]];
                     firstAdjustment = false;
@@ -802,15 +802,19 @@ while(stillLooping)
                         if ~silent
                             Snd('Play',sin(0:5000));
                         end
-                        fprintf('User reached lower primary limit\n');
+                        if plotResponses
+                            fprintf('User reached lower primary limit\n');
+                        end
                     end
                     if ~silent
                         Snd('Play',sin(0:5000)/100);
                     end
                     subjectSettings = [subjectSettings;...
                         [testScales(testPos),p1Scales(primaryPos)]];
-                    fprintf('User pressed key. Test intensity = %g, red primary = %g\n',...
-                        testScales(testPos),p1Scales(primaryPos));
+                    if plotResponses
+                        fprintf('User pressed key. Test intensity = %g, red primary = %g\n',...
+                            testScales(testPos),p1Scales(primaryPos));
+                    end
                     firstAdjustment = false;
             end
             % Edit plots if the lights were adjusted
@@ -837,13 +841,14 @@ while(stillLooping)
 end
 
 %% Close up
-ol.setAll(false);
 if simKeypad
     ListenChar(0);
-elseif ~simObserver && ~foveal
-    GLW_CloseAnnularStimulus();
+elseif ~simObserver && ~simKeypad
+    ol.setAll(false);
+    if ~foveal
+        GLW_CloseAnnularStimulus();
+    end
 end
-
 % Close extra plots
 if plotResponses && simObserver
     close(figure(nPlots),figure(nPlots+1));

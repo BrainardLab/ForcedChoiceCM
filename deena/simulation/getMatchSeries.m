@@ -143,7 +143,7 @@ for i = 1:nCombos
         % Run simulation
         OLRayleighMatch(subjID,i,'simObserver',true,'thresholdMatching',...
             true,'observerParams',observerParams,'foveal',...
-            (p.Results.fieldSize==2),'p1',lightCombos(i,1),'p2',...
+            (p.Results.fieldSize<=2),'p1',lightCombos(i,1),'p2',...
             lightCombos(i,2),'test',lightCombos(i,3),'age',p.Results.age,...
             'nObserverMatches',p.Results.nObserverMatches,'nReversals',...
             p.Results.nReversals,'nBelowThreshold',...
@@ -201,12 +201,14 @@ for i = 1:nCombos
                 num2str(p.Results.testScale) '_nominal.mat'];
         else
             p1File = [baseFile num2str(lightCombos(i,1)) '_'...
-                num2str(p.Results.p1Scale) '_predicted.mat'];
+                num2str(p.Results.p1Scale) '_predicted_subtractDark_subtract'...
+                num2str(lightCombos(i,2)),'.mat'];
             p2File = [baseFile num2str(lightCombos(i,2)) '_'...
-                num2str(p.Results.p2Scale) '_predicted.mat'];
+                num2str(p.Results.p2Scale) '_predicted_subtractDark.mat'];
             testFile = [baseFile num2str(lightCombos(i,3)) '_'...
-                num2str(p.Results.testScale) '_predicted.mat'];
+                num2str(p.Results.testScale) '_predicted_subtractDark.mat'];
         end
+        darkFile = [baseFile '0.mat'];
         % Load spds from the precomputed files if they exist, otherwise
         % compute
         if exist(p1File,'file')
@@ -214,21 +216,30 @@ for i = 1:nCombos
             p1Spd = p1f.spd;
         else
             p1Spd = makeOLRayleighPrimary(lightCombos(i,1),'scaleFactor',...
-                p.Results.p1Scale,'nominal',p.Results.nominal);
+                p.Results.p1Scale,'nominal',p.Results.nominal,...
+                'subtractDark',true,'subtractAroundWl',lightCombos(i,2));
         end
         if exist(p2File,'file')
             p2f = load(p2File);
             p2Spd = p2f.spd;
         else
             p2Spd = makeOLRayleighPrimary(lightCombos(i,2),'scaleFactor',...
-                p.Results.p2Scale,'nominal',p.Results.nominal);
+                p.Results.p2Scale,'nominal',p.Results.nominal,...
+                'subtractDark',true);
         end
         if exist(testFile,'file')
             testf = load(testFile);
             tSpd = testf.spd;
         else
             tSpd = makeOLRayleighPrimary(lightCombos(i,3),'scaleFactor',...
-                p.Results.testScale,'nominal',p.Results.nominal);
+                p.Results.testScale,'nominal',p.Results.nominal,...
+                'subtractDark',true);
+        end
+       if exist(darkFile,'file')
+            darkf = load(darkFile);
+            darkSpd = darkf.spd;
+        else
+            darkSpd = makeOLRayleighPrimary(0);
         end
         
         % Run the test 
@@ -236,7 +247,7 @@ for i = 1:nCombos
             computePredictedRayleighMatch(p1Spd,p2Spd,tSpd,...
             observerParams,'age',p.Results.age,'fieldSize',...
             p.Results.fieldSize,'S',p.Results.sPredicted,...
-            'monochromatic',false);        
+            'monochromatic',false,'darkSpd',darkSpd);        
     end
     
     % Add calculated spds from the trial to the overall array, and save

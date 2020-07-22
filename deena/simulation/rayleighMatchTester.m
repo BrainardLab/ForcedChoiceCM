@@ -177,10 +177,21 @@ darkSpd = makeOLRayleighPrimary(0,'nominal',true);
     file.lambda);
 [~,~,p2Scaled] = OLSpdToSettings(file.cal,p2Spd+darkSpd,'lambda',...
     file.lambda);
-spdSumAfter = (p1Scaled-darkSpd)+(p2Scaled-darkSpd)+darkSpd;
+p1Scaled = p1Scaled - darkSpd;
+p2Scaled = p2Scaled - darkSpd;
+spdSumAfter = p1Scaled+p2Scaled+darkSpd;
+
+% Compare low wavelengths 
+wls = SToWls([380 2 201]);
+p1Short = p1Spd(wls<650);
+p2Short = p2Spd(wls<650);
+p1ScaledShort = p1Scaled(wls<650);
+p2ScaledShort = p2Scaled(wls<650);
+OLPlotSpdCheck(wls(wls<650),[p1Short,p1ScaledShort]);
+OLPlotSpdCheck(wls(wls<650),[p2Short,p2ScaledShort]);
 
 % Comparative plots - combined
-OLPlotSpdCheck(SToWls([380 2 201]),[spdSumFirst spdSumAfter]);
+OLPlotSpdCheck(wls,[spdSumFirst spdSumAfter]);
 legend('Converted to Predicted at End','Converted to Predicted Before Adding');
 
 %% Timing of adding the dark spd to p2

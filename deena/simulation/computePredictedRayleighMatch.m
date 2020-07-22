@@ -36,7 +36,8 @@ function [testAdjustedSpd,primaryMixtureSpd,testIntensity,lambda] =...
 %    'noisy'           -Logical indicating whether to add noise. Default is
 %                       false.
 %    'monochromatic'   -Logical indicating that the passed spds are
-%                       monochromatic. Default is false.
+%    'darkSpd'         -nx1 dark spd vector. If not specified, default is
+%                       [].
 %    'S'               -Wavelength sampling for cone calculations, in the
 %                       form [start delta nTerms]. Default is [380 2 201],
 %                       which is the OneLight convention. Note that S can
@@ -52,6 +53,7 @@ function [testAdjustedSpd,primaryMixtureSpd,testIntensity,lambda] =...
 %                      made no noise the default
 %    dce    7/14/20   -Added predicted matching option
 %    dce    7/16/20   -Separated spd creation into a separate file
+%    dce    7/22/20   -Added option to pass in dark spd
 
 %% Parse input
 p = inputParser;
@@ -60,6 +62,7 @@ p.addParameter('fieldSize',2,@(x)(isnumeric(x)));
 p.addParameter('S',[380 2 201],@(x)(isnumeric(x)));
 p.addParameter('noisy',false,@(x)(islogical(x)));
 p.addParameter('monochromatic',false,@(x)(islogical(x)));
+p.addParameter('darkSpd',[],@(x)(isnumeric(x)));
 p.parse(varargin{:});
 
 %% Set up parameters
@@ -127,10 +130,14 @@ testAdjustedSpd = testIntensity*testSpd;
 
 % If not monochromatic, add the dark spd
 if ~p.Results.monochromatic
-    cal = OLGetCalibrationStructure('CalibrationType',...
-        getpref('ForcedChoiceCM','currentCal'));
-    [~,settingsLength] = size(cal.computed.pr650M);
-    darkSpd = OLPrimaryToSpd(cal,zeros(settingsLength,1));
+    if isempty(p.Results.darkSpd)
+        cal = OLGetCalibrationStructure('CalibrationType',...
+            getpref('ForcedChoiceCM','currentCal'));
+        [~,settingsLength] = size(cal.computed.pr650M);
+        darkSpd = OLPrimaryToSpd(cal,zeros(settingsLength,1));
+    else
+        darkSpd = p.Results.darkSpd;
+    end
     primaryMixtureSpd = primaryMixtureSpd+darkSpd;
     testAdjustedSpd = testAdjustedSpd+darkSpd;
 end

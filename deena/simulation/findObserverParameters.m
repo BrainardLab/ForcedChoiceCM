@@ -45,9 +45,11 @@ function [params,error,observer] = findObserverParameters(testSpds,primarySpds,v
 %    'LMEqualOD'     -Logical. If true, constrains the L and M cone optical
 %                     densities (params(3) and params(4)) to be equal.
 %                     Default is false.
+%    'dlens0'        -Logical. If true, constrains the lens pigment density
+%                     (params(1)) to be 0. Default is false.
 %    'restrictBySD'  -Logical. If true, adds lower and upper bounds on all
 %                     paramters to keep them within three standard
-%                     deviations of their means. Default is false.
+%                     deviations of their means. Default is true. 
 %    'initialParams' -1x9 numerical vector of additional parameters.
 %                     Default is zeros(1,9);
 %    'S'             -Wavelength sampling for cone calculations, in the
@@ -55,6 +57,7 @@ function [params,error,observer] = findObserverParameters(testSpds,primarySpds,v
 % History:
 %   06/12/20  dce       Wrote it.
 %   07/06/20  dce       Added S setting and appropriate length checks.
+%   07/21/20  dce       Added option to set dlens to 0.
 
 %% Initial Setup
 % Parse input
@@ -62,16 +65,21 @@ p = inputParser;
 p.addParameter('age',32,@(x)(isnumeric(x)));
 p.addParameter('fieldSize',2,@(x)(isnumeric(x)));
 p.addParameter('LMEqualOD',false,@(x)(islogical(x)));
-p.addParameter('restrictBySd',false,@(x)(islogical(x)));
+p.addParameter('dlens0',false,@(x)(islogical(x)));
+p.addParameter('restrictBySd',true,@(x)(islogical(x)));
 p.addParameter('initialParams',zeros(1,9),@(x)(isnumeric(x)));
 p.addParameter('S',[380 2 201],@(x)(isnumeric(x)));
 p.parse(varargin{:});
 
-% Input check
-[spdLength,nMatches] = size(testSpds);
+% Input checks
+[spdLength,~] = size(testSpds);
 if length(SToWls(p.Results.S)) ~= spdLength
     error('Chosen S value is incompatible with spd length');
 end
+
+if p.Results.LMEqualOD && p.Results.dlens0
+    error('Only one equality constraint can be selected');
+end 
 
 % Generate a standard observer with the given initial values
 observer = genRayleighObserver('fieldSize',p.Results.fieldSize,'age',...
@@ -79,10 +87,8 @@ observer = genRayleighObserver('fieldSize',p.Results.fieldSize,'age',...
     'S',p.Results.S);
 
 %% Restrictions on parameters
-Aeq = [1 0 0 0 0 0 0 0];   % Linear equality constraint
-Beq = 0;   % Linear equality constraint
-% Aeq = [];
-% Beq = [];
+Aeq = [];
+Beq = [];
 lb = [];    % Lower bounds
 ub = [];    % Upper bounds
 
@@ -100,6 +106,12 @@ end
 % Constrain L and M OD to be equal
 if p.Results.LMEqualOD
     Aeq = [0 0 1 -1 0 0 0 0];
+    Beq = 0;
+end
+
+% Set dlens to 0 
+if p.Results.dlens0
+    Aeq = [1 0 0 0 0 0 0 0];
     Beq = 0;
 end
 

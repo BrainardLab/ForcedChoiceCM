@@ -22,7 +22,7 @@ function [testSpds,primarySpds,testIntensities,primaryRatios] =...
 %                instead of all available matches. The default value is 0,
 %                which is ignored.
 %    nominal   - Logical indicating to return spds from the nominal spds
-%                array, not the predicted array. Default is false/
+%                array, not the predicted array. Default is false
 
 % History:
 %   06/12/20  dce       Wrote it.
@@ -31,12 +31,16 @@ function [testSpds,primarySpds,testIntensities,primaryRatios] =...
 %   07/06/20  dce       Added primary ratio and test intensity outputs.
 %   07/17/20  dce       Added option to use nominal spds, not predicted
 
+% Example 
+
+% Parse input
 p = inputParser;
 p.addParameter('ind',0,@(x)(isnumeric(x)));
 p.addParameter('nominal',false,@(x)(islogical(x)));
 p.parse(varargin{:});
 ind = p.Results.ind;
 
+% Data arrays 
 theData = load(fName);   % OLRayleighMatch dataset
 testSpds = [];           % Output test spds
 primarySpds = [];        % Output primary spds
