@@ -54,6 +54,8 @@ function [params,error,observer] = findObserverParameters(testSpds,primarySpds,v
 %                     Default is zeros(1,9);
 %    'S'             -Wavelength sampling for cone calculations, in the
 %                     form [start delta nTerms]. Default is [380 2 201];
+%    'errScalar'     -Integer for scaling the match error, to improve search.
+%                     Default is 100.
 % History:
 %   06/12/20  dce       Wrote it.
 %   07/06/20  dce       Added S setting and appropriate length checks.
@@ -69,6 +71,7 @@ p.addParameter('dlens0',false,@(x)(islogical(x)));
 p.addParameter('restrictBySd',true,@(x)(islogical(x)));
 p.addParameter('initialParams',zeros(1,9),@(x)(isnumeric(x)));
 p.addParameter('S',[380 2 201],@(x)(isnumeric(x)));
+p.addParameter('errScalar',100,@(x)(isnumeric(x)));
 p.parse(varargin{:});
 
 % Input checks
@@ -87,10 +90,10 @@ observer = genRayleighObserver('fieldSize',p.Results.fieldSize,'age',...
     'S',p.Results.S);
 
 %% Restrictions on parameters
-Aeq = [];
-Beq = [];
-lb = [];    % Lower bounds
-ub = [];    % Upper bounds
+Aeq = [];              % Equality constraint
+Beq = [];              % Equality constraint 
+lb = -Inf*ones(1,8);   % Lower bounds
+ub = Inf*ones(1,8);    % Upper bounds
 
 % Set lower and upper bounds based on the standard deviations for the 8
 % parameters (from Asano 2015). The standard deviations are expressed as
@@ -103,15 +106,15 @@ if p.Results.restrictBySd
     ub = scaleFactor*sds;
 end
 
+% Constrain lens density variation to 0 
+if p.Results.dlens0
+    lb(1) = p.Results.initialParams(1);
+    ub(1) = p.Results.initialParams(1);
+end
+
 % Constrain L and M OD to be equal
 if p.Results.LMEqualOD
     Aeq = [0 0 1 -1 0 0 0 0];
-    Beq = 0;
-end
-
-% Set dlens to 0 
-if p.Results.dlens0
-    Aeq = [1 0 0 0 0 0 0 0];
     Beq = 0;
 end
 
@@ -123,8 +126,8 @@ options = optimset(options,'Diagnostics','off','Display','iter',...
 
 % Find optimal parameters
 params = fmincon(@(x)findMatchError(x,observer,testSpds,primarySpds,...
-    'S',p.Results.S),p.Results.initialParams(1:8),[],[],Aeq,Beq,lb,ub,...
-    [],options);
+    'S',p.Results.S,'errScalar',p.Results.errScalar),....
+    p.Results.initialParams(1:8),[],[],Aeq,Beq,lb,ub,[],options);
 
 % Reset observer with the final parameters
 observer = ObserverVecToParams('basic', ...
@@ -133,7 +136,8 @@ observer.T_cones = ComputeObserverFundamentals(observer.coneParams,...
     p.Results.S);
 
 % What is the error?
-error = findMatchError(params,observer,testSpds,primarySpds,'S',p.Results.S);
+error = findMatchError(params,observer,testSpds,primarySpds,'S',...
+    p.Results.S,'errScalar',p.Results.errScalar)/p.Results.errScalar;
 
 %% Optional - plot LMS response
 plotLMS = false;

@@ -35,6 +35,8 @@ function error = findMatchError(paramsVec,initialObs,testSpds,primarySpds,vararg
 %    S           -Wavelength sampling for cone calculations, in the 
 %                 form [start increment numTerms]. Default is [380 2 201] 
 %                 (OneLight convention)  
+%    errScalar   -Integer for scaling the match error, to improve search.
+%                 Default is 100.
 
 % History:
 %   06/12/20  dce       Wrote it.
@@ -43,6 +45,7 @@ function error = findMatchError(paramsVec,initialObs,testSpds,primarySpds,vararg
 % Parse input 
 p = inputParser;
 p.addParameter('S',[380 2 201],@(x)(isnumeric(x)));
+p.addParameter('errScalar',100,@(x)(isnumeric(x)));
 p.parse(varargin{:});
 
 [spdLength,nMatches] = size(testSpds);   
@@ -72,6 +75,6 @@ for i = 1:nMatches
     pairError(i) = norm(opponentContrast(1:2));
 end
 
-% Report the root mean square error (scaled by 100 to improve searching)
-error = sqrt(mean(pairError.^2))*100; 
+% Report the root mean square error (scaled up to improve searching)
+error = sqrt(mean(pairError.^2))*p.Results.errScalar; 
 end
