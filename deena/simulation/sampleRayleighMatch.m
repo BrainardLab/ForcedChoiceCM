@@ -3,7 +3,7 @@ function [coneAvgErr,matchAvgErr] = sampleRayleighMatch(subjID,...
 % Tests the OLRayleighMatch simulation and makes associated sampling plots.
 
 % Syntax:
-%   plotSampledRayleighMatch(subjID,nObservers,baseParams,paramsToVary,
+%   sampledRayleighMatch(subjID,nObservers,baseParams,paramsToVary,
 %   p1,p2,test,method)
 %
 % Description:
@@ -67,12 +67,12 @@ function [coneAvgErr,matchAvgErr] = sampleRayleighMatch(subjID,...
 %
 % Optional key-value pairs:
 %    'plotResults'       -Logical. When true, makes the five plot types
-%                         outlined above. When false, makes no plots.
-%                         Default is true.
-%    'makeAllPlots'      -Logical. When true, plots the cone spectral
-%                         sensitivities and generalized Pitt diagrams for
-%                         each observer, not just the best and worst.
-%                         Default is false.
+%                         outlined above and saves as pdfs. When false,
+%                         makes no plots. Default is true.
+%    'makeAllObserverPlots' -Logical. When true, plots the cone spectral
+%                            sensitivities and generalized Pitt diagrams
+%                            for each observer, not just the best and
+%                            worst. Default is false.
 %    'fieldSize          -Integer field size, in degrees. Default is 2.
 %    'age'               -Integer age for simulated observer. Default is
 %                         32.
@@ -119,6 +119,7 @@ function [coneAvgErr,matchAvgErr] = sampleRayleighMatch(subjID,...
 %   07/17/20  dce       Added saving
 %   07/21/20  dce       Style edits, added param recovery key-value pairs
 %   07/22/20  dce       Added error outputs
+%   07/23/20  dce       Changed plotting
 
 % Close stray figures
 close all;
@@ -126,7 +127,7 @@ close all;
 % Parse input
 p = inputParser;
 p.addParameter('plotResults',true,@(x)(islogical(x)));
-p.addParameter('makeAllPlots',false,@(x)(islogical(x)));
+p.addParameter('makeAllObserverPlots',false,@(x)(islogical(x)));
 p.addParameter('fieldSize',2,@(x)(isnumeric(x)));
 p.addParameter('age',32,@(x)(isnumeric(x)));
 p.addParameter('p1Scale',1,@(x)(isnumeric(x)));
@@ -145,7 +146,7 @@ p.parse(varargin{:});
 
 % Standard deviation of parameters (Asano 2015)
 sds = [18.7 36.5 9.0 9.0 7.4 2.0 1.5 1.3];
-matchErrScalar = 100;    % Scale factor to improve match error search 
+matchErrScalar = 100;    % Scale factor to improve match error search
 
 % Base observer, used for comparison
 stdObs = genRayleighObserver('age',p.Results.age,'fieldSize',...
@@ -240,39 +241,43 @@ for i = 1:nObservers
     save(fullfile(outputDir,'paramsSearchData.mat'));
 end
 
-% Compute average error measures 
+% Compute average error measures
 coneAvgErr = mean(coneErr);   % Average cone spectral sensitivity error
 matchAvgErr = mean(matchErr); % Average match error with recovered params
+save(fullfile(outputDir,'paramsSearchData.mat'));
 
-%% Plots
+%% Plots - produces two pdfs with subplots
 if p.Results.plotResults
-    % Actual vs predicted plots for each parameter
-    coneParamNames = {'Lens Density','Macular Pigment Density',...
-        'L Photopigment Density','M Photopigment Density',...
-        'S photopigment density','L Lambda Max','M Lambda Max', 'S Lambda Max'};
-    for k = 1:length(paramsToVary)
-        xVals = sampledParams(:,k);   % Predicted parameters
-        yVals = recoveredParams(:,k); % Recovered params
-        figure();
-        hold on;
-        if (k == 6) || (k==7) || (k==8)  % Lambda max shifts, in nm
-            limits = [-5 5];
-        else                             % Density shifts, in percent
-            limits = [-40 40];
-        end
-        xlim(limits);
-        ylim(limits);
-        l1 = plot(xVals,yVals,'b* ','MarkerSize',7,'LineWidth',1);
-        l2 = refline(1,0);
-        theTitle = sprintf('%s Predicted vs Actual',cell2mat(coneParamNames(k)));
-        title(theTitle);
-        xlabel('Sampled Parameters');
-        ylabel('Recovered Parameters');
-        legend([l1 l2],'Parameters','y=x');
+    %% Figure 1 - error plots
+    % How many subplots are we making?
+    if p.Results.makeAllObserverPlots
+        plottingInds = 1:nObservers;
+    else  % Find the indices of the best and worst observers
+        [~,bestObs] = min(coneErr);
+        [~,worstObs] = max(coneErr);
+        plottingInds = [bestObs worstObs];
     end
+    nErrPlots = 2*length(plottingInds)+2; % Number of subplots
+    nCols1 = 2;                           % Number of columns
+    nRows1 = ceil(nErrPlots/nCols1);      % Number of rows
     
-    % Comparative cone error plot
-    figure();
+    % Set up the base figure
+    errFig = figure(1);
+    set(errFig,'Color',[1 1 1],'Position',[10 10 1400 800]);
+    hold on;
+    subplotPosVectors = NicePlot.getSubPlotPosVectors(...
+        'rowsNum', nRows1, ...
+        'colsNum', nCols1, ...
+        'heightMargin',  0.1, ...
+        'widthMargin',    0.1, ...
+        'leftMargin',     0.07, ...
+        'rightMargin',    0.04, ...
+        'bottomMargin',   0.1, ...
+        'topMargin',      0.04);
+    
+    % Subplot 1 - cone spectral sensitivity error
+    subplot('Position', subplotPosVectors(1,1).v);
+    hold on;
     bar([coneErr coneStandardErr]);
     title('Cone Spectral Sensitivity Error');
     legend('Sampled vs Recovered Params', 'Sampled vs Base Params');
@@ -280,8 +285,9 @@ if p.Results.plotResults
     xlabel('Observer');
     ylim([0 0.02]);
     
-    % Comparative match error plot
-    figure();
+    % Subplot 2 - match error
+    subplot('Position', subplotPosVectors(1,2).v);
+    hold on;
     bar([matchSampledErr matchErr matchStandardErr]);
     title('Match Spectral Sensitivity Error');
     legend('Sampled Params', 'Recovered Params', 'Base Params');
@@ -289,92 +295,142 @@ if p.Results.plotResults
     xlabel('Observer');
     ylim([0 0.2]);
     
-    % Cone spectral sensitivities and generalized Pitt diagrams
-    %
-    % For which observers are we making the plots?
-    if p.Results.makeAllPlots
-        plottingInds = 1:nObservers;
-    else
-        [~,bestObs] = min(coneErr);
-        [~,worstObs] = max(coneErr);
-        plottingInds = [bestObs worstObs];
-    end
-    
-    for k = plottingInds
-        % Cone spectral sensitivity plot
-        S = [380 2 201];
+    % Additional subplots - cone spectra and generalized Pitt diagrams
+    S = [380 2 201];
+    for k = 1:length(plottingInds)
+        row = k+1;     % Row of current subplot
+        % Cone plot
+        subplot('Position', subplotPosVectors(row,1).v);
+        hold on;
+        % Find and plot observer cone fundamentals
         sampledObserver = genRayleighObserver('age',p.Results.age,...
             'fieldSize',p.Results.fieldSize,'coneVec',...
-            sampledParams(k,:));
+            sampledParams(plottingInds(k),:));
         recoveredObserver = genRayleighObserver('age',p.Results.age,...
             'fieldSize',p.Results.fieldSize,'coneVec',...
-            [recoveredParams(k,:) 0]);
-        figure();
-        hold on;
+            [recoveredParams(plottingInds(k),:) 0]);
         l1 = plot(SToWls(S),sampledObserver.T_cones(1:2,:),'b-',...
             'LineWidth',2.5);
         l2 = plot(SToWls(S),recoveredObserver.T_cones(1:2,:),'r-',...
             'LineWidth',1.25);
+        % Clean up plot
         legend([l1(1) l2(1)],'sampled observer','recovered observer');
-        theTitle = sprintf('L and M Cone Spectral Sensitivities, observer %g', k);
+        theTitle = sprintf('L and M Cone Spectral Sensitivities, observer %g',...
+            plottingInds(k));
         title(theTitle);
         xlabel('Wavelength (nm)');
         ylabel('Power');
         
-        % Generalized Pitt diagram
-        figure();
+        % Generalized Pitt diagram - plot simulated and predicted match
+        % data
+        subplot('Position', subplotPosVectors(row,2).v);
         hold on;
-        l1 = plot(primaryRatiosSim(k,:),testIntensitiesSim(k,:),'b-o',...
-            'LineWidth',2.5);
-        l2 = plot(primaryRatiosPred(k,:),testIntensitiesPred(k,:),'r-o',...
-            'LineWidth',1.25);
-        theTitle = sprintf('Generalized Pitt Diagram, observer %g',k);
+        l1 = plot(primaryRatiosSim(plottingInds(k),:),...
+            testIntensitiesSim(plottingInds(k),:),'b-o','LineWidth',2.5);
+        l2 = plot(primaryRatiosPred(plottingInds(k),:),...
+            testIntensitiesPred(plottingInds(k),:),'r-o','LineWidth',1.25);
+        % Clean up plot
+        theTitle = sprintf('Generalized Pitt Diagram, observer %g',plottingInds(k));
         title(theTitle);
         xlabel('Primary Ratio');
         ylabel('Test Intensity');
-        legend([l1 l2],'Simulated','Predicted');
-        
-        % Add wavelength labels to Pitt diagram (assume test light is shifted)
+        lgd = legend([l1 l2],'Simulated','Predicted');
+        lgd.Location = 'northwest';
+        % Add text labels for wavelength
         labels = cellstr(num2str(test'));
-        dx =  -0.01;
-        dy = 0.03;
-        text(primaryRatiosSim(k,:)+dx,testIntensitiesSim(k,:)+dy,labels);
+        dx =  -0.01;   % x offset
+        dy = 0.03;     % y offset
+        text(primaryRatiosSim(plottingInds(k),:)+dx...
+            ,testIntensitiesSim(plottingInds(k),:)+dy,labels);
     end
-    
-    % If individual plots were made for best/worst observers, modify plot
-    % titles and highlight points
-    if ~p.Results.makeAllPlots
-        for i = 1:length(paramsToVary)
-            figure(i)
-            plot(sampledParams(bestObs,i),recoveredParams(bestObs,i),'gs',...
+    % Edit titles if plots were only made for best and worst observers
+    if ~p.Results.makeAllObserverPlots
+        subplot('Position', subplotPosVectors(2,1).v);
+        theTitle = sprintf('L and M Cone Spectral Sensitivities, observer %g (best)',bestObs);
+        title(theTitle);
+        
+        subplot('Position', subplotPosVectors(2,2).v);
+        theTitle = sprintf('Generalized Pitt Diagram, observer %g (best)',bestObs);
+        title(theTitle);
+        
+        subplot('Position', subplotPosVectors(3,1).v);
+        theTitle = sprintf('L and M Cone Spectral Sensitivities, observer %g (worst)',worstObs);
+        title(theTitle);
+        
+        subplot('Position', subplotPosVectors(3,2).v);
+        theTitle = sprintf('Generalized Pitt Diagram, observer %g (worst)',worstObs);
+        title(theTitle);
+    end
+    % Save plot
+    sgtitle([subjID ' Error']);
+    NicePlot.exportFigToPDF(fullfile(outputDir,'errPlots'),...
+        errFig,300);
+    %% Figure 2 - parameter recovery
+    paramsFig = figure(2);
+    set(paramsFig,'Color',[1 1 1],'Position',[10 10 1700 800]);
+    hold on;
+    nCols2 = 4;
+    nRows2 = ceil(length(paramsToVary)/nCols2);
+    subplotPosVectors = NicePlot.getSubPlotPosVectors(...
+        'rowsNum', nRows2, ...
+        'colsNum', nCols2, ...
+        'heightMargin',  0.07, ...
+        'widthMargin',    0.07, ...
+        'leftMargin',     0.04, ...
+        'rightMargin',    0.04, ...
+        'bottomMargin',   0.07, ...
+        'topMargin',      0.04);
+    coneParamNames = {'Lens Density','Macular Pigment Density',...
+        'L Photopigment Density','M Photopigment Density',...
+        'S photopigment density','L Lambda Max','M Lambda Max', 'S Lambda Max'};
+    for ii = 1:length(paramsToVary)
+        % Make a subplot in the correct position
+        row = ceil(ii/nCols2);
+        col = mod(ii,nCols2);
+        if col == 0
+            col = nCols2;
+        end
+        subplot('Position', subplotPosVectors(row,col).v);
+        hold on;
+        
+        % Define axis limits
+        if (ii==6) || (ii==7) || (ii==8)  % Lambda max shifts, in nm
+            limits = [-5 5];
+        else                             % Density shifts, in percent
+            limits = [-40 40];
+        end
+        xlim(limits);
+        ylim(limits);
+        axis('square');
+        
+        % Plot data
+        xVals = sampledParams(:,ii);   % Predicted parameters
+        yVals = recoveredParams(:,ii); % Recovered params
+        l1 = plot(xVals,yVals,'b* ','MarkerSize',7,'LineWidth',1);
+        l2 = refline(1,0);
+        
+        % Titles and labels
+        theTitle = sprintf('%s Predicted vs Actual',cell2mat(coneParamNames(ii)));
+        title(theTitle);
+        xlabel('Sampled Parameters');
+        ylabel('Recovered Parameters');
+        lgd = legend([l1 l2],'Parameters','y=x');
+        lgd.Location = 'northwest';
+        
+        % If error plots were made for the best and worst observers, highlight
+        % these observers on the parameter plots
+        if ~p.Results.makeAllObserverPlots
+            plot(sampledParams(bestObs,ii),recoveredParams(bestObs,ii),'gs',...
                 'MarkerSize',10,'LineWidth',2);
-            plot(sampledParams(worstObs,i),recoveredParams(worstObs,i),'rs',...
+            plot(sampledParams(worstObs,ii),recoveredParams(worstObs,ii),'rs',...
                 'MarkerSize',8,'LineWidth',1.5);
             legend('parameter','y = x','best observer','worst observer');
         end
         
-        figure(length(paramsToVary)+3);
-        theTitle = sprintf('L and M Cone Spectral Sensitivities, observer %g (best)',bestObs);
-        title(theTitle);
-        
-        figure(length(paramsToVary)+4);
-        theTitle = sprintf('Generalized Pitt Diagram, observer %g (best)',bestObs);
-        title(theTitle);
-        
-        figure(length(paramsToVary)+5);
-        theTitle = sprintf('L and M Cone Spectral Sensitivities, observer %g (worst)',worstObs);
-        title(theTitle);
-        
-        figure(length(paramsToVary)+6);
-        theTitle = sprintf('Generalized Pitt Diagram, observer %g (worst)',worstObs);
-        title(theTitle);
-    end
-    
-    % Save figures
-    figs =  findobj('type','figure');
-    for i = 1:length(figs)
-        figure(i)
-        print(fullfile(outputDir,[subjID '_' num2str(i)]),'-dtiff');
+        % Save figure
+        sgtitle([subjID ' Parameters']);
+        NicePlot.exportFigToPDF(fullfile(outputDir,'paramPlots'),...
+            paramsFig,300);
     end
 end
 end
