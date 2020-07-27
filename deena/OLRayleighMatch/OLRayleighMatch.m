@@ -130,6 +130,8 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %   07/14/20  dce       Changed nominal match to use predicted spds.
 %                       Changed default adjustment length.
 %   07/21/20  dce       Changed method for calculating nominal matches
+%   07/24/20  dce       Added exit condition for infinite looping in
+%                       threshold case
 
 %% Close any stray figures
 close all;
@@ -160,8 +162,8 @@ p.addParameter('thresholdMatching',false,@(x)(islogical(x)));
 p.addParameter('nBelowThreshold',1,@(x)(isnumeric(x)));
 p.addParameter('thresholdScaleFactor',0.5,@(x)(isnumeric(x)));
 p.addParameter('simNominalLights',false,@(x)(islogical(x)));
-
 p.parse(varargin{:});
+
 p1 = p.Results.p1;
 p2 = p.Results.p2;
 test = p.Results.test;
@@ -186,6 +188,7 @@ nBelowThreshold = p.Results.nBelowThreshold;
 thresholdScaleFactor = p.Results.thresholdScaleFactor;
 plotResponses = p.Results.plotResponses;
 simNominalLights = p.Results.simNominalLights;
+lightSettings = p.Results.lightSettings;
 
 % Input error checking
 if (length(nReversals)~=2)
@@ -206,7 +209,8 @@ end
 
 %% Set up directory for saving results
 % Create directory named subjectID for saving data, if it doesn't exist
-outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),subjectID);
+outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
+    'matchFiles',subjectID);
 if (~exist(outputDir,'dir'))
     mkdir(outputDir);
 end
@@ -256,9 +260,9 @@ if ~exist(lightFileName,'file')
         'p2ScaleFactor',p2Scale,'testScaleFactor',testScale,...
         'adjustmentLength',adjustmentLength);
 end
+lightSettings = load(lightFileName);
 
 % Load light settings and save some variables locally
-lightSettings = load(lightFileName);
 cal = lightSettings.cal;
 primarySpdsNominal = lightSettings.primarySpdsNominal;
 primarySpdsPredicted = lightSettings.primarySpdsPredicted;
@@ -271,13 +275,13 @@ testScales = lightSettings.testScales;
 darkSpd = lightSettings.darkSpd;
 wls = lightSettings.cal.computed.pr650Wls;
 
-% Find spds for computing nominal match.
+% Compute the nominal match
+% Find spds
 p2SpdForSearch = primarySpdsPredicted(:,1)-darkSpd;
 tSpdForSearch = testSpdsPredicted(:,end)-darkSpd;
 p1SpdForSearch = primarySpdsPredicted(:,end);
 
-% Scale p1 down in the p2 region to prevent the combined p2 from being too
-% tall
+% Scale p1 down in the p2 region
 ind1 = find(wls==p2-lightSettings.fullWidthHalfMax);
 ind2 = find(wls==p2+lightSettings.fullWidthHalfMax);
 p1SpdForSearch(ind1:ind2) =  primarySpdsNominal(ind1:ind2,end);
@@ -302,8 +306,6 @@ end
 [~,tIdealIndex] = min(abs(testScales-idealTestIntensity));
 
 %% Initialize simulated observer if desired
-% If the experiment is run in simulation mode without a simulated observer,
-% the user can control the stimuli with keypresses
 observer = [];
 if simObserver
     observer = genRayleighObserver('fieldSize',fieldSize,'age',age,...
@@ -348,8 +350,7 @@ stepModes = stepModes(stepModes ~= 0);
 
 % The experiment includes an option to switch the order that primary and
 % test lights are displayed. If rev is set to true, lights will be
-% displayed in the order specified by lightModeRev instead of the order
-% specified by lightMode.
+% displayed in the order specified by lightModeRev, not lightMode.
 lightMode = ['p' 't'];     % Possible lights - primary, test
 lightModeRev = ['t' 'p'];  % Switch primary and test lights
 lightTimes = [lInterval sInterval]; % Durations
@@ -381,11 +382,11 @@ if simObserver
     pStepPos = 1;         % Start both primary and test adjustment at
     tStepPos = 1;         % largest step size
     
-    nReversalsP = 0;    % Initially, have made 0 reversals for each
-    nReversalsT = 0;    % adjustment
+    nReversalsP = 0;      % Initially, have made 0 reversals for each
+    nReversalsT = 0;      % adjustment
 end
 
-% Optional plotting setup (set flag to false to stop plots from being made)
+% Optional plotting setup
 if plotResponses
     nPlots = 2;           % Counter for current figure index
     matchSettingInd = 1;  % SubjectSettings position for current match start
@@ -456,8 +457,7 @@ while(stillLooping)
                 'MarkerFaceColor','g');
         end
         
-        % If using a simulated observer, perform calculations to figure out
-        % which adjustment to make
+        % If using a simulated observer, calculate which adjustment to make
         if simObserver
             [row,~] = size(matches);
             % Prompt the observer for a decision
@@ -482,9 +482,15 @@ while(stillLooping)
                     fprintf('Below threshold: %g\n',countBelowThreshold);
                 end
             end
-            % Quit if all matches have been made
             if row == nObserverMatches
+                % Quit if all matches have been made
                 key.charCode = 'q';
+                
+            elseif thresholdMatching && (nReversalsP >=...
+                    10*nReversals(2)) &&(nReversalsT >= 10*nReversals(2))
+                % Quit if we're stuck in an infinite loop
+                key.charCode = 'q';
+                fprintf('Terminated due to infinite loop\n');
                 
             elseif (thresholdMatching && countBelowThreshold ==...
                     nBelowThreshold) || (~thresholdMatching ...
@@ -492,12 +498,11 @@ while(stillLooping)
                     && tStepPos == length(stepModes)...
                     && (nReversalsP >= nReversals(2))...
                     && (nReversalsT >= nReversals(2)))
-                % Matching case. In the adjustment version of the
-                % simulation, record match and reset loop if the required
-                % number of pairs below threshold have been found.
-                % In the forced-choice version of the simulation, record
-                % match and reset loop if both adjustments have had the
-                % required number of reversals at the smallest step size
+                % Matching case. In the adjustment version, record match
+                % and reset if enough pairs below threshold have been found.
+                % In the forced-choice version, record match and reset if
+                % both adjustments have had enough reversals at the
+                % smallest step size
                 key.charCode = ' ';
                 p1_up_prev = logical(round(rand()));
                 t_up_prev = logical(round(rand()));
@@ -517,7 +522,7 @@ while(stillLooping)
                 if p1_up == p1_up_prev || nReversalsP < nReversals(1)...
                         || stepModePos == length(stepModes)
                     if p1_up
-                        if primaryPos == adjustmentLength && row == 0
+                        if primaryPos == adjustmentLength
                             % Flag for reaching primary limit
                             Snd('Play',sin(0:5000));
                         end
@@ -700,6 +705,21 @@ while(stillLooping)
                     if plotResponses
                         fprintf('User exited program\n');
                     end
+                    save(fileLoc, 'matches','matchPositions',...
+                        'subjectSettings','p1','p2','test','cal',...
+                        'primarySpdsNominal','primarySpdsPredicted',...
+                        'testSpdsNominal','testSpdsPredicted',...
+                        'primaryStartStops','testStartStops','subjectID',...
+                        'sessionNum','annulusData','sInterval','lInterval',...
+                        'adjustmentLength','foveal','simNominalLights',...
+                        'nReversals','switchInterval','observer',...
+                        'p1Scale','p2Scale','testScale','lightFileName',...
+                        'thresholdMatching','thresholdScaleFactor',...
+                        'nBelowThreshold','simObserver','simKeypad',...
+                        'p1Scales','testScales','observerParams',...
+                        'nObserverMatches','pIdealIndex','tIdealIndex',...
+                        'idealForStandardObs','idealTestSpd',...
+                        'idealPrimarySpd','idealTestIntensity','idealPRatio');
                     stillLooping = false;
                     break;
                     

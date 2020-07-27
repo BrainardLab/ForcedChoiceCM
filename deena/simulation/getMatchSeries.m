@@ -54,6 +54,8 @@ function [testSpds,primarySpds,testIntensities,primaryRatios] = ...
 %                         light, between 0 and 1. Default is 0.2.
 %    'testScale'         -Numerical scale factor for the test light,
 %                         between 0 and 1. Default is 0.2.
+%    'adjustmentLength'  -Integer defining the size of the lights array
+%                         available for OLRayleighMatch. Default is 3201.
 %    'nObserverMatches'  -Number of matches to simulate for each set of
 %                         lights. Default is 1.
 %    'nReversals'        -Number of reversals the observer must make before
@@ -82,7 +84,6 @@ function [testSpds,primarySpds,testIntensities,primaryRatios] = ...
 %                         Default is true.
 %    'saveResults'       -Logical indicating to save a file with the series
 %                         of match spds. Default is true.
-
 % History:
 %   06/12/20  dce       Wrote it
 %   06/25/20  dce       Added key-value pairs
@@ -97,6 +98,7 @@ p.addParameter('age',32,@(x)(isnumeric(x)));
 p.addParameter('p1Scale',1,@(x)(isnumeric(x)));
 p.addParameter('p2Scale',0.2,@(x)(isnumeric(x)));
 p.addParameter('testScale',0.2,@(x)(isnumeric(x)));
+p.addParameter('adjustmentLength',3201,@(x)(isnumeric(x)));
 p.addParameter('nObserverMatches',1,@(x)(isnumeric(x)));
 p.addParameter('nReversals',[1 4],@(x)(isnumeric(x)));
 p.addParameter('nBelowThreshold',1,@(x)(isnumeric(x)));
@@ -115,7 +117,8 @@ if ~strcmp(method,'predicted') && ~strcmp(method,'threshold') && ...
 end
 
 % Set up subject directory
-outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),subjID);
+outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
+    'matchFiles',subjID);
 if (~exist(outputDir,'dir'))
     mkdir(outputDir);
 end
@@ -150,8 +153,9 @@ for i = 1:nCombos
             p.Results.nBelowThreshold,'thresholdScaleFactor',...
             p.Results.thresholdScaleFactor,'p2Scale',p.Results.p2Scale,...
             'testScale',p.Results.testScale,'p1Scale',p.Results.p1Scale,...
-            'simNominalLights',p.Results.nominal,...
-            'plotResponses',p.Results.rayleighPlots);
+            'simNominalLights',p.Results.nominal,'plotResponses',...
+            p.Results.rayleighPlots,'adjustmentLength',...
+            p.Results.adjustmentLength);
         % Extract spds from the data file
         simFile = [subjID,'_',num2str(i),'.mat'];
         simFilePath = fullfile(outputDir,simFile);
@@ -166,8 +170,8 @@ for i = 1:nCombos
             p.Results.nObserverMatches,'nReversals',p.Results.nReversals,...
             'p2Scale',p.Results.p2Scale,'testScale',p.Results.testScale,...
             'p1Scale',p.Results.p1Scale,'simNominalLights',....
-            p.Results.nominal,'plotResponses',...
-            p.Results.rayleighPlots);
+            p.Results.nominal,'plotResponses',p.Results.rayleighPlots,...
+            'adjustmentLength',p.Results.adjustmentLength);
         % Extract spds from the data file
         simFile = [subjID,'_',num2str(i),'.mat'];
         simFilePath = fullfile(outputDir,simFile);

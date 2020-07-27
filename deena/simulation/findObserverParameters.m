@@ -47,6 +47,8 @@ function [params,error,observer] = findObserverParameters(testSpds,primarySpds,v
 %                     Default is false.
 %    'dlens0'        -Logical. If true, constrains the lens pigment density
 %                     (params(1)) to be 0. Default is false.
+%    'dmac0'         -Logical. If true, constrains the macular pigment 
+%                     density(params(2)) to be 0. Default is false.
 %    'restrictBySD'  -Logical. If true, adds lower and upper bounds on all
 %                     paramters to keep them within three standard
 %                     deviations of their means. Default is true. 
@@ -60,6 +62,7 @@ function [params,error,observer] = findObserverParameters(testSpds,primarySpds,v
 %   06/12/20  dce       Wrote it.
 %   07/06/20  dce       Added S setting and appropriate length checks.
 %   07/21/20  dce       Added option to set dlens to 0.
+%   07/24/20  dce       Added option to set dmac to 0.
 
 %% Initial Setup
 % Parse input
@@ -68,6 +71,7 @@ p.addParameter('age',32,@(x)(isnumeric(x)));
 p.addParameter('fieldSize',2,@(x)(isnumeric(x)));
 p.addParameter('LMEqualOD',false,@(x)(islogical(x)));
 p.addParameter('dlens0',false,@(x)(islogical(x)));
+p.addParameter('dmac0',false,@(x)(islogical(x)));
 p.addParameter('restrictBySd',true,@(x)(islogical(x)));
 p.addParameter('initialParams',zeros(1,9),@(x)(isnumeric(x)));
 p.addParameter('S',[380 2 201],@(x)(isnumeric(x)));
@@ -100,7 +104,7 @@ ub = Inf*ones(1,8);    % Upper bounds
 % percent deviations from the mean, except for last three parameters
 % (lambda max shifts) which are expressed as deviations in nm.
 sds = [18.7 36.5 9.0 9.0 7.4 2.0 1.5 1.3]; % Standard deviations
-scaleFactor = 3;    % Set limits at 2 standard deviations from the mean
+scaleFactor = 3;    % Set limits at 3 standard deviations from the mean
 if p.Results.restrictBySd
     lb = -1*scaleFactor*sds;
     ub = scaleFactor*sds;
@@ -110,6 +114,12 @@ end
 if p.Results.dlens0
     lb(1) = p.Results.initialParams(1);
     ub(1) = p.Results.initialParams(1);
+end
+
+% Constrain lens density variation to 0 
+if p.Results.dmac0
+    lb(2) = p.Results.initialParams(2);
+    ub(2) = p.Results.initialParams(2);
 end
 
 % Constrain L and M OD to be equal
