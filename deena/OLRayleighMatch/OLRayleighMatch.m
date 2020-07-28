@@ -188,7 +188,6 @@ nBelowThreshold = p.Results.nBelowThreshold;
 thresholdScaleFactor = p.Results.thresholdScaleFactor;
 plotResponses = p.Results.plotResponses;
 simNominalLights = p.Results.simNominalLights;
-lightSettings = p.Results.lightSettings;
 
 % Input error checking
 if (length(nReversals)~=2)

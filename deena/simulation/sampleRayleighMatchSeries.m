@@ -4,23 +4,23 @@ function sampleRayleighMatchSeries(subjID,nObservers,p1,p2,test,...
 
 % Syntax:
 %   sampleRayleighMatchSeries(subjID,nObservers,p1,p2,test,comeParamsToVary,
-%   testingParamsToVary,testingValsToVary,varargin)
+%   testingParamToVary,testingValsToVary,varargin)
 %
 % Description:
 %    This program tests how varying different experimental parameters
 %    affects the ability to recover observer parameters using
 %    sampleRayleighMatch. The experimenter specifies a testing parameter to
 %    systematically vary (currently, options include observer noise,
-%    increment of test wavelengths, simulation adjustment length, and 
-%    number of matches per trial). For each value of the parameter, the 
-%    program runs sampleRayleighMatch, which samples observers, simulates 
-%    Rayleigh matching, and attempts to recover cone parameters. Both the 
-%    forced-choice and threshold versions are tested for each variable 
-%    parameter value. 
+%    increment of test wavelengths, simulation adjustment length, and
+%    number of matches per trial). For each value of the parameter, the
+%    program runs sampleRayleighMatch, which samples observers, simulates
+%    Rayleigh matching, and attempts to recover cone parameters. Both the
+%    forced-choice and threshold versions are tested for each variable
+%    parameter value.
 %
-%    The program makes and saves plots of two types of error - average cone 
-%    spectral sensitivity error and average match error - allowing 
-%    comparison across different values of the variable parameter. 
+%    The program makes and saves plots of two types of error - average cone
+%    spectral sensitivity error and average match error - allowing
+%    comparison across different values of the variable parameter.
 %
 % Inputs:
 %    subjID         -Character vector of subject ID
@@ -39,7 +39,7 @@ function sampleRayleighMatchSeries(subjID,nObservers,p1,p2,test,...
 %                        stay at the values specified in baseParams.
 %    testingParamToVary -Character vector of the parameter to vary across
 %                        groups of observers. Current options include
-%                        'noise','nMatches', 'adjustmentLength', and 
+%                        'noise','nMatches', 'adjustmentLength', and
 %                        'testWlIncr'.
 %    testingValsToVary  -Vector which includes the different values of the
 %                        variable parameter to test.
@@ -51,7 +51,7 @@ function sampleRayleighMatchSeries(subjID,nObservers,p1,p2,test,...
 %    'fieldSize          -Integer field size, in degrees. Default is 2.
 %    'age'               -Integer age for simulated observer. Default is
 %                         32.
-%    'baseConeParams'    -Nine-element numeric vector of individual 
+%    'baseConeParams'    -Nine-element numeric vector of individual
 %                         difference parameters used as a starting point.
 %                         Default is zeros(1,9)
 %    'p1Scale'           -Numerical scale factor for the first primary
@@ -87,9 +87,16 @@ function sampleRayleighMatchSeries(subjID,nObservers,p1,p2,test,...
 %    'restrictBySd'      -Logical. If true, the parameter search restricts
 %                         all params to within three standard deviations of
 %                         their means. Default is true.
- 
+%    testingParamToVary2 -Character vector of an additional parameter to
+%                         vary across groups of observers. Current options
+%                         include 'noise','nMatches', 'adjustmentLength',
+%                         and 'testWlIncr'. Default is [].
+%    testingValsToVary2  -Vector which includes the different values of the
+%                         second variable parameter to test. Default is [].
+
 % History:
 %   07/23/20  dce       Wrote it.
+%   07/27/20  dce       Added option to vary two parameters
 
 % Example:
 %   sampleRayleighMatchSeries('test100',20,670,560,570:5:640,...
@@ -112,15 +119,28 @@ p.addParameter('LMEqualOD',false,@(x)(islogical(x)));
 p.addParameter('dlens0',true,@(x)(islogical(x)));
 p.addParameter('dmac0',true,@(x)(islogical(x)));
 p.addParameter('restrictBySd',true,@(x)(islogical(x)));
+p.addParameter('testingParamToVary2',[],@(x)(ischar(x)));
+p.addParameter('testingValsToVary2',[],@(x)(isnumeric(x)));
 p.parse(varargin{:});
 
 % Make error-storing arrays
-coneErrFC = zeros(length(testingValsToVary),1);      % Forced-choice
-matchErrFC = zeros(length(testingValsToVary),1);
-coneErrAdjust = zeros(length(testingValsToVary),1);  % Adjustment 
-matchErrAdjust = zeros(length(testingValsToVary),1);
+if isempty(p.Results.testingParamToVary2)
+    coneErrFC = zeros(length(testingValsToVary),1);      % Forced-choice
+    matchErrFC = zeros(length(testingValsToVary),1);
+    coneErrAdjust = zeros(length(testingValsToVary),1);  % Adjustment
+    matchErrAdjust = zeros(length(testingValsToVary),1);
+else
+    coneErrFC = zeros(length(testingValsToVary),...
+        length(p.Results.testingValsToVary2));
+    matchErrFC = zeros(length(testingValsToVary),...
+        length(p.Results.testingValsToVary2));
+    coneErrAdjust = zeros(length(testingValsToVary),...
+        length(p.Results.testingValsToVary2));
+    matchErrAdjust = zeros(length(testingValsToVary),...
+        length(p.Results.testingValsToVary2));
+end
 
-% Set up directory for saving results 
+% Set up directory for saving results
 outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
     'paramsSearchSeries',subjID);
 if (~exist(outputDir,'dir'))
@@ -134,11 +154,11 @@ if strcmp(testingParamToVary,'noise')
         % Make base params with the specified noise level
         paramName = 'Observer Noise Standard Deviation';
         trialConeParams = [p.Results.baseConeParams(1:8),...
-            testingValsToVary(i)]; 
-        trialID = [subjID '_' num2str(i)];
+            testingValsToVary(i)];
+        trialID = [subjID '_' num2str(testingValsToVary(i))];
         
         [coneErrAdjust(i),matchErrAdjust(i)] = ...
-        sampleRayleighMatch([trialID '_threshold'],nObservers,...
+            sampleRayleighMatch([trialID '_threshold'],nObservers,...
             trialConeParams,coneParamsToVary,p1,p2,test,...
             'threshold','plotResults',true,'nObserverMatches',...
             p.Results.nObserverMatches,'nReversals',p.Results.nReversals,...
@@ -160,14 +180,92 @@ if strcmp(testingParamToVary,'noise')
             'dmac0',p.Results.dmac0,'adjustmentLength',...
             p.Results.adjustmentLength);
     end
+    % Vary wavelength increment and number of matches
+elseif strcmp(testingParamToVary,'testWlIncr')...
+        && strcmp(p.Results.testingParamToVary2, 'nMatches')
+    for i = 1:length(testingValsToVary)
+        for j = 1:length(p.Results.testingValsToVary2)
+            % Define the range of test wavelengths
+            paramName = 'Number of Test Wavelengths';
+            paramName2 = 'Number of Matches Per Test Light';
+            testSpd = test(1):testingValsToVary(i):test(end);
+            nObserverMatches = p.Results.testingValsToVary2(j);
+            trialID = [subjID '_' num2str(testingValsToVary(i)) '_'...
+                num2str(p.Results.testingValsToVary2(j))];
+            
+            [coneErrAdjust(i,j),matchErrAdjust(i,j)] = ...
+                sampleRayleighMatch([trialID '_threshold'],nObservers,...
+                p.Results.baseConeParams,coneParamsToVary,p1,p2,testSpd,...
+                'threshold','plotResults',true,'nObserverMatches',...
+                nObserverMatches,...
+                'nReversals',p.Results.nReversals,'thresholdScaleFactor',...
+                p.Results.thresholdScaleFactor,'nBelowThreshold',...
+                p.Results.nBelowThreshold,'age',p.Results.age,'p1Scale',...
+                p.Results.p1Scale,'p2Scale',p.Results.p2Scale,'testScale',...
+                p.Results.testScale,'LMEqualOD',p.Results.LMEqualOD,...
+                'dlens0',p.Results.dlens0,'restrictBySd',...
+                p.Results.restrictBySd,'dmac0',p.Results.dmac0,...
+                'adjustmentLength',p.Results.adjustmentLength);
+            [coneErrFC(i,j),matchErrFC(i,j)] = ...
+                sampleRayleighMatch([trialID '_FC'],nObservers,...
+                p.Results.baseConeParams,coneParamsToVary,p1,p2,testSpd,...
+                'forcedChoice','plotResults',true,'nObserverMatches',...
+                nObserverMatches,'nReversals',p.Results.nReversals,...
+                'age',p.Results.age,'p1Scale',p.Results.p1Scale,'p2Scale',...
+                p.Results.p2Scale,'testScale',p.Results.testScale,'LMEqualOD',...
+                p.Results.LMEqualOD,'dlens0',p.Results.dlens0,'restrictBySd',...
+                p.Results.restrictBySd,'dmac0',p.Results.dmac0,...
+                'adjustmentLength',p.Results.adjustmentLength);
+        end
+    end
     
-    % Vary wavelength increment
+    % Vary wavelength increment and noise
+elseif strcmp(testingParamToVary,'testWlIncr')...
+        && strcmp(p.Results.testingParamToVary2, 'noise')
+    for i = 1:length(testingValsToVary)
+        for j = 1:length(p.Results.testingValsToVary2)
+            % Define the range of test wavelengths
+            paramName = 'Number of Test Wavelengths';
+            paramName2 = 'Observer Noise';
+            testSpd = test(1):testingValsToVary(i):test(end);
+            trialConeParams = [p.Results.baseConeParams(1:8),...
+                p.Results.testingValsToVary2(j)];
+            trialID = [subjID '_' num2str(testingValsToVary(i)) '_'...
+                num2str(p.Results.testingValsToVary2(j))];
+            
+            [coneErrAdjust(i,j),matchErrAdjust(i,j)] = ...
+                sampleRayleighMatch([trialID '_threshold'],nObservers,...
+                trialConeParams,coneParamsToVary,p1,p2,testSpd,...
+                'threshold','plotResults',true,'nObserverMatches',...
+                p.Results.nObserverMatches,...
+                'nReversals',p.Results.nReversals,'thresholdScaleFactor',...
+                p.Results.thresholdScaleFactor,'nBelowThreshold',...
+                p.Results.nBelowThreshold,'age',p.Results.age,'p1Scale',...
+                p.Results.p1Scale,'p2Scale',p.Results.p2Scale,'testScale',...
+                p.Results.testScale,'LMEqualOD',p.Results.LMEqualOD,...
+                'dlens0',p.Results.dlens0,'restrictBySd',...
+                p.Results.restrictBySd,'dmac0',p.Results.dmac0,...
+                'adjustmentLength',p.Results.adjustmentLength);
+            [coneErrFC(i,j),matchErrFC(i,j)] = ...
+                sampleRayleighMatch([trialID '_FC'],nObservers,...
+                trialConeParams,coneParamsToVary,p1,p2,testSpd,...
+                'forcedChoice','plotResults',true,'nObserverMatches',...
+                p.Results.nObserverMatches,'nReversals',p.Results.nReversals,...
+                'age',p.Results.age,'p1Scale',p.Results.p1Scale,'p2Scale',...
+                p.Results.p2Scale,'testScale',p.Results.testScale,'LMEqualOD',...
+                p.Results.LMEqualOD,'dlens0',p.Results.dlens0,'restrictBySd',...
+                p.Results.restrictBySd,'dmac0',p.Results.dmac0,...
+                'adjustmentLength',p.Results.adjustmentLength);
+        end
+    end
+    
+    % Vary wavelength increment alone
 elseif strcmp(testingParamToVary,'testWlIncr')
     for i = 1:length(testingValsToVary)
-        % Define the range of test wavelengths 
+        % Define the range of test wavelengths
         paramName = 'Number of Test Wavelengths';
-        testSpd = test(1):testingValsToVary(i):test(end); 
-        trialID = [subjID '_' num2str(i)];
+        testSpd = test(1):testingValsToVary(i):test(end);
+        trialID = [subjID '_' num2str(testingValsToVary(i))];
         
         [coneErrAdjust(i),matchErrAdjust(i)] = ...
             sampleRayleighMatch([trialID '_threshold'],nObservers,...
@@ -198,7 +296,7 @@ elseif strcmp(testingParamToVary,'testWlIncr')
 elseif strcmp(testingParamToVary,'nMatches')
     paramName = 'Number of Matches Per Test Light';
     for i = 1:length(testingValsToVary)
-        trialID = [subjID '_' num2str(i)];
+        trialID = [subjID '_' num2str(testingValsToVary(i))];
         [coneErrAdjust(i),matchErrAdjust(i)] = ...
             sampleRayleighMatch([trialID '_threshold'],nObservers,...
             p.Results.baseConeParams,coneParamsToVary,p1,p2,test,...
@@ -222,13 +320,13 @@ elseif strcmp(testingParamToVary,'nMatches')
             p.Results.restrictBySd,'dmac0',p.Results.dmac0,...
             'adjustmentLength',p.Results.adjustmentLength);
     end
-    % Vary simulation adjustment length. Note that this only runs the 
-    % forced choice version, as threshold often cannot be reached for 
+    % Vary simulation adjustment length. Note that this only runs the
+    % forced choice version, as threshold often cannot be reached for
     % coarser arrays
 elseif strcmp(testingParamToVary,'adjustmentLength')
     paramName = 'Number of Possible Light Adjustments';
     for i = 1:length(testingValsToVary)
-        trialID = [subjID '_' num2str(i)];
+        trialID = [subjID '_' num2str(testingValsToVary(i))];
         [coneErrFC(i),matchErrFC(i)] = ...
             sampleRayleighMatch([trialID '_FC'],nObservers,...
             p.Results.baseConeParams,coneParamsToVary,p1,p2,test,...
@@ -244,62 +342,122 @@ else
     error('Unrecognized parameter to vary');
 end
 
-% Save data 
+% Save data
 save(fullfile(outputDir,'testData.mat'),'p','coneErrFC','matchErrFC',...
     'coneErrAdjust','matchErrAdjust','subjID','nObservers','p1','p2',...
     'test','coneParamsToVary','testingParamToVary','testingValsToVary');
 
 %% Plotting
-theFig = figure(1);
-set(theFig,'Color',[1 1 1],'Position',[10 10 1400 800]);
-hold on;
-subplotPosVectors = NicePlot.getSubPlotPosVectors(...
-    'rowsNum', 2, ...
-    'colsNum', 1, ...
-    'heightMargin',  0.1, ...
-    'widthMargin',    0.1, ...
-    'leftMargin',     0.1, ...
-    'rightMargin',    0.1, ...
-    'bottomMargin',   0.1, ...
-    'topMargin',      0.1);
-
-% Subplot 1 - cone spectral sensitivity error
-subplot('Position', subplotPosVectors(1,1).v);
-hold on;
-xVals = testingValsToVary;
-% If wavelength increment is being varied, the x value is the number of
-% wavelengths, not the increment.
-if strcmp(testingParamToVary,'testWlIncr')
-    wlRange = length(test(1):test(end));
-    xVals = ceil(wlRange*(1./testingValsToVary));
+if isempty(p.Results.testingParamToVary2)
+    % Plots for a single variable
+    theFig = figure();
+    set(theFig,'Color',[1 1 1],'Position',[10 10 1400 800]);
+    hold on;
+    subplotPosVectors = NicePlot.getSubPlotPosVectors(...
+        'rowsNum', 2, ...
+        'colsNum', 1, ...
+        'heightMargin',  0.1, ...
+        'widthMargin',    0.1, ...
+        'leftMargin',     0.1, ...
+        'rightMargin',    0.1, ...
+        'bottomMargin',   0.1, ...
+        'topMargin',      0.1);
+    
+    % Subplot 1 - cone spectral sensitivity error
+    subplot('Position', subplotPosVectors(1,1).v);
+    hold on;
+    xVals = testingValsToVary;
+    % If wavelength increment is being varied, the x value is the number of
+    % wavelengths, not the increment.
+    if strcmp(testingParamToVary,'testWlIncr')
+        wlRange = length(test(1):test(end));
+        xVals = ceil(wlRange*(1./testingValsToVary));
+    end
+    % Plot results
+    plot(xVals,coneErrFC,'r-o','LineWidth',2.5);
+    if ~strcmp(testingParamToVary,'adjustmentLength')
+        plot(xVals,coneErrAdjust,'b-o','LineWidth',2.5);
+        legend('Forced Choice','Adjustment');
+    end
+    title('Average Cone Spectral Sensitivity Error');
+    xlabel(paramName);
+    ylabel('Average RMS Error');
+    ylim([0 0.01]);
+    text(xVals(end)/10,0.0175,['n = ' num2str(nObservers)]);
+    
+    % Subplot 2 - Match error
+    subplot('Position', subplotPosVectors(2,1).v);
+    hold on;
+    plot(xVals,matchErrFC,'r-o','LineWidth',2.5);
+    if ~strcmp(testingParamToVary,'adjustmentLength')
+        plot(xVals,matchErrAdjust,'b-o','LineWidth',2.5);
+        legend('Forced Choice','Adjustment');
+    end
+    title('Average Match Error');
+    xlabel(paramName);
+    ylabel('Error');
+    ylim([0 0.05]);
+    text(xVals(end)/10,0.045,['n = ' num2str(nObservers)]);
+    sgtitle(['Vary ' paramName]);
+else
+    %% Plots for 2d variation
+    theFig = figure();
+    set(theFig,'Color',[1 1 1],'Position',[10 10 1400 800]);
+    hold on;
+    subplotPosVectors = NicePlot.getSubPlotPosVectors(...
+        'rowsNum', 2, ...
+        'colsNum', 2, ...
+        'heightMargin',  0.1, ...
+        'widthMargin',    0.1, ...
+        'leftMargin',     0.1, ...
+        'rightMargin',    0.1, ...
+        'bottomMargin',   0.1, ...
+        'topMargin',      0.1);
+    
+    yVals = testingValsToVary;
+    % If wavelength increment is being varied, the x value is the number of
+    % wavelengths, not the increment.
+    if strcmp(testingParamToVary,'testWlIncr')
+        wlRange = 71; %length(test(1):test(end));
+        yVals = ceil(wlRange*(1./testingValsToVary));
+    end
+    xVals = p.Results.testingValsToVary2;
+    
+    % Subplot 1 - cone spectral sensitivity error threshold
+    subplot('Position', subplotPosVectors(1,1).v);
+    theData = coneErrAdjust;
+    heatmap(xVals,yVals,theData);
+    title('Cone Error - Threshold');
+    ylabel(paramName);
+    xlabel(paramName2);
+    
+    % Subplot 2 - Match error threshold
+    subplot('Position', subplotPosVectors(1,2).v);
+    theData = matchErrAdjust;
+    heatmap(xVals,yVals,theData);
+    title('Match Error - Threshold');
+    ylabel(paramName);
+    xlabel(paramName2);    
+    sgtitle(['Vary ' paramName ' and ' paramName2]);
+    
+    
+    % Subplot 3 - cone spectral sensitivity error forced choice
+    subplot('Position', subplotPosVectors(2,1).v);
+    theData = coneErrFC;
+    heatmap(xVals,yVals,theData);
+    title('Cone Error - Forced Choice');
+    ylabel(paramName);
+    xlabel(paramName2);
+    
+    % Subplot 4 - Match error threshold
+    subplot('Position', subplotPosVectors(2,2).v);
+    theData = matchErrFC;
+    heatmap(xVals,yVals,theData);
+    title('Match Error - Forced Choice');
+    ylabel(paramName);
+    xlabel(paramName2);    
+    sgtitle(['Vary ' paramName ' and ' paramName2]);
 end
-% Plot results 
-plot(xVals,coneErrFC,'r-o','LineWidth',2.5);
-if ~strcmp(testingParamToVary,'adjustmentLength')
-    plot(xVals,coneErrAdjust,'b-o','LineWidth',2.5);
-    legend('Forced Choice','Adjustment');
-end 
-title('Average Cone Spectral Sensitivity Error');
-xlabel(paramName);
-ylabel('Average RMS Error');
-ylim([0 0.02]);
-text(xVals(end)/10,0.0175,['n = ' num2str(nObservers)]);
-
-% Subplot 2 - Match error
-subplot('Position', subplotPosVectors(2,1).v);
-hold on;
-plot(xVals,matchErrFC,'r-o','LineWidth',2.5);
-if ~strcmp(testingParamToVary,'adjustmentLength')
-    plot(xVals,matchErrAdjust,'b-o','LineWidth',2.5);
-    legend('Forced Choice','Adjustment');
-end 
-title('Average Match Error');
-xlabel(paramName);
-ylabel('Error');
-ylim([0 0.05]);
-text(xVals(end)/10,0.045,['n = ' num2str(nObservers)]);
-
-% Title and save plots 
-sgtitle(['Vary ' paramName]);
+% Save plots
 NicePlot.exportFigToPDF(fullfile(outputDir,'plots'),theFig,300);
 end
