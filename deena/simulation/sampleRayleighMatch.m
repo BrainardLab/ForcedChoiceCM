@@ -124,7 +124,7 @@ function [coneAvgErr,matchAvgErr] = sampleRayleighMatch(subjID,...
 %   07/21/20  dce       Style edits, added param recovery key-value pairs
 %   07/22/20  dce       Added error outputs
 %   07/23/20  dce       Changed plotting
-%   07/24/20  dce       Added option to lock macular pigment 
+%   07/24/20  dce       Added option to lock macular pigment
 
 % Close stray figures
 close all;
@@ -214,21 +214,21 @@ for i = 1:nObservers
     [~,nMatchSpds] = size(testSpds);     % Number of successful matches
     
     % Recover observer parameters and associated match error
-    try 
+    try
         [calcParams,calcErr] = findObserverParameters(testSpds,primarySpds,...
-        'age',p.Results.age,'fieldSize',p.Results.fieldSize,...
-        'restrictBySd',p.Results.restrictBySd,'dlens0',p.Results.dlens0,...
-        'LMEqualOD',p.Results.LMEqualOD,'dmac0',p.Results.dmac0,....
-        'initialParams',baseParams,'errScalar',matchErrScalar);
-    catch 
+            'age',p.Results.age,'fieldSize',p.Results.fieldSize,...
+            'restrictBySd',p.Results.restrictBySd,'dlens0',p.Results.dlens0,...
+            'LMEqualOD',p.Results.LMEqualOD,'dmac0',p.Results.dmac0,....
+            'initialParams',baseParams,'errScalar',matchErrScalar);
+    catch
         warning('fmincon searched for impossible cone parameters. Currently redoing search');
         optErrs = optErrs+1;
         [calcParams,calcErr] = findObserverParameters(testSpds,primarySpds,...
-        'age',p.Results.age,'fieldSize',p.Results.fieldSize,...
-        'restrictBySd',p.Results.restrictBySd,'dlens0',p.Results.dlens0,...
-        'LMEqualOD',p.Results.LMEqualOD,'dmac0',p.Results.dmac0,....
-        'initialParams',baseParams,'errScalar',matchErrScalar);
-    end 
+            'age',p.Results.age,'fieldSize',p.Results.fieldSize,...
+            'restrictBySd',p.Results.restrictBySd,'dlens0',p.Results.dlens0,...
+            'LMEqualOD',p.Results.LMEqualOD,'dmac0',p.Results.dmac0,....
+            'initialParams',baseParams,'errScalar',matchErrScalar);
+    end
     recoveredParams = [recoveredParams;calcParams];
     matchErr(i) = calcErr;
     
@@ -363,8 +363,8 @@ if p.Results.plotResults
         labels = cellstr(num2str(test'));
         dx =  -0.01;   % x offset
         dy = 0.005;     % y offset
-%         text(primaryRatiosSim(plottingInds(k),:)+dx...
-%             ,testIntensitiesSim(plottingInds(k),:)+dy,labels);
+        %         text(primaryRatiosSim(plottingInds(k),:)+dx...
+        %             ,testIntensitiesSim(plottingInds(k),:)+dy,labels);
     end
     % Edit titles if plots were only made for best and worst observers
     if ~p.Results.makeAllObserverPlots
@@ -449,11 +449,10 @@ if p.Results.plotResults
                 'MarkerSize',8,'LineWidth',1.5);
             legend('parameter','y = x','best observer','worst observer');
         end
-        
-        % Save figure
-        sgtitle([subjID ' Parameters'],'Interpreter', 'none');
-        NicePlot.exportFigToPDF(fullfile(outputDir,'paramPlots'),...
-            paramsFig,300);
     end
+    % Save figure
+    sgtitle([subjID ' Parameters'],'Interpreter', 'none');
+    NicePlot.exportFigToPDF(fullfile(outputDir,'paramPlots'),...
+        paramsFig,300);
 end
 end
