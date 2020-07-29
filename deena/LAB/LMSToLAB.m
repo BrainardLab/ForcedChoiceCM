@@ -1,23 +1,25 @@
-function [comparisonDE,referenceLab,comparisonLab] = ...
-    LMSToDE(referenceLMS,comparisonLMS,varargin)
-% Computes CIELAB delta E based on cone responses to two spectra
-
+function [comparisonLab,referenceLab,comparisonXYZ,referenceXYZ,DE] = ...
+    LMSToLAB(comparisonLMS,referenceLMS,varargin)
+% Computes CIELAB coordinates and delta E based on cone responses 
 % Syntax:
-%   LMSToDE(referenceLMS,comparisonLMS)
+%   LMSToLAB(referenceLMS,comparisonLMS)
 %
 % Description:
 %    Takes in cone responses to two spectra, and converts these first to
-%    XYZ coordinates and then to CIELAB coordinates. Returns delta E, a
-%    measure of how far apart the two CIELAB coordinates are. 
+%    XYZ coordinates and then to CIELAB coordinates (note that the first 
+%    spectrum is used as the reference). Returns delta E, a measure of how 
+%    far apart the two CIELAB coordinates are. 
 %
 % Inputs:
-%    referenceLMS    -3x1 cone responses for first light 
 %    comparisonLMS   -3x1 cone responses for second light 
+%    referenceLMS    -3x1 cone responses for first light 
 %
 % Outputs:
-%    comparisonDE    -Scalar value of delta E for the two lights.
-%    referenceLab    -3x1 CIELAB coordinates for the first spectrum.
 %    comparisonLab   -3x1 CIELAB coordinates for the second spectrum.
+%    referenceLab    -3x1 CIELAB coordinates for the first spectrum.
+%    comparisonXYZ   -3x1 XYZ coordinates for the second spectrum.
+%    referenceXYZ    -3x1 XYZ coordinates for the first spectrum.
+%    DE              -Scalar value of delta E for the two CIELAB values.
 %
 % Optional key-value pairs:
 %    'T_cones'       -Passed cone fundamentals, in a 3xn matrix. Default is 
@@ -36,6 +38,7 @@ function [comparisonDE,referenceLab,comparisonLab] = ...
 % History
 %    dce    7/20/20   -Adapted from example code from dhb
 %    dce    7/22/20   -Added options to specify cone input
+%    dce    7/29/20   -Added XYZ output
 
 % Parse input 
 p = inputParser;
@@ -70,7 +73,8 @@ else
         T_xyz = SplineCmf(p.Results.S_xyz,p.Results.T_xyz,S_cones);
     end 
 end 
-M_LMSToXYZ = (T_cones'\T_xyz')';
+
+M_LMSToXYZ = (T_cones'\T_xyz')'; % Conversion matrix
 
 % Check if the matrix properly recovers XYZ functions from cone functions
 CHECK_MATRIX = false;
@@ -85,8 +89,8 @@ end
 referenceXYZ = M_LMSToXYZ*referenceLMS;
 comparisonXYZ = M_LMSToXYZ*comparisonLMS;
 
-% Compute CIELAB coordinates and difference
+% Compute CIELAB coordinates and the difference between them
 referenceLab = XYZToLab(referenceXYZ,referenceXYZ);
 comparisonLab = XYZToLab(comparisonXYZ,referenceXYZ);
-comparisonDE = ComputeDE(comparisonLab,referenceLab);
+DE = ComputeDE(comparisonLab,referenceLab);
 end
