@@ -54,7 +54,8 @@ colorDiffParams.M = GetOpponentContrastMatrix(colorDiffParams);
 indErr = zeros(nPoints,1);         % Vector for storing error information 
 for i = 1:nPoints
     % Convert LMS values to opponent contrast 
-    opponentContrast = LMSToOpponentContrast(colorDiffParams,refLMS,shiftedLMS);
+    opponentContrast = LMSToOpponentContrast(colorDiffParams,refLMS,...
+        shiftedLMS(:,i));
     indErr(i) = norm(opponentContrast)-noiseSD; 
 end
 % Find rms error of the original error values 

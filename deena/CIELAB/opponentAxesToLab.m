@@ -38,15 +38,14 @@ sphereLMS = zeros(size(sphereLab));
 
 % Generate a unit sphere, and adjust so it is centered at the refLab
 % coordinates
-% sphereLab = SampleSphere(nTheta,nPhi); % yielded similar results
-sphereLab = UnitSphereGenerate(nTheta,nPhi);
+sphereLab = SphereGenerate(nTheta,nPhi,noiseSD);
 sphereLab(1,:) = sphereLab(1,:)+refLab(1); 
 sphereLab(2,:) = sphereLab(2,:)+refLab(2); 
 sphereLab(3,:) = sphereLab(3,:)+refLab(3); 
 
 % Convert sphereLab points back to LMS
 for i = 1:nPointsOnSphere
-    pointLMS = LABToLMS(sphereLab(:,i),sphereLab(:,i),refXYZ);
+    pointLMS = LABToLMS(sphereLab(:,i),refXYZ);
     sphereLMS(:,i) = pointLMS;
 end 
 

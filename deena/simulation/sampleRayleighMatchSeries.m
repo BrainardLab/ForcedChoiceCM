@@ -1,7 +1,6 @@
 function sampleRayleighMatchSeries(subjID,nObservers,p1,p2,test,...
     coneParamsToVary,testingParamToVary,testingValsToVary,varargin)
 % Runs Rayleigh matching simulations with different groups of observers
-
 % Syntax:
 %   sampleRayleighMatchSeries(subjID,nObservers,p1,p2,test,coneParamsToVary,
 %   testingParamToVary,testingValsToVary,varargin)
@@ -514,13 +513,9 @@ elseif strcmp(testingParamToVary,'adjustmentLength')
 else
     error('Unrecognized parameter to vary');
 end
-
 % Save with final simulation time
 elapsedTime = toc;
-save(fullfile(outputDir,'testData.mat'),'p','coneErrFC','matchErrFC',...
-    'coneErrAdjust','matchErrAdjust','subjID','nObservers','p1','p2',...
-    'test','coneParamsToVary','testingParamToVary','testingValsToVary',...
-    'paramName','elapsedTime','fileNames');
+
 %% Plotting
 % y limits for cone/match error plots
 coneErrLim = 0.01;
