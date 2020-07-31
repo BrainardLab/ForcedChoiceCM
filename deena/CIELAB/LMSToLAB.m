@@ -11,14 +11,14 @@ function [comparisonLab,referenceLab,comparisonXYZ,referenceXYZ,DE] = ...
 %    far apart the two CIELAB coordinates are. 
 %
 % Inputs:
-%    comparisonLMS   -3x1 cone responses for second light 
-%    referenceLMS    -3x1 cone responses for first light 
+%    comparisonLMS   -3x1 cone responses for first light 
+%    referenceLMS    -3x1 cone responses for second light 
 %
 % Outputs:
-%    comparisonLab   -3x1 CIELAB coordinates for the second spectrum.
-%    referenceLab    -3x1 CIELAB coordinates for the first spectrum.
-%    comparisonXYZ   -3x1 XYZ coordinates for the second spectrum.
-%    referenceXYZ    -3x1 XYZ coordinates for the first spectrum.
+%    comparisonLab   -3x1 CIELAB coordinates for the first spectrum.
+%    referenceLab    -3x1 CIELAB coordinates for the second spectrum.
+%    comparisonXYZ   -3x1 XYZ coordinates for the first spectrum.
+%    referenceXYZ    -3x1 XYZ coordinates for the second spectrum.
 %    DE              -Scalar value of delta E for the two CIELAB values.
 %
 % Optional key-value pairs:

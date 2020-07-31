@@ -1,24 +1,19 @@
-function [comparisonLMS,referenceLMS,comparisonXYZ,referenceXYZ]...
-    = LABToLMS(comparisonLab,referenceLab,referenceXYZ,varargin)
+function LMS = LABToLMS(Lab,referenceXYZ,varargin)
 % Computes cone responses from CIELAB coordinates
 % Syntax:
-%   LABToLMS(comparisonLab,referenceLab,referenceXYZ)
+%   LABToLMS(comparisonLab,referenceXYZ)
 %
 % Description:
-%    Takes in a pair of CIELAB coordinates and a reference XYZ triplet. 
-%    Converts the CIELAB coordinates first to XYZ and then to LMS cone 
+%    Takes in a 3x1 CIELAB coordinate and a reference XYZ triplet. 
+%    Converts the CIELAB coordinate first to XYZ and then to LMS cone 
 %    responses. 
 %
 % Inputs:
-%    comparisonLab   -3x1 CIELAB coordinate of comparison light
-%    referenceLab    -3x1 CIELAB coordinate of reference light 
+%    Lab             -3x1 CIELAB coordinate of light
 %    referenceXYZ    -3x1 XYZ coordinate of reference light 
 %
 % Outputs:
-%    comparisonLMS   -3x1 LMS response for the first CIELAB coordinate 
-%    referenceLMS    -3x1 LMS response for the second CIELAB coordinate 
-%    comparisonXYZ   -3x1 XYZ coordinates for the first CIELAB coordinate 
-%    referenceXYZ    -3x1 XYZ coordinates for the second CIELAB coordinate 
+%    LMS             -3x1 LMS response for the CIELAB coordinate 
 %
 % Optional key-value pairs:
 %    'T_cones'       -Passed cone fundamentals, in a 3xn matrix. Default is 
@@ -46,8 +41,7 @@ p.addParameter('S_xyz',[],@(x)(isnumeric(x)));
 p.parse(varargin{:});
 
 % Lab to XYZ
-referenceXYZ = LabToXYZ(referenceLab,referenceXYZ);
-comparisonXYZ = LabToXYZ(comparisonLab,referenceXYZ);
+comparisonXYZ = LabToXYZ(Lab,referenceXYZ);
 
 % XYZ to LMS 
 % Load the appropriate cone parameters
@@ -81,6 +75,5 @@ M_LMSToXYZ = (T_cones'\T_xyz')';
 M_XYZToLMS = inv(M_LMSToXYZ);
 
 % LMS values
-comparisonLMS = M_XYZToLMS*comparisonXYZ;    
-referenceLMS = M_XYZToLMS*referenceXYZ;  
+LMS = M_XYZToLMS*comparisonXYZ;    
 end

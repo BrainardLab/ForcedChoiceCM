@@ -1,5 +1,5 @@
-function [coneAvgErr,matchAvgErr] = sampleRayleighMatch(subjID,...
-    nObservers,baseParams,paramsToVary,p1,p2,test,method,varargin)
+function [coneAvgErr,matchAvgErr] =sampleRayleighMatch(subjID,nObservers,...
+    baseParams,paramsToVary,p1,p2,test,method,varargin)
 % Tests the OLRayleighMatch simulation and makes associated sampling plots.
 
 % Syntax:
@@ -116,6 +116,9 @@ function [coneAvgErr,matchAvgErr] = sampleRayleighMatch(subjID,...
 %                         previously-sampled observer parameters (useful
 %                         for when observers are used across multiple
 %                         experimental conditions). Default is [].
+%    'plotTitle'         -Character vector for titling plots. Default is 
+%                         [], in which case a default file naming system is
+%                         used.
 
 % History:
 %   07/06/20  dce       Wrote it.
@@ -127,6 +130,7 @@ function [coneAvgErr,matchAvgErr] = sampleRayleighMatch(subjID,...
 %   07/23/20  dce       Changed plotting
 %   07/24/20  dce       Added option to lock macular pigment
 %   07/29/20  dce       Moved parameter sampling to a separate function
+%   07/31/20  dce       Changed plot titling and filename conventions
 
 % Close stray figures
 close all;
@@ -134,6 +138,7 @@ close all;
 % Parse input
 p = inputParser;
 p.addParameter('makeAllObserverPlots',false,@(x)(islogical(x)));
+p.addParameter('plotTitle',[],@(x)(ischar(x)));
 p.addParameter('fieldSize',2,@(x)(isnumeric(x)));
 p.addParameter('age',32,@(x)(isnumeric(x)));
 p.addParameter('p1Scale',1,@(x)(isnumeric(x)));
@@ -177,7 +182,7 @@ else
     [r,c] = size(sampledParams);
     if r~=nObservers || c~=length(baseParams)
         error('Provided observer params have incorrect dimensions');
-    end 
+    end
 end
 
 % Data-storing arrays. Each row holds a different observer's params.
@@ -191,7 +196,6 @@ coneStandardErr = zeros(nObservers,1); % Error between sampled and standard cone
 matchErr = zeros(nObservers,1);        % Match error when using recovered parameters
 matchSampledErr = zeros(nObservers,1); % Match error when using sampled parameters
 matchStandardErr = zeros(nObservers,1);% Match error when using base parameters
-optErrs = 0;                           % Counter for optimization errors
 
 % For each observer: sample parameters, make matches, and use matches to
 for i = 1:nObservers
@@ -252,13 +256,13 @@ for i = 1:nObservers
         [calcParams 0],'age',p.Results.age,'fieldSize',p.Results.fieldSize);
     [coneStandardErr(i)] = findConeSensitivityError(sampledParams(i,:),...
         baseParams,'age',p.Results.age,'fieldSize',p.Results.fieldSize);
-    save(fullfile(outputDir,'paramsSearchData.mat'));
+    save(fullfile(outputDir,[subjID '_paramsSearchData.mat']));
 end
 
 % Compute average error measures
 coneAvgErr = mean(coneErr);   % Average cone spectral sensitivity error
 matchAvgErr = mean(matchErr); % Average match error with recovered params
-save(fullfile(outputDir,'paramsSearchData.mat'));
+save(fullfile(outputDir,[subjID '_paramsSearchData.mat']));
 
 %% Plots - produces two pdfs with subplots
 %% Figure 1 - error plots
@@ -286,7 +290,7 @@ subplotPosVectors = NicePlot.getSubPlotPosVectors(...
     'leftMargin',     0.07, ...
     'rightMargin',    0.04, ...
     'bottomMargin',   0.1, ...
-    'topMargin',      0.04);
+    'topMargin',      0.1);
 
 % Subplot 1 - cone spectral sensitivity error
 subplot('Position', subplotPosVectors(1,1).v);
@@ -375,8 +379,12 @@ if ~p.Results.makeAllObserverPlots
     title(theTitle);
 end
 % Save plot
-sgtitle([subjID ' Error'],'Interpreter', 'none');
-NicePlot.exportFigToPDF(fullfile(outputDir,'errPlots'),...
+if isempty(p.Results.plotTitle)
+    sgtitle([subjID ' Error'],'Interpreter', 'none');
+else 
+    sgtitle([p.Results.plotTitle ': Error'],'Interpreter', 'none');
+end 
+NicePlot.exportFigToPDF(fullfile(outputDir,[subjID '_errPlots.pdf']),...
     errFig,300);
 %% Figure 2 - parameter recovery
 paramsFig = figure(2);
@@ -392,7 +400,7 @@ subplotPosVectors = NicePlot.getSubPlotPosVectors(...
     'leftMargin',     0.04, ...
     'rightMargin',    0.04, ...
     'bottomMargin',   0.07, ...
-    'topMargin',      0.04);
+    'topMargin',      0.1);
 coneParamNames = {'Lens Density','Macular Pigment Density',...
     'L Photopigment Density','M Photopigment Density',...
     'S photopigment density','L Lambda Max','M Lambda Max', 'S Lambda Max'};
@@ -441,7 +449,11 @@ for ii = 1:length(paramsToVary)
     end
 end
 % Save figure
-sgtitle([subjID ' Parameters'],'Interpreter', 'none');
-NicePlot.exportFigToPDF(fullfile(outputDir,'paramPlots'),...
+if isempty(p.Results.plotTitle)
+    sgtitle([subjID ' Parameters'],'Interpreter', 'none');
+else 
+    sgtitle([p.Results.plotTitle ': Parameters'],'Interpreter', 'none');
+end 
+NicePlot.exportFigToPDF(fullfile(outputDir,[subjID '_paramPlots.pdf']),...
     paramsFig,300);
 end

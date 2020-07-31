@@ -19,8 +19,8 @@
 %% Generate a set of LMS coordinates that are at a uniform distance from 
 %% the reference in LAB space
 % Initial parameters 
-refLMS = [0.5 0.5 0.5]';  % Reference LMS coordinates (set later)
-noiseSD = 1;              % Observer noise standard deviation
+refLMS = [1 1 1]';  % Reference LMS coordinates (set later)
+noiseSD = 1;        % Observer noise standard deviation (step size/radius)
 
 % Convert reference to Lab coordinates, using itself as white point
 [refLab,~,refXYZ] = LMSToLAB(refLMS,refLMS); 
@@ -28,25 +28,22 @@ if ~all(refLab==[100 0 0]')
     error('RefLab not computed properly');
 end 
 
-% Sample Lab points on a unit sphere around refLab. 
+% Sample Lab points on a sphere around refLab. 
 nTheta = 10;  % Number of points to sample around the azimuthal theta 
 nPhi = 10;    % Number of points to sample around the elevation direction
 nPointsOnSphere = nTheta*nPhi; 
 
-sphereLab = zeros(3,nPointsOnSphere);
-sphereLMS = zeros(size(sphereLab));
-
-% Generate a unit sphere, and adjust so it is centered at the refLab
-% coordinates
+% Generate a sphere, and adjust so it is centered at the refLab
+% coordinates. NoiseSD is used as the radius. 
 sphereLab = SphereGenerate(nTheta,nPhi,noiseSD);
 sphereLab(1,:) = sphereLab(1,:)+refLab(1); 
 sphereLab(2,:) = sphereLab(2,:)+refLab(2); 
 sphereLab(3,:) = sphereLab(3,:)+refLab(3); 
 
 % Convert sphereLab points back to LMS
+sphereLMS = zeros(size(sphereLab));
 for i = 1:nPointsOnSphere
-    pointLMS = LABToLMS(sphereLab(:,i),refXYZ);
-    sphereLMS(:,i) = pointLMS;
+    sphereLMS(:,i) = LABToLMS(sphereLab(:,i),refXYZ);
 end 
 
 %% Parameter search for opponent metric scalings 
@@ -67,3 +64,4 @@ options = optimset(options,'Diagnostics','off','Display','iter',...
 % Run the test 
 bestODParams = fmincon(@(x)opponentParamsErr(x,refLMS,sphereLMS,noiseSD),...
     initialParams,[],[],[],[],lb,ub,[],options);
+err = opponentParamsErr(bestODParams,refLMS,sphereLMS,noiseSD);
