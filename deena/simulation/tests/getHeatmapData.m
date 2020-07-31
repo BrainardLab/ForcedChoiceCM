@@ -62,33 +62,23 @@ for i = 1:4
         matchErrAdjust(i,j) = thresholdFile.matchAvgErr;
     end
 end
+%% test match error for wl increments 
+% Data arrays
+matchAvgErr = zeros(1,6);         % Average error 
+matchErrs = {[],[],[],[],[],[]};  % Individual error of specified wls 
 
-%% Params
-testingParamToVary = 'testWlIncr';
-testingValsToVary = [40 20 10 5];
-subjID = 'testNoiseIncr2';
-nObservers = 20;
-p1 = 670;
-p2 = 560;
-test = 570:5:640;
-coneParamsToVary = [0 0 1 1 0 1 1 0];
-p = struct();
-p.Results.testingParamToVary2 = 'noise';
-p.Results.testingValsToVary2 = [0 0.01 0.02 0.04];
-
-outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
-    'paramsSearchSeries',subjID);
-save(fullfile(outputDir,'testData.mat'),'p','coneErrFC','matchErrFC',...
-    'coneErrAdjust','matchErrAdjust','subjID','nObservers','p1','p2',...
-    'test','coneParamsToVary','testingParamToVary','testingValsToVary');
-
-
-%% test append_pdfs
+% Data files
 filePath = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),'paramsSearch');
-fNameFC1 = fullfile(filePath,'testNoiseIncr2_40_0_FC\errPlots.pdf');
-fNameFC2 = fullfile(filePath,'testNoiseIncr2_40_0_FC\paramPlots.pdf');
-fNameFC3 = fullfile(filePath,'testNoiseIncr2_40_0.02_FC\errPlots.pdf');
-fNameFC4 = fullfile(filePath,'testNoiseIncr2_40_0.02_FC\paramPlots.pdf');
-files = {fNameFC1 fNameFC2 fNameFC3 fNameFC4};
-files = string(files);
-append_pdfs('plots2.pdf',files);
+fName1 = fullfile(filePath,'varyTestWl5_1_threshold','paramsSearchData.mat');
+fName2 = fullfile(filePath,'varyTestWl5_2_threshold','paramsSearchData.mat');
+fName3 = fullfile(filePath,'varyTestWl5_3_threshold','paramsSearchData.mat');
+fName4 = fullfile(filePath,'varyTestWl5_4_threshold','paramsSearchData.mat');
+fName5 = fullfile(filePath,'varyTestWl5_5_threshold','paramsSearchData.mat');
+fName6 = fullfile(filePath,'varyTestWl5_6_threshold','paramsSearchData.mat');
+
+testWls = [570 610]; % Test wavelengths used in the largest increment
+
+fileNames = {fName1 fName2 fName3 fName4 fName5 fName6};
+for i = 1:length(fileNames)
+    load(cell2mat(fileNames(i)));
+end 

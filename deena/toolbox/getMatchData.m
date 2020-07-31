@@ -3,8 +3,9 @@ function [testSpds,primarySpds,testIntensities,primaryRatios] =...
 % Helper function that takes in a data file produced by OLRayleighMatch and
 % returns the predicted primary and test spds associated with its matches.
 % Returns all of the matches by default, but you can also specify an index
-% so it returns a specific match. Also returns the primary ratio and test
-% intensity, relative to the scaled OneLight spectra.
+% so it returns a specific match or a series of test wavelengths to return
+% the match for. Also returns the primary ratio and test intensity, 
+% relative to the scaled OneLight spectra.
 %
 % Syntax:
 %   getMatchData(fName)
@@ -17,12 +18,10 @@ function [testSpds,primarySpds,testIntensities,primaryRatios] =...
 %    primary   - Predicted primary spd(s) for the match
 %
 % Optional key-value pairs:
-%    ind       - Positive integer index of the desired match. If an index
-%                is specified, the function returns just one pair of spds
-%                instead of all available matches. The default value is 0,
-%                which is ignored.
-%    nominal   - Logical indicating to return spds from the nominal spds
-%                array, not the predicted array. Default is false
+%    nominal    - Logical indicating to return spds from the nominal spds
+%                 array, not the predicted array. Default is false
+%    testWls    - Vector of desired test wavelengths to return the spd for.
+%                 Default is the empty matrix, which is ignored.
 
 % History:
 %   06/12/20  dce       Wrote it.
@@ -31,15 +30,15 @@ function [testSpds,primarySpds,testIntensities,primaryRatios] =...
 %   07/06/20  dce       Added primary ratio and test intensity outputs.
 %   07/17/20  dce       Added option to use nominal spds, not predicted
 %   07/24/20  dce       Added handling of case where no matches were made
+%   07/31/20  dce       Added option to specify wavelengths 
 
 % Example
 
 % Parse input
 p = inputParser;
-p.addParameter('ind',0,@(x)(isnumeric(x)));
 p.addParameter('nominal',false,@(x)(islogical(x)));
+p.addParameter('testWls',[],@(x)(isnumeric(x)));
 p.parse(varargin{:});
-ind = p.Results.ind;
 
 % Data arrays
 theData = load(fName);   % OLRayleighMatch dataset
@@ -50,12 +49,18 @@ testIntensities = [];      % Test intensity settings
 
 % Find match position indices
 if ~isempty(theData.matchPositions)
-    if ind == 0   % Return spds for all matches
+    % Return spds for the specified test wavelengths
+    if ~isempty(p.Results.testWls) 
+        % Create a selection array for logical indexing 
+        selectionArr = zeros(1,length(theData.test));
+        for i = 1:length(p.Results.testWls)
+            selectionArr = selectionArr+(theData.test==p.Results.testWls(i));
+        end 
+        tMatchInds = theData.matchPositions(selectionArr,1);
+        pMatchInds = theData.matchPositions(selectionArr,2);
+    else         % Return spds for all matches 
         tMatchInds = theData.matchPositions(:,1);
         pMatchInds = theData.matchPositions(:,2);
-    else          % Return spds for a single match
-        tMatchInds = theData.matchPositions(ind,1);
-        pMatchInds = theData.matchPositions(ind,2);
     end
     
     % Define the spd arrays we're searching in

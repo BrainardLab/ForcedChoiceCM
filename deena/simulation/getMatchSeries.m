@@ -125,8 +125,7 @@ end
 if p.Results.saveResults
     fName = [subjID, '_', method, '_allSpds.mat'];
     file = fullfile(outputDir,fName);
-    if exist(file,'file') && (length(subjID)~=length('test_series')...
-            || ~all(subjID=='test_series'))
+    if exist(file,'file') && ~strcmp(subjID,'test_series')
         error('Specified file already exists');
     end
 end
