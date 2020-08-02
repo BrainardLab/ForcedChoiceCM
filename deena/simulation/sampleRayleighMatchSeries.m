@@ -206,7 +206,7 @@ elseif strcmp(testingParamToVary,'testWlIncr')
         nMatches = floor(matchesPerTrial./nWls);
         paramName = 'Number of Test Wavelengths (standardized across trials)';
     else
-        nMatches = p.Results.nMatches*ones(1,length(testingValsToVary));
+        nMatches = p.Results.nObserverMatches*ones(1,length(testingValsToVary));
         paramName = 'Number of Test Wavelengths';
     end
 elseif strcmp(testingParamToVary,'noise')

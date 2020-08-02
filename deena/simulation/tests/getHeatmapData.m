@@ -63,22 +63,44 @@ for i = 1:4
     end
 end
 %% test match error for wl increments 
+% Start by looking at threshold data only 
 % Data arrays
-matchAvgErr = zeros(1,6);         % Average error 
-matchErrs = {[],[],[],[],[],[]};  % Individual error of specified wls 
+matchAvgErr = zeros(5,1);         % Average error across observers
+matchErrs = zeros(5,20);  % Individual error of specified wls 
+
+testWls = [610]; % Test wavelengths used in the largest increment
+incs = [40 20 10 5 2];
 
 % Data files
-filePath = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),'paramsSearch');
-fName1 = fullfile(filePath,'varyTestWl5_1_threshold','paramsSearchData.mat');
-fName2 = fullfile(filePath,'varyTestWl5_2_threshold','paramsSearchData.mat');
-fName3 = fullfile(filePath,'varyTestWl5_3_threshold','paramsSearchData.mat');
-fName4 = fullfile(filePath,'varyTestWl5_4_threshold','paramsSearchData.mat');
-fName5 = fullfile(filePath,'varyTestWl5_5_threshold','paramsSearchData.mat');
-fName6 = fullfile(filePath,'varyTestWl5_6_threshold','paramsSearchData.mat');
+filePath = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'));
 
-testWls = [570 610]; % Test wavelengths used in the largest increment
-
-fileNames = {fName1 fName2 fName3 fName4 fName5 fName6};
-for i = 1:length(fileNames)
-    load(cell2mat(fileNames(i)));
+for i = 1:5 % 5 wl conditions 
+   observersFile = load(fullfile(filePath,'paramsSearch',['varyTestWlIncrNew2_'...
+       num2str(incs(i)),'_threshold'],['varyTestWlIncrNew2_'...
+       num2str(incs(i)),'_threshold_paramsSearchData.mat']));
+   baseObserver = observersFile.stdObs;
+   errScalar = observersFile.matchErrScalar;
+    for j = 1:20 % 20 observers per condition
+        % Find the match spds associated with the two test wavelengths 
+        primarySpds = [];
+        testSpds = [];
+        rayleighFile = fullfile(filePath,'matchFiles',['varyTestWlIncrNew2_'...
+            num2str(incs(i)),'_threshold_' num2str(j)]);
+        files = dir(rayleighFile);
+        for k = 1:length(files)
+            if files(k).isdir==0
+               theData = load(fullfile(files(k).folder,files(k).name));
+               if theData.test==testWls(1) % || theData.test==testWls(2)
+                   [testSpd,primarySpd] = getMatchData(fullfile(files(k).folder,files(k).name));
+                   testSpds = [testSpds,testSpd];
+                   primarySpds = [primarySpds,primarySpd];
+               end 
+            end
+        end 
+        % Calculate the match error 
+        observerParams = observersFile.recoveredParams(j,:);
+        matchErrs(i,j) = findMatchError(observerParams,baseObserver,...
+            testSpds,primarySpds,'errScalar',errScalar)/errScalar;
+    end
+    matchAvgErr(i) = mean(matchErrs(i,:));
 end 
