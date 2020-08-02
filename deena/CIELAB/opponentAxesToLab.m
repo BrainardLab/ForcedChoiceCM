@@ -35,7 +35,7 @@ nPointsOnSphere = nTheta*nPhi;
 
 % Generate a sphere, and adjust so it is centered at the refLab
 % coordinates. NoiseSD is used as the radius. 
-sphereLab = SphereGenerate(nTheta,nPhi,noiseSD);
+sphereLab = SphereGenerate(nTheta,nPhi,1);
 sphereLab(1,:) = sphereLab(1,:)+refLab(1); 
 sphereLab(2,:) = sphereLab(2,:)+refLab(2); 
 sphereLab(3,:) = sphereLab(3,:)+refLab(3); 
@@ -52,7 +52,7 @@ end
 % as we can make it.
 
 % Fit three params: luminance weight (1), rg weight (1), and by weight(1)
-initialParams = [1 1 1];  % Initial parameters  
+initialParams = noiseSD*[1 1 1]/0.02;  % Initial parameters  
 
 % fmincon options  
 lb = -Inf*ones(3,1);     % Lower bounds

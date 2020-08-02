@@ -56,7 +56,7 @@ for i = 1:nPoints
     % Convert LMS values to opponent contrast 
     opponentContrast = LMSToOpponentContrast(colorDiffParams,refLMS,...
         shiftedLMS(:,i));
-    indErr(i) = norm(opponentContrast)-noiseSD; 
+    indErr(i) = norm(opponentContrast)/noiseSD-1; 
 end
 % Find rms error of the original error values 
-err = sqrt(mean(indErr.^2));
+err = 100*sqrt(mean(indErr.^2));
