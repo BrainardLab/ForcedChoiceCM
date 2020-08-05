@@ -1,4 +1,5 @@
-function error = findMatchError(paramsVec,initialObs,testSpds,primarySpds,varargin)
+function error = findMatchError(coneParamsVec,initialObs,testSpds,...
+    primarySpds,varargin)
 % Computes the error associated with a set of Rayleigh matches
 %
 % Syntax:
@@ -55,11 +56,15 @@ if length(SToWls(p.Results.S)) ~= spdLength
 end 
 pairError = zeros(1,nMatches);   % Array for storing error of each pair
 
-% Generate a model observer with the given parameters
-params = [paramsVec 0];          % Append noise
+% Find opponent parameters
+CDParams = initialObs.colorDiffParams;
+opponentParams = [CDParams.lumWeight CDParams.rgWeight CDParams.byWeight...
+    CDParams.noiseSd];
+
+% Generate an observer
 observer = genRayleighObserver('age', initialObs.coneParams.ageYears,...
     'fieldSize', initialObs.coneParams.fieldSizeDegrees,...
-    'coneVec',params,'S',p.Results.S); 
+    'coneVec',coneParamsVec,'opponentParams',opponentParams,'S',p.Results.S); 
 
 % Calculate opponent contrast for each match 
 for i = 1:nMatches

@@ -76,8 +76,10 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %                       experimenter keypresses. Default is false.
 %    'simObserver'    - logical. Set to true to run with a simulated
 %                       observer. Default is true.
-%    'observerParams' - 1x9 vector of Asano individual difference params
-%                       for simulated observer. Default is zeros(1,9)
+%    'observerParams' - 1x8 vector of Asano individual difference params
+%                       for simulated observer. Default is zeros(1,8)
+%    'opponentParams' - 1x4 vector of opponent contrast parameters. Default 
+%                       is [4 2 0.5 0.02]
 %    'switchInterval' - When using a simulated observer, number of
 %                       adjustments to make in a particular dimension
 %                       (luminance or RG) before switching. Default is 1.
@@ -97,6 +99,9 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %    'thresholdScaleFactor' - When using a simulated observer with
 %                             threshold matching, scale factor for matching
 %                             threshold. Default is 0.5.
+%     'noiseScaleFactor'     -Number >=0 which determines which scalar 
+%                             multiple of the opponent noise SD should be 
+%                             used as the observer noise SD. Default is 0.
 %    'nObserverMatches'     - When using a simulated observer, number of
 %                             matches to simulate. Default is 1.
 %    'adjustmentLength'     - Number of possible steps available for
@@ -132,6 +137,7 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %   07/21/20  dce       Changed method for calculating nominal matches
 %   07/24/20  dce       Added exit condition for infinite looping in
 %                       threshold case
+%   08/05/20  dce       Added opponent contrast params input 
 
 %% Close any stray figures
 close all;
@@ -154,12 +160,14 @@ p.addParameter('plotResponses',true,@(x) (islogical(x)));
 p.addParameter('silent',true,@(x)(islogical(x)));
 p.addParameter('simKeypad',false,@(x)(islogical(x)));
 p.addParameter('simObserver',true,@(x)(islogical(x)));
-p.addParameter('observerParams',zeros(1,9),@(x)(isnumeric(x)));
+p.addParameter('observerParams',zeros(1,8),@(x)(isnumeric(x)));
+p.addParameter('opponentParams',[4 2 0.5 0.02],@(x)(isvector(x)));
 p.addParameter('nObserverMatches',1,@(x)(isnumeric(x)));
 p.addParameter('switchInterval',1,@(x)(isnumeric(x)));
 p.addParameter('nReversals',[1 4],@(x)(isnumeric(x)));
 p.addParameter('thresholdMatching',false,@(x)(islogical(x)));
 p.addParameter('nBelowThreshold',1,@(x)(isnumeric(x)));
+p.addParameter('noiseScaleFactor',0,@(x)(isnumeric(x)));
 p.addParameter('thresholdScaleFactor',0.5,@(x)(isnumeric(x)));
 p.addParameter('simNominalLights',false,@(x)(islogical(x)));
 p.parse(varargin{:});
@@ -180,12 +188,14 @@ silent = p.Results.silent;
 simKeypad = p.Results.simKeypad;
 simObserver = p.Results.simObserver;
 observerParams = p.Results.observerParams;
+opponentParams = p.Results.opponentParams;
 nObserverMatches = p.Results.nObserverMatches;
 switchInterval = p.Results.switchInterval;
 nReversals = p.Results.nReversals;
 thresholdMatching = p.Results.thresholdMatching;
 nBelowThreshold = p.Results.nBelowThreshold;
 thresholdScaleFactor = p.Results.thresholdScaleFactor;
+noiseScaleFactor = p.Results.noiseScaleFactor;
 plotResponses = p.Results.plotResponses;
 simNominalLights = p.Results.simNominalLights;
 
@@ -193,8 +203,11 @@ simNominalLights = p.Results.simNominalLights;
 if (length(nReversals)~=2)
     error('Reversal vector must be 2x1');
 end
-if (length(observerParams)~=9)
-    error('Observer parameters must be entered as a 9-element vector');
+if (length(observerParams)~=8)
+    error('Observer parameters must be entered as an 8-element vector');
+end
+if (length(opponentParams)~=4)
+    error('Opponent contrast parameters must be entered as an 4-element vector');
 end
 if (simKeypad && simObserver)
     error('Only one simulation method can be chosen');
@@ -293,13 +306,13 @@ idealForStandardObs = false;
 if idealForStandardObs
     [idealTestSpd,idealPrimarySpd,idealTestIntensity,idealPRatio] =...
         computePredictedRayleighMatch(p1SpdForSearch,p2SpdForSearch,...
-        tSpdForSearch,zeros(1,9),'age',age,'fieldSize',fieldSize,...
-        'noisy',false,'S',cal.computed.pr650S,'darkSpd',darkSpd);
+        tSpdForSearch,zeros(1,9),opponentParams,'age',age,'fieldSize',...
+        fieldSize,'noisy',false,'S',cal.computed.pr650S,'darkSpd',darkSpd);
 else
     [idealTestSpd,idealPrimarySpd,idealTestIntensity,idealPRatio] =...
         computePredictedRayleighMatch(p1SpdForSearch,p2SpdForSearch,...
-        tSpdForSearch,observerParams,'age',age,'fieldSize',fieldSize,...
-        'noisy',false,'S',cal.computed.pr650S,'darkSpd',darkSpd);
+        tSpdForSearch,observerParams,opponentParams,'age',age,'fieldSize',...
+        fieldSize,'noisy',false,'S',cal.computed.pr650S,'darkSpd',darkSpd);
 end
 [~,pIdealIndex] = min(abs(p1Scales-idealPRatio));
 [~,tIdealIndex] = min(abs(testScales-idealTestIntensity));
@@ -308,7 +321,8 @@ end
 observer = [];
 if simObserver
     observer = genRayleighObserver('fieldSize',fieldSize,'age',age,...
-        'coneVec',observerParams,'S',cal.computed.pr650S);
+        'coneVec',observerParams,'opponentParams',opponentParams,...
+        'S',cal.computed.pr650S);
 end
 
 %% Intialize OneLight and button box/keypresses
@@ -464,14 +478,14 @@ while(stillLooping)
                 [p1_up,t_up,isBelowThreshold] = ...
                     observerRayleighDecision(observer,...
                     primarySpdsNominal(:,primaryPos),...
-                    testSpdsNominal(:,testPos),...
-                    'thresholdScale',thresholdScaleFactor);
+                    testSpdsNominal(:,testPos),'thresholdScale',...
+                    thresholdScaleFactor,'noiseScale',noiseScaleFactor);
             else
                 [p1_up,t_up,isBelowThreshold] = ...
                     observerRayleighDecision(observer,...
                     primarySpdsPredicted(:,primaryPos),...
-                    testSpdsPredicted(:,testPos),...
-                    'thresholdScale',thresholdScaleFactor);
+                    testSpdsPredicted(:,testPos),'thresholdScale',...
+                    thresholdScaleFactor,'noiseScale',noiseScaleFactor);
             end
             % If we are making threshold matches, record whether this
             % combination of lights is below the threshold
@@ -716,8 +730,8 @@ while(stillLooping)
                         'thresholdMatching','thresholdScaleFactor',...
                         'nBelowThreshold','simObserver','simKeypad',...
                         'p1Scales','testScales','observerParams',...
-                        'nObserverMatches','pIdealIndex','tIdealIndex',...
-                        'idealForStandardObs','idealTestSpd',...
+                        'opponentParams','nObserverMatches','pIdealIndex',...
+                        'tIdealIndex','idealForStandardObs','idealTestSpd',...
                         'idealPrimarySpd','idealTestIntensity','idealPRatio');
                     stillLooping = false;
                     break;

@@ -1,7 +1,8 @@
-function [coneAvgErr,matchAvgErr] =sampleRayleighMatch(subjID,nObservers,...
-    baseParams,paramsToVary,p1,p2,test,method,varargin)
+function [coneAvgErr,matchAvgErr,coneAvgStdErr,matchAvgStdErr,matchAvgSampledErr]...
+    = sampleRayleighMatch(subjID,nObservers,baseParams,paramsToVary,...
+    opponentParams,p1,p2,test,method,varargin)
 % Tests the OLRayleighMatch simulation and makes associated sampling plots.
-
+%
 % Syntax:
 %   sampledRayleighMatch(subjID,nObservers,baseParams,paramsToVary,
 %   p1,p2,test,method)
@@ -41,7 +42,7 @@ function [coneAvgErr,matchAvgErr] =sampleRayleighMatch(subjID,nObservers,...
 % Inputs:
 %    subjID         -Character vector of subject ID
 %    nObservers     -Number of simulated observers to sample.
-%    baseParams     -Nine-element numeric vector of individual difference
+%    baseParams     -Eight-element numeric vector of individual difference
 %                    parameters (see ObserverVecToParams for description).
 %                    The values are used as means for observer sampling.
 %    paramsToVary   -Eight-element numeric vector of ones and zeros
@@ -50,6 +51,10 @@ function [coneAvgErr,matchAvgErr] =sampleRayleighMatch(subjID,nObservers,...
 %                    Parameters set to 1 will be sampled around their
 %                    standard deviation, while parameters set to 0 will
 %                    stay at the values specified in baseParams.
+%    opponentParams -Four-element vector of opponent contrast weightings. 
+%                    If the first three elements (other than noise) are set 
+%                    to 0, the program recomputes the other three
+%                    parameters.
 %    p1             -Integer or numeric vector of desired wavelengths
 %                    for the first primary.
 %    p2             -Integer or numeric vector of desired wavelengths
@@ -64,6 +69,12 @@ function [coneAvgErr,matchAvgErr] =sampleRayleighMatch(subjID,nObservers,...
 %                    spectral sensitivities, across all observers sampled.
 %    matchAvgErr    -Average error associated with the simulated
 %                    matches when using the recovered cone parameters.
+%    coneAvgStdErr  -Average difference between sampled and standard cone
+%                    spectral sensitivities, across all observers sampled.
+%    matchAvgStdErr -Average error associated with the simulated
+%                    matches when using the standard cone parameters.
+%    matchAvgSampledErr -Average error associated with the simulated
+%                        matches when using the sampled cone parameters.
 %
 % Optional key-value pairs:
 %    'makeAllObserverPlots' -Logical. When true, plots the cone spectral
@@ -102,6 +113,9 @@ function [coneAvgErr,matchAvgErr] =sampleRayleighMatch(subjID,nObservers,...
 %    'thresholdScaleFactor' -When using a simulated observer with
 %                            threshold matching, scale factor for matching
 %                            threshold. Default is 0.5.
+%     'noiseScaleFactor'    -Number >=0 which determines which scalar 
+%                            multiple of the opponent noise SD should be 
+%                            used as the observer noise SD. Default is 0.
 %    'LMEqualOD'         -Logical. If true, the parameter search constrains
 %                         L and M cone optical densities to be equal.
 %                         Default is false.
@@ -131,6 +145,7 @@ function [coneAvgErr,matchAvgErr] =sampleRayleighMatch(subjID,nObservers,...
 %   07/24/20  dce       Added option to lock macular pigment
 %   07/29/20  dce       Moved parameter sampling to a separate function
 %   07/31/20  dce       Changed plot titling and filename conventions
+%   08/03/20  dce       Added more outputs (standard and sampled)
 
 % Close stray figures
 close all;
@@ -151,6 +166,7 @@ p.addParameter('nObserverMatches',1,@(x)(isnumeric(x)));
 p.addParameter('nReversals',[1 4],@(x)(isnumeric(x)));
 p.addParameter('nBelowThreshold',1,@(x)(isnumeric(x)));
 p.addParameter('thresholdScaleFactor',0.5,@(x)(isnumeric(x)));
+p.addParameter('noiseScaleFactor',0,@(x)(isnumeric(x)));
 p.addParameter('LMEqualOD',false,@(x)(islogical(x)));
 p.addParameter('dlens0',false,@(x)(islogical(x)));
 p.addParameter('dmac0',false,@(x)(islogical(x)));
@@ -160,9 +176,14 @@ p.parse(varargin{:});
 
 matchErrScalar = 100;    % Scale factor to improve match error search
 
+% Generate opponent parameters if they do not exist
+if opponentParams(1)==0 && opponentParams(2)==0 && opponentParams(3)==0
+    opponentParams = opponentAxesToLab(opponentParams(4));
+end 
+
 % Base observer, used for comparison
 stdObs = genRayleighObserver('age',p.Results.age,'fieldSize',...
-    p.Results.fieldSize,'coneVec',baseParams);
+    p.Results.fieldSize,'coneVec',baseParams,'opponentParams',opponentParams);
 
 % Create directory for saving results
 outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
@@ -259,9 +280,12 @@ for i = 1:nObservers
     save(fullfile(outputDir,[subjID '_paramsSearchData.mat']));
 end
 
-% Compute average error measures
-coneAvgErr = mean(coneErr);   % Average cone spectral sensitivity error
-matchAvgErr = mean(matchErr); % Average match error with recovered params
+% Compute average error measures 
+coneAvgErr = mean(coneErr);  
+coneAvgStdErr = mean(coneStandardErr);  
+matchAvgErr = mean(matchErr); 
+matchAvgStdErr = mean(matchStandardErr);
+matchAvgSampledErr = mean(matchSampledErr);
 save(fullfile(outputDir,[subjID '_paramsSearchData.mat']));
 
 %% Plots - produces two pdfs with subplots

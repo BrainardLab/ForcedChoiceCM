@@ -3,7 +3,7 @@ function [primary_redder,test_brighter,isMatch,differenceVector] = ...
 % Simulated observer decision making for a Rayleigh match experiment 
 %
 % Syntax:
-%   observerRayleighDecision(T_observer, primarySpd, testSpd); 
+%   observerRayleighDecision(observer, primarySpd, testSpd); 
 %
 % Description:
 %    Takes in a simulated observer's cone fundamentals and a pair of
@@ -33,15 +33,13 @@ function [primary_redder,test_brighter,isMatch,differenceVector] = ...
 %                        lights are below the matching threshold.
 %
 % Optional key-value pairs:
+%     noiseScale        -Number >=0 which determines which scalar multiple
+%                        of the opponent noise SD should be used as the
+%                        observer noise SD. Default is 1.
 %     thresholdScale    -Number >0 which determines which scalar multiple 
-%                        of the observer standard deviation should be used
-%                        as the matching threshold. Default is 1. 
-%     baseThreshold     -Number >0. When the observer is noiseless, 
-%                        thresholdScale is multiplied by baseThreshold 
-%                        instead of by the observer standard deviation. 
-%                        Default is 0.02, an approximation of typical 
-%                        observer standard deviation.
-
+%                        of the observer noise should be used. Default is
+%                        1.
+%                        as the matching threshold. Default is 0.5. 
 % History:
 %   06/02/20  dce       Wrote initial code
 %   06/03/20  dce       Added noise, style edits
@@ -50,11 +48,12 @@ function [primary_redder,test_brighter,isMatch,differenceVector] = ...
 %   07/01/20  dce       Added check on observer's wavelength sampling 
 %   07/06/20  dce       Got rid of "noisy" key-value pair, do noise based
 %                       on SD only
+%   08/05/20  dce       Distinguished opponent noise and observer noise.
 
 % Parse input 
 p = inputParser;
-p.addParameter('thresholdScale',1, @(x)(isnumeric(x)));
-p.addParameter('baseThreshold',0.02,@(x)(isnumeric(x)));
+p.addParameter('noiseScale',1, @(x)(isnumeric(x)));
+p.addParameter('thresholdScale',0.5, @(x)(isnumeric(x)));
 p.parse(varargin{:});
 
 % Spds generated for OLRayleighMatch will always be sampled over S = 
@@ -72,12 +71,12 @@ primary_LMS = observer.T_cones*primarySpd;
 opponentContrast = LMSToOpponentContrast(observer.colorDiffParams,...
     test_LMS,primary_LMS);
 
-% Add noise
-% Sample three values from a Gaussian distribution, and add them to the
-% opponentContrast vector
-noiseSd = observer.colorDiffParams.noiseSd; % Gaussian standard deviation
-if noiseSd ~= 0
-    noise = normrnd(0,noiseSd,3,1); 
+% Add noise to opponent contrast by sampling three values from a Gaussian
+% distribution.
+opponentNoiseSd = observer.colorDiffParams.noiseSd; 
+observerNoiseSd = p.Results.noiseScale*opponentNoiseSd;
+if observerNoiseSd ~= 0 % The simulated matching is noisy
+    noise = normrnd(0,observerNoiseSd,3,1); 
     opponentContrast = opponentContrast+noise; 
 end 
 
@@ -96,10 +95,10 @@ else
 end
 
 % Define matching threshold 
-if noiseSd ~= 0
-    threshold = noiseSd*p.Results.thresholdScale;  
+if observerNoiseSd ~= 0
+    threshold = observerNoiseSd*p.Results.thresholdScale;  
 else 
-    threshold = p.Results.baseThreshold*p.Results.thresholdScale;
+    threshold = opponentNoiseSd*p.Results.thresholdScale;
 end
 
 % Check whether we're below the matching threshold  

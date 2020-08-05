@@ -1,9 +1,10 @@
 function [testAdjustedSpd,primaryMixtureSpd,testIntensity,lambda] =...
-    computePredictedRayleighMatch(p1Spd,p2Spd,testSpd,observerParams,varargin)
+    computePredictedRayleighMatch(p1Spd,p2Spd,testSpd,observerParams,...
+    opponentParams,varargin)
 % Calculates a predicted Rayleigh match analytically
-
+%
 % Syntax:
-%   computePredictedRayleighMatch(p1,p2,test,observerParams)
+%   computePredictedRayleighMatch(p1,p2,test,observerParams,opponentParams)
 %
 % Description:
 %    Computes a Rayleigh match analytically when given the associated
@@ -19,9 +20,13 @@ function [testAdjustedSpd,primaryMixtureSpd,testIntensity,lambda] =...
 %    p1Spd           -nx1 spd of the first primary light.
 %    p2Spd           -nx1 of the second primary light.
 %    testSpd         -nx1 of the test light.
-%    observerParams  -Nine-element vector with the observer's individual
+%    observerParams  -Eight-element vector with the observer's individual
 %                     difference parameters (see findObserverParameters
 %                     for a full description)
+%    opponentParams  -4-element vector with opponent contrast parameters. 
+%                     (1) is the luminance weight, (2) is the rg weight,
+%                     (3) is the by weight, and (4) is the noise standard
+%                     deviation. 
 %
 % Outputs:
 %    primaryMixtureSpd    -Predicted primary spd for the match
@@ -68,7 +73,8 @@ p.parse(varargin{:});
 %% Set up parameters
 % Construct a simulated observer with the specified parameters
 observer = genRayleighObserver('fieldSize',p.Results.fieldSize,'age',...
-    p.Results.age,'coneVec',observerParams,'S',p.Results.S);
+    p.Results.age,'coneVec',observerParams,'opponentParams',opponentParams,...
+    'S',p.Results.S);
 T_LM = observer.T_cones(1:2,:);         % L and M cone fundamentals
 
 % Cone responses to the three base spds. Each vector contains two elements

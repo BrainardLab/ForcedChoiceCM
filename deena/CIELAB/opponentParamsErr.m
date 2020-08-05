@@ -50,8 +50,9 @@ colorDiffParams.rgWeight = opponentParams(2);
 colorDiffParams.byWeight = opponentParams(3);
 colorDiffParams.M = GetOpponentContrastMatrix(colorDiffParams);
 
-[~,nPoints] = size(shiftedLMS); % Number of shifted points provided
+[~,nPoints] = size(shiftedLMS);    % Number of shifted points provided
 indErr = zeros(nPoints,1);         % Vector for storing error information 
+
 for i = 1:nPoints
     % Convert LMS values to opponent contrast 
     opponentContrast = LMSToOpponentContrast(colorDiffParams,refLMS,...

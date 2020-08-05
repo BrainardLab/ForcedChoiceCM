@@ -52,17 +52,21 @@ function [params,error,observer] = findObserverParameters(testSpds,primarySpds,v
 %    'restrictBySD'  -Logical. If true, adds lower and upper bounds on all
 %                     paramters to keep them within three standard
 %                     deviations of their means. Default is true. 
-%    'initialParams' -1x9 numerical vector of additional parameters.
-%                     Default is zeros(1,9);
 %    'S'             -Wavelength sampling for cone calculations, in the
 %                     form [start delta nTerms]. Default is [380 2 201];
 %    'errScalar'     -Integer for scaling the match error, to improve search.
 %                     Default is 100.
+%    'initialConeParams' -1x8 numerical vector of cone individual  
+%                         difference parameters. Default is zeros(1,8);
+%    'opponentParams'    -1x4 numerical vector of opponent contrast
+%                         parameters. Default is [4 2 0.5 0.02].
+
 % History:
 %   06/12/20  dce       Wrote it.
 %   07/06/20  dce       Added S setting and appropriate length checks.
 %   07/21/20  dce       Added option to set dlens to 0.
 %   07/24/20  dce       Added option to set dmac to 0.
+%   08/05/20  dce       Added opponent contrast params 
 
 %% Initial Setup
 % Parse input
@@ -73,7 +77,8 @@ p.addParameter('LMEqualOD',false,@(x)(islogical(x)));
 p.addParameter('dlens0',false,@(x)(islogical(x)));
 p.addParameter('dmac0',false,@(x)(islogical(x)));
 p.addParameter('restrictBySd',true,@(x)(islogical(x)));
-p.addParameter('initialParams',zeros(1,9),@(x)(isnumeric(x)));
+p.addParameter('initialConeParams',zeros(1,8),@(x)(isnumeric(x)));
+p.addParameter('opponentParams',[4 2 0.5 0.02],@(x)(isvector(x)));
 p.addParameter('S',[380 2 201],@(x)(isnumeric(x)));
 p.addParameter('errScalar',100,@(x)(isnumeric(x)));
 p.parse(varargin{:});
@@ -91,7 +96,7 @@ end
 % Generate a standard observer with the given initial values
 observer = genRayleighObserver('fieldSize',p.Results.fieldSize,'age',...
     p.Results.age,'calcCones',false,'coneVec', p.Results.initialParams,...
-    'S',p.Results.S);
+    'S',p.Results.S,'opponentParams',p.Results.opponentParams);
 
 %% Restrictions on parameters
 Aeq = [];              % Equality constraint

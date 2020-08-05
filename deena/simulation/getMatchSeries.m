@@ -1,16 +1,17 @@
 function [testSpds,primarySpds,testIntensities,primaryRatios] = ...
-    getMatchSeries(subjID,observerParams,p1Wls,p2Wls,testWls,method,varargin)
+    getMatchSeries(subjID,observerParams,opponentParams,p1Wls,p2Wls,...
+    testWls,method,varargin)
 % Finds a series of simulated Rayleigh matches
 % Syntax:
 %   getMatchSeries(subjID,observerParams,p1Wls,p2Wls,testWls)
 %
 % Description:
-%    Takes in observer information and cone parameters, as well as
-%    information about desired primary and test wavelengths. Then, finds
-%    Rayleigh matches for the given observer with each possible combination
-%    of the specified primary/test wavelengths. Returns the primary and
-%    test spds which were found by the observer for each match, collated
-%    into two matrices. Also saves results to a file.
+%    Takes in observer information and cone/opponent contrast parameters, 
+%    as well as information about desired primary and test wavelengths. 
+%    Then, finds Rayleigh matches for the given observer with each possible
+%    combination of the specified primary/test wavelengths. Returns the 
+%    primary and test spds which were found by the observer for each match, 
+%    collated into two matrices. Also saves results to a file.
 %
 %    There are three options for calculating the Rayleigh matches in this
 %    program, at varying levels of abstraction. Users can choose either
@@ -21,9 +22,12 @@ function [testSpds,primarySpds,testIntensities,primaryRatios] = ...
 %
 % Inputs:
 %    subjID             -Subject ID, entered as a character vector
-%    observerParams     -Nine-element numeric vector of individual
+%    observerParams     -Eight-element numeric vector of individual
 %                        difference parameters (see ObserverVecToParams for
 %                        a full description).
+%    opponentParams     -Four-element numeric vector of opponent contrast
+%                        parameters (see getColorDiffParams for a full
+%                        description).
 %    p1Wls              -Integer or numeric vector of desired wavelengths
 %                        for the first primary.
 %    p2Wls              -Integer or numeric vector of desired wavelengths
@@ -71,6 +75,9 @@ function [testSpds,primarySpds,testIntensities,primaryRatios] = ...
 %    'thresholdScaleFactor' -When using a simulated observer with
 %                            threshold matching, scale factor for matching
 %                            threshold. Default is 0.5.
+%     'noiseScaleFactor'    -Number >=0 which determines which scalar 
+%                            multiple of the opponent noise SD should be 
+%                            used as the observer noise SD. Default is 0.
 %    'nominal'           -Logical indicating to run the simulation with
 %                         nominal, rather than predicted, spds. Default
 %                         is false.
@@ -90,6 +97,7 @@ function [testSpds,primarySpds,testIntensities,primaryRatios] = ...
 %   06/29/20  dce       Adapted to have choice of three matching methods
 %   07/06/20  dce       Changed matching methods.
 %   07/07/20  dce       Added primary ratio and test intensity as outputs
+%   08/05/20  dce       Added opponent contrast info 
 
 % Input parsing
 p = inputParser;
@@ -103,6 +111,7 @@ p.addParameter('nObserverMatches',1,@(x)(isnumeric(x)));
 p.addParameter('nReversals',[1 4],@(x)(isnumeric(x)));
 p.addParameter('nBelowThreshold',1,@(x)(isnumeric(x)));
 p.addParameter('thresholdScaleFactor',0.5,@(x)(isnumeric(x)));
+p.addParameter('noiseScaleFactor',0,@(x)(isnumeric(x)));
 p.addParameter('nominal',false,@(x)(islogical(x)));
 p.addParameter('sPredicted',[380 2 201],@(x)(isnumeric(x)));
 p.addParameter('monochromatic',false,@(x)(islogical(x)));
@@ -154,7 +163,8 @@ for i = 1:nCombos
             'testScale',p.Results.testScale,'p1Scale',p.Results.p1Scale,...
             'simNominalLights',p.Results.nominal,'plotResponses',...
             p.Results.rayleighPlots,'adjustmentLength',...
-            p.Results.adjustmentLength);
+            p.Results.adjustmentLength,'opponentParams',opponentParams,...
+            'noiseScaleFactor',p.Results.noiseScaleFactor);
         % Extract spds from the data file
         simFile = [subjID,'_',num2str(i),'.mat'];
         simFilePath = fullfile(outputDir,simFile);
@@ -170,7 +180,8 @@ for i = 1:nCombos
             'p2Scale',p.Results.p2Scale,'testScale',p.Results.testScale,...
             'p1Scale',p.Results.p1Scale,'simNominalLights',....
             p.Results.nominal,'plotResponses',p.Results.rayleighPlots,...
-            'adjustmentLength',p.Results.adjustmentLength);
+            'adjustmentLength',p.Results.adjustmentLength,'opponentParams',...
+            opponentParams,'noiseScaleFactor',p.Results.noiseScaleFactor);
         % Extract spds from the data file
         simFile = [subjID,'_',num2str(i),'.mat'];
         simFilePath = fullfile(outputDir,simFile);
@@ -187,7 +198,7 @@ for i = 1:nCombos
         
         [testSpd,primarySpd,testIntensity,primaryRatio] =...
             computePredictedRayleighMatch(p1Spd,p2Spd,tSpd,...
-            observerParams,'age',p.Results.age,'fieldSize',...
+            observerParams,opponentParams,'age',p.Results.age,'fieldSize',...
             p.Results.fieldSize,'S',p.Results.sPredicted,...
             'monochromatic',true);
         
@@ -248,7 +259,7 @@ for i = 1:nCombos
         % Run the test 
         [testSpd,primarySpd,testIntensity,primaryRatio] =...
             computePredictedRayleighMatch(p1Spd,p2Spd,tSpd,...
-            observerParams,'age',p.Results.age,'fieldSize',...
+            observerParams,opponentParams,'age',p.Results.age,'fieldSize',...
             p.Results.fieldSize,'S',p.Results.sPredicted,...
             'monochromatic',false,'darkSpd',darkSpd);        
     end

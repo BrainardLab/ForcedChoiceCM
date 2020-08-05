@@ -13,7 +13,7 @@ function sampledParams = sampleRayleighObservers(nObservers,baseParams,...
 %
 % Inputs:
 %    nObservers     -Number of simulated observers to sample.
-%    baseParams     -Nine-element numeric vector of individual difference
+%    baseParams     -Eight-element numeric vector of individual difference
 %                    parameters (see ObserverVecToParams for description).
 %                    The values are used as means for observer sampling.
 %    paramsToVary   -Eight-element numeric vector of ones and zeros
@@ -23,8 +23,7 @@ function sampledParams = sampleRayleighObservers(nObservers,baseParams,...
 %                    standard deviation, while parameters set to 0 will
 %                    stay at the values specified in baseParams.
 % Outputs:
-%    sampledObservers  -length(baseParams) x nObservers array of
-%                       sampled observer parameters.
+%    sampledObservers  -8x nObservers array of sampled observer parameters.
 %
 % Optional key-value pairs:
 %    none
