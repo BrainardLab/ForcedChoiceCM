@@ -95,7 +95,7 @@ end
 
 % Generate a standard observer with the given initial values
 observer = genRayleighObserver('fieldSize',p.Results.fieldSize,'age',...
-    p.Results.age,'calcCones',false,'coneVec', p.Results.initialParams,...
+    p.Results.age,'calcCones',false,'coneVec', p.Results.initialConeParams,...
     'S',p.Results.S,'opponentParams',p.Results.opponentParams);
 
 %% Restrictions on parameters
@@ -117,14 +117,14 @@ end
 
 % Constrain lens density variation to 0 
 if p.Results.dlens0
-    lb(1) = p.Results.initialParams(1);
-    ub(1) = p.Results.initialParams(1);
+    lb(1) = p.Results.initialConeParams(1);
+    ub(1) = p.Results.initialConeParams(1);
 end
 
 % Constrain lens density variation to 0 
 if p.Results.dmac0
-    lb(2) = p.Results.initialParams(2);
-    ub(2) = p.Results.initialParams(2);
+    lb(2) = p.Results.initialConeParams(2);
+    ub(2) = p.Results.initialConeParams(2);
 end
 
 % Constrain L and M OD to be equal
@@ -142,7 +142,7 @@ options = optimset(options,'Diagnostics','off','Display','iter',...
 % Find optimal parameters
 params = fmincon(@(x)findMatchError(x,observer,testSpds,primarySpds,...
     'S',p.Results.S,'errScalar',p.Results.errScalar),....
-    p.Results.initialParams(1:8),[],[],Aeq,Beq,lb,ub,[],options);
+    p.Results.initialConeParams(1:8),[],[],Aeq,Beq,lb,ub,[],options);
 
 % Reset observer with the final parameters
 observer = ObserverVecToParams('basic', ...

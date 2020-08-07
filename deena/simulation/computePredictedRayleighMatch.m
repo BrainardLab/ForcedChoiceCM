@@ -38,8 +38,6 @@ function [testAdjustedSpd,primaryMixtureSpd,testIntensity,lambda] =...
 % Optional key-value pairs:
 %    'age'             -Integer for subject age. Default is 32.
 %    'fieldSize'       -Integer field size in degrees. Default is 2.
-%    'noisy'           -Logical indicating whether to add noise. Default is
-%                       false.
 %    'monochromatic'   -Logical indicating that the passed spds are
 %    'darkSpd'         -nx1 dark spd vector. If not specified, default is
 %                       [].
@@ -65,7 +63,6 @@ p = inputParser;
 p.addParameter('age',32,@(x)(isnumeric(x)));
 p.addParameter('fieldSize',2,@(x)(isnumeric(x)));
 p.addParameter('S',[380 2 201],@(x)(isnumeric(x)));
-p.addParameter('noisy',false,@(x)(islogical(x)));
 p.addParameter('monochromatic',false,@(x)(islogical(x)));
 p.addParameter('darkSpd',[],@(x)(isnumeric(x)));
 p.parse(varargin{:});
@@ -106,24 +103,6 @@ b = [-p2Res(1); -p2Res(2)];
 answer = inv(M)*b;
 lambda = answer(1);
 testIntensity = answer(2);
-
-% If the observer is noisy, add noise to lambda and testIntensity (this is
-% mostly used for testing)
-if p.Results.noisy
-    noise = normrnd(0,observerParams(9),2,1);
-    lambda = lambda+noise(1);
-    testIntensity = testIntensity+noise(2);
-    % Check that adding noise didn't take you outside the limits
-    if lambda > 1
-        lambda = 1;
-    elseif lambda < 0
-        lambda = 0;
-    elseif testIntensity > 1
-        testIntensity = 1;
-    elseif testIntensity < 0
-        testIntensity = 0;
-    end
-end
 
 % Check if the computed scale factors are reasonable
 if lambda < 0 || lambda > 1 || testIntensity < 0 || testIntensity > 1

@@ -81,7 +81,7 @@ function [coneAvgErr,matchAvgErr,coneAvgStdErr,matchAvgStdErr,matchAvgSampledErr
 %                            sensitivities and generalized Pitt diagrams
 %                            for each observer, not just the best and
 %                            worst. Default is false.
-%    'fieldSize          -Integer field size, in degrees. Default is 2.
+%    'fieldSize'         -Integer field size, in degrees. Default is 2.
 %    'age'               -Integer age for simulated observer. Default is
 %                         32.
 %    'p1Scale'           -Numerical scale factor for the first primary
@@ -113,9 +113,9 @@ function [coneAvgErr,matchAvgErr,coneAvgStdErr,matchAvgStdErr,matchAvgSampledErr
 %    'thresholdScaleFactor' -When using a simulated observer with
 %                            threshold matching, scale factor for matching
 %                            threshold. Default is 0.5.
-%     'noiseScaleFactor'    -Number >=0 which determines which scalar 
-%                            multiple of the opponent noise SD should be 
-%                            used as the observer noise SD. Default is 0.
+%    'noiseScaleFactor'  -Number >=0 which determines which scalar 
+%                         multiple of the opponent noise SD should be 
+%                         used as the observer noise SD. Default is 0.
 %    'LMEqualOD'         -Logical. If true, the parameter search constrains
 %                         L and M cone optical densities to be equal.
 %                         Default is false.
@@ -130,6 +130,9 @@ function [coneAvgErr,matchAvgErr,coneAvgStdErr,matchAvgStdErr,matchAvgSampledErr
 %                         previously-sampled observer parameters (useful
 %                         for when observers are used across multiple
 %                         experimental conditions). Default is [].
+%    'errWls'            -numeric vector of test wavelengths. If it is
+%                         nonempty, average match errors are calculated 
+%                         only for these wavelengths. Default is [].
 %    'plotTitle'         -Character vector for titling plots. Default is 
 %                         [], in which case a default file naming system is
 %                         used.
@@ -171,10 +174,9 @@ p.addParameter('LMEqualOD',false,@(x)(islogical(x)));
 p.addParameter('dlens0',false,@(x)(islogical(x)));
 p.addParameter('dmac0',false,@(x)(islogical(x)));
 p.addParameter('restrictBySd',true,@(x)(islogical(x)));
+p.addParameter('errWls',[],@(x)(isnumeric(x)));
 p.addParameter('sampledObservers',[],@(x)(isnumeric(x)));
 p.parse(varargin{:});
-
-matchErrScalar = 100;    % Scale factor to improve match error search
 
 % Generate opponent parameters if they do not exist
 if opponentParams(1)==0 && opponentParams(2)==0 && opponentParams(3)==0
@@ -206,6 +208,17 @@ else
     end
 end
 
+% Initial parameters related to error calculation 
+matchErrScalar = 100;    % Scale factor to improve match error search
+if ~isempty(p.Results.errWls)  % Calculate average error for specific wls
+    selectionArr = zeros(1,length(test));
+    for i = 1:length(p.Results.errWls)
+         selectionArr = selectionArr + (test==p.Results.errWls(i));
+    end
+else                           % Calculate average error using all wls
+    selectionArr = ones(1,length(test));
+end 
+
 % Data-storing arrays. Each row holds a different observer's params.
 recoveredParams = [];         % Cone parameters recovered by simulation
 testIntensitiesSim = [];      % Calculated test intensities
@@ -223,45 +236,45 @@ for i = 1:nObservers
     % Make a series of Rayleigh matches for the observer
     testingID = [subjID '_' num2str(i)];
     [testSpds,primarySpds,testIntensitiesSimObs,primaryRatiosSimObs] = ...
-        getMatchSeries(testingID,sampledParams(i,:),p1,p2,test,method,'fieldSize',...
-        p.Results.fieldSize,'age',p.Results.age,'p1Scale',p.Results.p1Scale,...
-        'p2Scale',p.Results.p2Scale,'testScale',p.Results.testScale,...
-        'monochromatic',p.Results.monochromatic,'nObserverMatches',...
+        getMatchSeries(testingID,sampledParams(i,:),opponentParams,p1,p2,...
+        test,method,'fieldSize',p.Results.fieldSize,'age',p.Results.age,...
+        'p1Scale',p.Results.p1Scale,'p2Scale',p.Results.p2Scale,...
+        'testScale',p.Results.testScale,'monochromatic',...
+        p.Results.monochromatic,'nObserverMatches',...
         p.Results.nObserverMatches,'nReversals',p.Results.nReversals,...
         'nBelowThreshold',p.Results.nBelowThreshold,'thresholdScaleFactor',...
         p.Results.thresholdScaleFactor,'rayleighPlots',false,...
         'saveResults',false,'nominal',p.Results.nominal,'adjustmentLength',...
-        p.Results.adjustmentLength);
+        p.Results.adjustmentLength,'noiseScaleFactor',...
+        p.Results.noiseScaleFactor,'averageSpds',true);
     testIntensitiesSim = [testIntensitiesSim;testIntensitiesSimObs];
     primaryRatiosSim = [primaryRatiosSim;primaryRatiosSimObs];
-    
-    % Record whether getMatchSeries made successful matches in all cases
-    nAttemptedMatches = length(test);    % Number of attempted matches
-    [~,nMatchSpds] = size(testSpds);     % Number of successful matches
+    testSpdsSelected = testSpds(selectionArr);
+    primarySpdsSelected = primarySpds(selectionArr);
     
     % Recover observer parameters and associated match error
-    [calcParams,calcErr] = findObserverParameters(testSpds,primarySpds,...
+    [calcParams] = findObserverParameters(testSpds,primarySpds,...
         'age',p.Results.age,'fieldSize',p.Results.fieldSize,...
         'restrictBySd',p.Results.restrictBySd,'dlens0',p.Results.dlens0,...
         'LMEqualOD',p.Results.LMEqualOD,'dmac0',p.Results.dmac0,....
-        'initialParams',baseParams,'errScalar',matchErrScalar);
+        'initialConeParams',baseParams,'errScalar',matchErrScalar,...
+        'opponentParams',opponentParams);
     recoveredParams = [recoveredParams;calcParams];
-    matchErr(i) = calcErr;
     
-    % Recover match error for the standard observer and the sampled
-    % observer
-    matchStandardErr(i) = findMatchError(zeros(1,8),stdObs,testSpds,...
-        primarySpds,'errScalar',matchErrScalar)/matchErrScalar;
-    matchSampledErr(i) = findMatchError(sampledParams(i,1:8),...
-        genRayleighObserver('coneVec',sampledParams(i,:),'age',p.Results.age,...
-        'fieldSize',p.Results.fieldSize),testSpds,primarySpds,...
-        'errScalar',matchErrScalar)/matchErrScalar;
+    % Find match error for the recovered, standard, and sampled observers
+    matchErr(i) = findMatchError(calcParams,stdObs,testSpdsSelected,...
+        primarySpdsSelected,'errScalar',matchErrScalar)/matchErrScalar;
+    matchStandardErr(i) = findMatchError(zeros(1,8),stdObs,testSpdsSelected,...
+        primarySpdsSelected,'errScalar',matchErrScalar)/matchErrScalar;
+    matchSampledErr(i) = findMatchError(sampledParams(i,:),stdObs,...
+        testSpdsSelected,primarySpdsSelected,'errScalar',matchErrScalar)...
+        /matchErrScalar;
     
     % Calculate predicted test intensity and primary ratio based on
     % recovered parameters. This will be compared to the actual values
     % found by the simulation.
     [~,~,testIntensitiesPredObs,primaryRatiosPredObs] = ...
-        getMatchSeries(testingID,[calcParams 0],p1,p2,test,...
+        getMatchSeries(testingID,calcParams,opponentParams,p1,p2,test,...
         'predicted','fieldSize',p.Results.fieldSize,...
         'age',p.Results.age,'p1Scale',p.Results.p1Scale,...
         'p2Scale',p.Results.p2Scale,'testScale',p.Results.testScale,...
@@ -274,10 +287,14 @@ for i = 1:nObservers
     % the two sets of parameters, and for the sampled parameters compared
     % to the base observer.
     [coneErr(i)] = findConeSensitivityError(sampledParams(i,:),...
-        [calcParams 0],'age',p.Results.age,'fieldSize',p.Results.fieldSize);
+        calcParams,'age',p.Results.age,'fieldSize',p.Results.fieldSize,...
+        'opponentParams',opponentParams);
     [coneStandardErr(i)] = findConeSensitivityError(sampledParams(i,:),...
-        baseParams,'age',p.Results.age,'fieldSize',p.Results.fieldSize);
-    save(fullfile(outputDir,[subjID '_paramsSearchData.mat']));
+        baseParams,'age',p.Results.age,'fieldSize',p.Results.fieldSize,...
+        'opponentParams',opponentParams);
+    if i~=nObservers
+        save(fullfile(outputDir,[subjID '_paramsSearchData.mat']));
+    end 
 end
 
 % Compute average error measures 
@@ -346,10 +363,10 @@ for k = 1:length(plottingInds)
     % Find and plot observer cone fundamentals
     sampledObserver = genRayleighObserver('age',p.Results.age,...
         'fieldSize',p.Results.fieldSize,'coneVec',...
-        sampledParams(plottingInds(k),:));
+        sampledParams(plottingInds(k),:),'opponentParams',opponentParams);
     recoveredObserver = genRayleighObserver('age',p.Results.age,...
         'fieldSize',p.Results.fieldSize,'coneVec',...
-        [recoveredParams(plottingInds(k),:) 0]);
+        recoveredParams(plottingInds(k),:),'opponentParams',opponentParams);
     l1 = plot(SToWls(S),sampledObserver.T_cones(1:2,:),'b-',...
         'LineWidth',2.5);
     l2 = plot(SToWls(S),recoveredObserver.T_cones(1:2,:),'r-',...

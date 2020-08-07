@@ -232,12 +232,8 @@ end
 fileName = [subjectID,'_',num2str(sessionNum),'.mat'];
 fileLoc = fullfile(outputDir,fileName);
 if exist(fileLoc,'file')
-    if (length(subjectID)~=length('test_series'))...
-            || ~all(subjectID=='test_series')
-        error('Specified output file %s already exists',fileName);
-    end
+    error('Specified output file %s already exists',fileName);
 end
-
 %% Set up key interpretations
 if simObserver || simKeypad
     keyCodes.switchStepSize = 's';
@@ -307,12 +303,12 @@ if idealForStandardObs
     [idealTestSpd,idealPrimarySpd,idealTestIntensity,idealPRatio] =...
         computePredictedRayleighMatch(p1SpdForSearch,p2SpdForSearch,...
         tSpdForSearch,zeros(1,9),opponentParams,'age',age,'fieldSize',...
-        fieldSize,'noisy',false,'S',cal.computed.pr650S,'darkSpd',darkSpd);
+        fieldSize,'S',cal.computed.pr650S,'darkSpd',darkSpd);
 else
     [idealTestSpd,idealPrimarySpd,idealTestIntensity,idealPRatio] =...
         computePredictedRayleighMatch(p1SpdForSearch,p2SpdForSearch,...
         tSpdForSearch,observerParams,opponentParams,'age',age,'fieldSize',...
-        fieldSize,'noisy',false,'S',cal.computed.pr650S,'darkSpd',darkSpd);
+        fieldSize,'S',cal.computed.pr650S,'darkSpd',darkSpd);
 end
 [~,pIdealIndex] = min(abs(p1Scales-idealPRatio));
 [~,tIdealIndex] = min(abs(testScales-idealTestIntensity));
@@ -678,7 +674,7 @@ while(stillLooping)
                     if plotResponses
                         nAdjustments = length(subjectSettings(matchSettingInd:end,1));
                         % Individual trajectory figure
-                        figure(nPlots);
+                        figure(nPlots);cl
                         subplot(2,1,1)
                         p1 = plot(nAdjustments+1,matches(end,2),'r* ',...
                             nAdjustments+1,idealPRatio,'gs',...

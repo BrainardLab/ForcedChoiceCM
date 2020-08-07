@@ -2,10 +2,9 @@ function [testSpds,primarySpds,testIntensities,primaryRatios] =...
     getMatchData(fName,varargin)
 % Helper function that takes in a data file produced by OLRayleighMatch and
 % returns the predicted primary and test spds associated with its matches.
-% Returns all of the matches by default, but you can also specify an index
-% so it returns a specific match or a series of test wavelengths to return
-% the match for. Also returns the primary ratio and test intensity, 
-% relative to the scaled OneLight spectra.
+% Returns all of the matches by default, but you can also specify to return
+% the average spds of all available matches. Also returns the primary ratio 
+% and test intensity, relative to the scaled OneLight spectra.
 %
 % Syntax:
 %   getMatchData(fName)
@@ -18,10 +17,11 @@ function [testSpds,primarySpds,testIntensities,primaryRatios] =...
 %    primary   - Predicted primary spd(s) for the match
 %
 % Optional key-value pairs:
-%    nominal    - Logical indicating to return spds from the nominal spds
-%                 array, not the predicted array. Default is false
-%    testWls    - Vector of desired test wavelengths to return the spd for.
-%                 Default is the empty matrix, which is ignored.
+%    nominal     - Logical indicating to return spds from the nominal spds
+%                  array, not the predicted array. Default is false
+%    averageSpds - Logical indicating to return the average of all spds in
+%                  the file (note that test intensities and primary ratios 
+%                  are not averaged). Default is false.
 
 % History:
 %   06/12/20  dce       Wrote it.
@@ -30,14 +30,14 @@ function [testSpds,primarySpds,testIntensities,primaryRatios] =...
 %   07/06/20  dce       Added primary ratio and test intensity outputs.
 %   07/17/20  dce       Added option to use nominal spds, not predicted
 %   07/24/20  dce       Added handling of case where no matches were made
-%   07/31/20  dce       Added option to specify wavelengths 
+%   08/07/20  dce       Added spd averaging option
 
 % Example
 
 % Parse input
 p = inputParser;
 p.addParameter('nominal',false,@(x)(islogical(x)));
-p.addParameter('testWls',[],@(x)(isnumeric(x)));
+p.addParameter('averageSpds',false,@(x)(islogical(x)));
 p.parse(varargin{:});
 
 % Data arrays
@@ -49,19 +49,8 @@ testIntensities = [];      % Test intensity settings
 
 % Find match position indices
 if ~isempty(theData.matchPositions)
-    % Return spds for the specified test wavelengths
-    if ~isempty(p.Results.testWls) 
-        % Create a selection array for logical indexing 
-        selectionArr = zeros(1,length(theData.test));
-        for i = 1:length(p.Results.testWls)
-            selectionArr = selectionArr+(theData.test==p.Results.testWls(i));
-        end 
-        tMatchInds = theData.matchPositions(selectionArr,1);
-        pMatchInds = theData.matchPositions(selectionArr,2);
-    else         % Return spds for all matches 
         tMatchInds = theData.matchPositions(:,1);
         pMatchInds = theData.matchPositions(:,2);
-    end
     
     % Define the spd arrays we're searching in
     if p.Results.nominal
@@ -95,6 +84,12 @@ if ~isempty(theData.matchPositions)
             theData.testScales(floor(tMatchInds(i)))]);
         testIntensities = [testIntensities,testIntensity];
     end
+    
+    % Average if we're looking for averages 
+    if p.Results.averageSpds
+        testSpds = mean(testSpds,2);
+        primarySpds = mean(primarySpds,2);
+    end 
 end
 end
 
