@@ -2,7 +2,7 @@ function spd = makeOLRayleighPrimary(wavelength,varargin)
 % Generates a narrowband spd for use in OneLight Rayleigh calculations
 %
 % Syntax:
-%   makeOLRayleighPrimary(wavelength)
+%   spd = makeOLRayleighPrimary(wavelength)
 %
 % Description:
 %    Takes in a peak wavelength as input, then constructs an associated spd
