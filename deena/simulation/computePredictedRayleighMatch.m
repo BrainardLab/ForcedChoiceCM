@@ -113,7 +113,7 @@ testIntensity = answer(2);
 
 % Check if the computed scale factors are reasonable
 if lambda < 0 || lambda > 1 || testIntensity < 0 || testIntensity > 1
-    error('Not possible to compute Rayleigh match');
+    error('Not possible to compute in range Rayleigh match');
 end
 
 % Generate adjusted spds
