@@ -1,12 +1,12 @@
 function [testAdjustedSpd,primaryMixtureSpd,testIntensity,lambda] = ...
-    computePredictedRayleighMatch(p1Spd,p2Spd,testSpd,observerParams, ...
+    computePredictedRayleighMatch(p1Spd,p2Spd,testSpd,observerParamsVec, ...
     opponentParams,varargin)
 % Calculates a predicted Rayleigh match analytically
 %
 % Syntax:
 %    [testAdjustedSpd,primaryMixtureSpd,testIntensity,lambda] = ...
 %        computePredictedRayleighMatch(p1Spd,p2Spd,testSpd,observerParams, ...
-%        opponentParams)
+%        opponentParamsVec)
 %
 % Description:
 %    Computes a Rayleigh match analytically when given the associated
@@ -25,7 +25,7 @@ function [testAdjustedSpd,primaryMixtureSpd,testIntensity,lambda] = ...
 %    observerParams  -Eight-element vector with the observer's individual
 %                     difference parameters (see findObserverParameters
 %                     for a full description)
-%    opponentParams  -4-element vector with opponent contrast parameters. 
+%    opponentParamsVec -4-element vector with opponent contrast parameters. 
 %                     (1) is the luminance weight, (2) is the rg weight,
 %                     (3) is the by weight, and (4) is the noise standard
 %                     deviation. 
@@ -59,6 +59,7 @@ function [testAdjustedSpd,primaryMixtureSpd,testIntensity,lambda] = ...
 %    dce    7/14/20   -Added predicted matching option
 %    dce    7/16/20   -Separated spd creation into a separate file
 %    dce    7/22/20   -Added option to pass in dark spd
+%    dhb   08/08/20   -Remame opponentParams -> opponentParamsVec for clarity.
 
 %% Parse input
 p = inputParser;
@@ -72,7 +73,7 @@ p.parse(varargin{:});
 %% Set up parameters
 % Construct a simulated observer with the specified parameters
 observer = genRayleighObserver('fieldSize',p.Results.fieldSize,'age',...
-    p.Results.age,'coneVec',observerParams,'opponentParams',opponentParams,...
+    p.Results.age,'coneVec',observerParamsVec,'opponentParams',opponentParams,...
     'S',p.Results.S);
 T_LM = observer.T_cones(1:2,:);         % L and M cone fundamentals
 
@@ -82,8 +83,8 @@ p1Res = T_LM*p1Spd;
 p2Res = T_LM*p2Spd;
 testRes = T_LM*testSpd;
 
-%% Set up a matrix equation to solve for the optimal primary ratio and
-%% test intensity
+%% Set up a matrix equation to solve for the optimal primary ratio and test intensity
+%
 % We want this to be true
 %   T_LM*(testIntensity)*testSpd == T_LM*(lambda*primary1Spd + (1-lambda)*primary2Spd)
 %   0 = T_LM*[(lambda*primary1Spd + (1-lambda)*primary2Spd) - (testIntensity)*testSpd)
@@ -99,7 +100,6 @@ testRes = T_LM*testSpd;
 % Define M = [ [p1Res(1)- p2Res(1)] , -testRes(1) ; [p1Res(2)- p2Res(2)], -testRes(2) ]
 % Define b = [-p2Res(1) -p2Res(2)]';
 % [lambda testIntensity]' = inv(M)*b;
-
 M = [(p1Res(1)-p2Res(1)),-testRes(1); (p1Res(2)-p2Res(2)),-testRes(2)];
 b = [-p2Res(1); -p2Res(2)];
 answer = inv(M)*b;
