@@ -42,9 +42,9 @@ testWls = [580 590 600 610 620 630 640 650];
 p1ScaleFactor = 1;
 p2ScaleFactor = 0.02;
 testScaleFactor = 0.5;
-adjustmentLength = 501;
+adjustmentLength = 4001;
 FORCE_COMPUTE_OLLIGHT = false;
-NOMINAL = false;
+NOMINAL = true;
 
 %% Loop over test peak wavelengths
 for ww = 1:length(testWls)
@@ -209,20 +209,20 @@ for ww = 1:length(testWls)
     minDiff = Inf;
     ttIndex(ww) = NaN;
     ppIndex(ww) = NaN;
+    LMSTestTemp = T_cones*testSpds;
+    LMSPrimaryTemp = T_cones*primarySpds;
     for tt = 1:size(testSpds,2)
-        for pp = 1:size(primarySpds,2)
-            LMTestTemp = T_cones(1:2,:)*testSpds(:,tt);
-            LMPrimaryTemp = T_cones(1:2,:)*primarySpds(:,pp);
-            diff = max(abs(LMTestTemp-LMPrimaryTemp));
-            if (diff < minDiff)
-                minDiff = diff;
-                ttIndex(ww) = tt;
-                ppIndex(ww) = pp;
-                ttLMTest(:,ww) = LMTestTemp;
-                ppLMPrimary(:,ww) = LMPrimaryTemp;
-                ttSpdTest(:,ww) = testSpds(:,tt);
-                ppSpdPrimary(:,ww) = primarySpds(:,pp);
-            end
+        opponentDiffTemp = LMSToOpponentContrast(observer.colorDiffParams,LMSTestTemp(:,tt),LMSPrimaryTemp);
+        diffTemp = vecnorm(opponentDiffTemp(1:2,:));
+        [diff,pp] = min(diffTemp);
+        if (diff < minDiff)
+            minDiff = diff;
+            ttIndex(ww) = tt;
+            ppIndex(ww) = pp;
+            ttLMTest(:,ww) = LMSTestTemp(1:2,tt);
+            ppLMPrimary(:,ww) = LMSPrimaryTemp(1:2,pp);
+            ttSpdTest(:,ww) = testSpds(:,tt);
+            ppSpdPrimary(:,ww) = primarySpds(:,pp);
         end
     end
     ttTestIntensity(ww) = ttIndex(ww) / size(testSpds,2);
@@ -232,7 +232,7 @@ for ww = 1:length(testWls)
     end
     if (abs(ppIndex(ww)-primaryIndex(ww)) > 1)
         %error('Don''t recover same primary index witin rounding in two ways');
-    end
+    end   
     
     % Check that analytic indices are within rounding.  Another one where
     % the error call is commented out.
