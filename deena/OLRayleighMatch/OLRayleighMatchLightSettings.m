@@ -39,6 +39,7 @@ function OLRayleighMatchLightSettings(p1, p2, test, varargin)
 %   06/09/20   dce       Added scaling factors as key-value pairs
 %   07/14/20   dce       Removed division by 3 from p2 calculation, removed
 %                        figure saving
+%   08/08/20   dhb       Add predicted incremental primaries and test
 
 %% Parse input
 p = inputParser;
@@ -124,10 +125,18 @@ darkSpd = OLPrimaryToSpd(cal,zeros(settingsLength, 1));
 % that we can get on the OL.
 testIncrSpdRel = OLMakeMonochromaticSpd(cal, test, fullWidthHalfMax);
 testIncrSpd = OLMaximizeSpd(cal,testIncrSpdRel,'lambda',lambda);
+[~,~,testIncrSpdPredicted] = OLSpdToSettings(cal,testIncrSpd+darkSpd,'lambda', lambda);
+testIncrSpdPredicted = testIncrSpdPredicted-darkSpd;
+
 primary1IncrSpdRel = OLMakeMonochromaticSpd(cal, p1, fullWidthHalfMax);
 primary1IncrSpd = OLMaximizeSpd(cal, primary1IncrSpdRel,'lambda',lambda);
+[~,~,primary1IncrSpdPredicted] = OLSpdToSettings(cal,primary1IncrSpd+darkSpd,'lambda', lambda);
+primary1IncrSpdPredicted = primary1IncrSpdPredicted-darkSpd;
+
 primary2IncrSpdRel = OLMakeMonochromaticSpd(cal, p2, fullWidthHalfMax);
 primary2IncrSpd = OLMaximizeSpd(cal, primary2IncrSpdRel,'lambda',lambda);
+[~,~,primary2IncrSpdPredicted] = OLSpdToSettings(cal,primary2IncrSpd+darkSpd,'lambda', lambda);
+primary2IncrSpdPredicted = primary2IncrSpdPredicted-darkSpd;
 
 %% Get set of test lights varying in intensity and primary lights varying
 %  in contribution of the two primaries. Scale by the factors defined above
@@ -146,6 +155,7 @@ for i = 1:adjustmentLength
     [primaryStartStops(i,1,:), primaryStartStops(i,2,:)] =...
         OLSettingsToStartsStops(cal, primarySettings(:,i));
 end
+clear i;
 
 %% Take a look at spectra (optional)
 makePlots = false;
