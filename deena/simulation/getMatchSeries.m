@@ -62,6 +62,9 @@ function [testSpds,primarySpds,testIntensities,primaryRatios] = ...
 %                         available for OLRayleighMatch. Default is 3201.
 %    'nObserverMatches'  -Number of matches to simulate for each set of
 %                         lights. Default is 1.
+%    'averageSpds'      - Logical indicating to return the average of all 
+%                         spds for a given test wavelength. Default is
+%                         true.
 %    'nReversals'        -Number of reversals the observer must make before
 %                         changing step size. Enter as a 2-element vector -
 %                         the first element is the number of reversals for
@@ -75,9 +78,9 @@ function [testSpds,primarySpds,testIntensities,primaryRatios] = ...
 %    'thresholdScaleFactor' -When using a simulated observer with
 %                            threshold matching, scale factor for matching
 %                            threshold. Default is 0.5.
-%     'noiseScaleFactor'    -Number >=0 which determines which scalar 
-%                            multiple of the opponent noise SD should be 
-%                            used as the observer noise SD. Default is 0.
+%    'noiseScaleFactor'    -Number >=0 which determines which scalar 
+%                           multiple of the opponent noise SD should be 
+%                           used as the observer noise SD. Default is 0.
 %    'nominal'           -Logical indicating to run the simulation with
 %                         nominal, rather than predicted, spds. Default
 %                         is false.
@@ -116,6 +119,7 @@ p.addParameter('nominal',false,@(x)(islogical(x)));
 p.addParameter('sPredicted',[380 2 201],@(x)(isnumeric(x)));
 p.addParameter('monochromatic',false,@(x)(islogical(x)));
 p.addParameter('rayleighPlots',true,@(x)(islogical(x)));
+p.addParameter('averageSpds',true,@(x)(islogical(x)));
 p.addParameter('saveResults',true,@(x)(islogical(x)));
 p.parse(varargin{:});
 
@@ -134,7 +138,7 @@ end
 if p.Results.saveResults
     fName = [subjID, '_', method, '_allSpds.mat'];
     file = fullfile(outputDir,fName);
-    if exist(file,'file') && ~strcmp(subjID,'test_series')
+    if exist(file,'file')
         error('Specified file already exists');
     end
 end
@@ -169,7 +173,8 @@ for i = 1:nCombos
         simFile = [subjID,'_',num2str(i),'.mat'];
         simFilePath = fullfile(outputDir,simFile);
         [testSpd,primarySpd,testIntensity,primaryRatio] =...
-            getMatchData(simFilePath,'nominal',p.Results.nominal);
+            getMatchData(simFilePath,'nominal',p.Results.nominal,...
+            'averageSpds',p.Results.averageSpds);
         
     elseif strcmp(method,'forcedChoice')% Use OLRayleighMatch forced choice
         OLRayleighMatch(subjID,i,'simObserver',true,'observerParams',...
@@ -186,7 +191,8 @@ for i = 1:nCombos
         simFile = [subjID,'_',num2str(i),'.mat'];
         simFilePath = fullfile(outputDir,simFile);
         [testSpd,primarySpd,testIntensity,primaryRatio] =...
-            getMatchData(simFilePath,'nominal',p.Results.nominal);
+            getMatchData(simFilePath,'nominal',p.Results.nominal,...
+            'averageSpds',p.Results.averageSpds);
         
     elseif p.Results.monochromatic  % Use computePredictedRayleighMatch monochromatic
         p1Spd = makeMonochromaticSpd(lightCombos(i,1),...
