@@ -42,9 +42,9 @@ testWls = [580 590 600 610 620 630 640 650];
 p1ScaleFactor = 1;
 p2ScaleFactor = 0.02;
 testScaleFactor = 0.5;
-adjustmentLength = 4001;
+adjustmentLength = 501;
 FORCE_COMPUTE_OLLIGHT = false;
-NOMINAL = true;
+NOMINAL = false;
 
 %% Loop over test peak wavelengths
 for ww = 1:length(testWls)
