@@ -40,15 +40,20 @@ function [testAdjustedSpd,primaryMixtureSpd,testIntensity,lambda] = ...
 % Optional key-value pairs:
 %    'age'             -Integer for subject age. Default is 32.
 %    'fieldSize'       -Integer field size in degrees. Default is 2.
-%    'monochromatic'   -Logical indicating that the passed spds are
-%    'darkSpd'         -nx1 dark spd vector. If not specified, default is
-%                       [].
+%    'monochromatic'   -Logical.  Default is false.  Not entirely clear
+%                       what the effect of this is, beyond preventing
+%                       addition of dark light to spectra.
+%    'darkSpd'         -nx1 dark spd vector, default is []
+%                       In case of [] and monochromatic is false, the dark
+%                       light from current OL calibration is added to
+%                       spectra before returning. Send in an nx1 vector of
+%                       zeros to prevent this behavior.
 %    'S'               -Wavelength sampling for cone calculations, in the
 %                       form [start delta nTerms]. Default is [380 2 201],
 %                       which is the OneLight convention. Note that S can
 %                       only vary from the OneLight convention when
 %                       monochromatic lights are used. Otherwise, the
-%                       program will throw an error.
+%                       routine will throw an error.
 
 % History
 %    dce    6/29/20   -Adapted from example code from dhb
