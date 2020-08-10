@@ -79,7 +79,7 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %    'observerParams' - 1x8 vector of Asano individual difference params
 %                       for simulated observer. Default is zeros(1,8)
 %    'opponentParams' - 1x4 vector of opponent contrast parameters. Default 
-%                       is [4 2 0.5 0.02]
+%                       is [0.8078 4.1146 1.2592 0.0200].
 %    'switchInterval' - When using a simulated observer, number of
 %                       adjustments to make in a particular dimension
 %                       (luminance or RG) before switching. Default is 1.
@@ -162,7 +162,7 @@ p.addParameter('silent',true,@(x)(islogical(x)));
 p.addParameter('simKeypad',false,@(x)(islogical(x)));
 p.addParameter('simObserver',true,@(x)(islogical(x)));
 p.addParameter('observerParams',zeros(1,8),@(x)(isnumeric(x)));
-p.addParameter('opponentParams',[4 2 0.5 0.02],@(x)(isvector(x)));
+p.addParameter('opponentParams',[0.8078 4.1146 1.2592 0.02],@(x)(isvector(x)));
 p.addParameter('nObserverMatches',1,@(x)(isnumeric(x)));
 p.addParameter('switchInterval',1,@(x)(isnumeric(x)));
 p.addParameter('nReversals',[1 4],@(x)(isnumeric(x)));

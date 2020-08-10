@@ -3,7 +3,7 @@ function colorDiffParams = getColorDiffParams(opponentParams)
 % input
 %
 % Syntax:
-%    colorDiffParams = getColorDiffParams(type)
+%    colorDiffParams = getColorDiffParams(opponentParams)
 %
 % Description:
 %    Generate a structure describing and observer's cone fundamentals, with

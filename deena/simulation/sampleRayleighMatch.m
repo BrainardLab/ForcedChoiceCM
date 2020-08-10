@@ -51,9 +51,7 @@ function [coneAvgErr,matchAvgErr,coneAvgStdErr,matchAvgStdErr,matchAvgSampledErr
 %                    standard deviation, while parameters set to 0 will
 %                    stay at the values specified in baseParams.
 %    opponentParams -Four-element vector of opponent contrast weightings. 
-%                    If the first three elements (other than noise) are set 
-%                    to 0, the program recomputes the other three
-%                    parameters.
+%                    (see genRayleighObserver).
 %    p1             -Integer or numeric vector of desired wavelengths
 %                    for the first primary.
 %    p2             -Integer or numeric vector of desired wavelengths
@@ -178,11 +176,6 @@ p.addParameter('restrictBySd',true,@(x)(islogical(x)));
 p.addParameter('errWls',[],@(x)(isnumeric(x)));
 p.addParameter('sampledObservers',[],@(x)(isnumeric(x)));
 p.parse(varargin{:});
-
-% Generate opponent parameters if they do not exist
-if opponentParams(1)==0 && opponentParams(2)==0 && opponentParams(3)==0
-    opponentParams = opponentAxesToLab(opponentParams(4));
-end 
 
 % Base observer, used for comparison
 stdObs = genRayleighObserver('age',p.Results.age,'fieldSize',...
