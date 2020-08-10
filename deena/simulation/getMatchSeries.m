@@ -16,7 +16,7 @@ function [testSpds,primarySpds,testIntensities,primaryRatios] = ...
 %    There are four options for calculating the Rayleigh matches in this
 %    program, at varying levels of abstraction. Users can choose either
 %    computePredictedRayleighMatch (analytical calculation with
-%    monochromatic spds), bestMatchSpectra (minimize opponent contrast 
+%    monochromatic spds), searchPredictedRayleighMatch (minimize opponent contrast 
 %    among available spds),or OLRayleighMatch (full simulation with threshold
 %    and forced-choice options). Note that when using OLRayleighMatch, some
 %    defaults in this function differ from those of OLRayleighMatch.
@@ -103,7 +103,7 @@ function [testSpds,primarySpds,testIntensities,primaryRatios] = ...
 %   07/06/20  dce       Changed matching methods.
 %   07/07/20  dce       Added primary ratio and test intensity as outputs
 %   08/05/20  dce       Added opponent contrast info 
-%   08/09/20  dce       Added bestMatchSpectra option
+%   08/09/20  dce       Added bestAvailable option
 
 % Input parsing
 p = inputParser;
@@ -146,10 +146,16 @@ if p.Results.saveResults
     end
 end
 
-% Generate an observer (note that S is not modified for a predicted match,
-% since the predicted matching function doesn't use the observer struct)
-observer = genRayleighObserver('fieldSize',p.Results.fieldSize,'age',...
-    p.Results.age,'coneVec',observerParams,'opponentParams',opponentParams);
+% Generate an observer 
+if strcmp(method,'predicted') % Can set S to desired value
+    observer = genRayleighObserver('fieldSize',p.Results.fieldSize,'age',...
+        p.Results.age,'coneVec',observerParams,'opponentParams',...
+        opponentParams,'S',p.Results.sPredicted);
+else                          % Leave S set to the OneLight default
+    observer = genRayleighObserver('fieldSize',p.Results.fieldSize,'age',...
+        p.Results.age,'coneVec',observerParams,'opponentParams',...
+        opponentParams);
+end
 
 % Generate an array of wavelength combinations - first column is p1,
 % second is p2, third is test
@@ -227,7 +233,7 @@ for i = 1:nCombos
         end 
         % Find the match 
         [testSpd,primarySpd,testInd,primaryInd] =...
-            bestMatchSpectra(pSpds,tSpds,observer);
+            bestMatchSpectra(tSpds,pSpds,observer);
         % Find the primary and test ratios
         testIntensity = lightSettings.testScales(testInd);
         primaryRatio = lightSettings.p1Scales(primaryInd);
@@ -242,9 +248,7 @@ for i = 1:nCombos
         
         [testSpd,primarySpd,testIntensity,primaryRatio] =...
             computePredictedRayleighMatch(p1Spd,p2Spd,tSpd,...
-            observerParams,opponentParams,'age',p.Results.age,'fieldSize',...
-            p.Results.fieldSize,'S',p.Results.sPredicted,...
-            'monochromatic',true);
+            observer,'S',p.Results.sPredicted,'addDarkSpd',false);
         
     else        % Use computePredictedRayleighMatch with OL spectra
         baseFile = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
@@ -303,9 +307,8 @@ for i = 1:nCombos
         % Run the test 
         [testSpd,primarySpd,testIntensity,primaryRatio] =...
             computePredictedRayleighMatch(p1Spd,p2Spd,tSpd,...
-            observerParams,opponentParams,'age',p.Results.age,'fieldSize',...
-            p.Results.fieldSize,'S',p.Results.sPredicted,...
-            'monochromatic',false,'darkSpd',darkSpd);        
+            observer,'S',p.Results.sPredicted,'addDarkSpd',true,...
+            'darkSpd',darkSpd);        
     end
     
     % Add calculated spds from the trial to the overall array, and save

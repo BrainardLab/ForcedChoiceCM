@@ -60,7 +60,7 @@ nPointsOnSphere = nTheta*nPhi;
 % Generate a unit sphere, and adjust so it is centered at the refLab
 % coordinates. The radius of 1 corresponds to a step of 1 in the CIELAB
 % space, which signifies a barely-detectable perceptual difference.
-sphereLab = SphereGenerate(nTheta,nPhi,1);
+sphereLab = UnitSphereGenerate(nTheta,nPhi);
 sphereLab(1,:) = sphereLab(1,:)+refLab(1);
 sphereLab(2,:) = sphereLab(2,:)+refLab(2);
 sphereLab(3,:) = sphereLab(3,:)+refLab(3);

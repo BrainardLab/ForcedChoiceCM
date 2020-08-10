@@ -1,6 +1,5 @@
 function [testAdjustedSpd,primaryMixtureSpd,testIntensity,lambda] = ...
-    computePredictedRayleighMatch(p1Spd,p2Spd,testSpd,observerParamsVec, ...
-    opponentParams,varargin)
+    computePredictedRayleighMatch(p1Spd,p2Spd,testSpd,observer,varargin)
 % Calculates a predicted Rayleigh match analytically
 %
 % Syntax:
@@ -17,18 +16,19 @@ function [testAdjustedSpd,primaryMixtureSpd,testIntensity,lambda] = ...
 %    noise standard deviation is entered for the observer, then Gaussian
 %    noise is added to the lambda and testIntensity parameters. There is
 %    also an option to plot the chosen match spds and their cone effects.
+
+%    Unlike searchPredictedRayleighMatch, which finds the best available
+%    match, this program assumes that the primary spectra are perfect
+%    linear combinations of p1 and p2. This assumption holds for nominal
+%    OneLight spectra, but not predicted. The linearity assumption also
+%    breaks down somewhat when adjustmentLength is small. 
 %
 % Inputs:
 %    p1Spd           -nx1 spd of the first primary light.
 %    p2Spd           -nx1 of the second primary light.
 %    testSpd         -nx1 of the test light.
-%    observerParams  -Eight-element vector with the observer's individual
-%                     difference parameters (see findObserverParameters
-%                     for a full description)
-%    opponentParamsVec -4-element vector with opponent contrast parameters. 
-%                     (1) is the luminance weight, (2) is the rg weight,
-%                     (3) is the by weight, and (4) is the noise standard
-%                     deviation. 
+%    observer        -Structure of a simulated observer (see
+%                     genRayleighObserver for details)
 %
 % Outputs:
 %    primaryMixtureSpd    -Predicted primary spd for the match
@@ -38,11 +38,8 @@ function [testAdjustedSpd,primaryMixtureSpd,testIntensity,lambda] = ...
 %    testIntensity        -Scale factor for test intensity, between 0 and 1
 %
 % Optional key-value pairs:
-%    'age'             -Integer for subject age. Default is 32.
-%    'fieldSize'       -Integer field size in degrees. Default is 2.
-%    'monochromatic'   -Logical.  Default is false.  Not entirely clear
-%                       what the effect of this is, beyond preventing
-%                       addition of dark light to spectra.
+%    'addDarkSpd'      -Logical.  Default is true. When true, adds a dark
+%                       spd as specified by 'darkSpd'.
 %    'darkSpd'         -nx1 dark spd vector, default is []
 %                       In case of [] and monochromatic is false, the dark
 %                       light from current OL calibration is added to
@@ -64,26 +61,22 @@ function [testAdjustedSpd,primaryMixtureSpd,testIntensity,lambda] = ...
 %    dce    7/14/20   -Added predicted matching option
 %    dce    7/16/20   -Separated spd creation into a separate file
 %    dce    7/22/20   -Added option to pass in dark spd
-%    dhb   08/08/20   -Remame opponentParams -> opponentParamsVec for clarity.
+%    dhb    08/08/20  -Remame opponentParams -> opponentParamsVec for clarity.
+%    dce    08/10/20  -Rename monochromatic key-value pair, changed to take
+%                      in observer struct instead of params vector.
 
 %% Parse input
 p = inputParser;
 p.addParameter('age',32,@(x)(isnumeric(x)));
 p.addParameter('fieldSize',2,@(x)(isnumeric(x)));
 p.addParameter('S',[380 2 201],@(x)(isnumeric(x)));
-p.addParameter('monochromatic',false,@(x)(islogical(x)));
+p.addParameter('addDarkSpd',true,@(x)(islogical(x)));
 p.addParameter('darkSpd',[],@(x)(isnumeric(x)));
 p.parse(varargin{:});
 
-%% Set up parameters
-% Construct a simulated observer with the specified parameters
-observer = genRayleighObserver('fieldSize',p.Results.fieldSize,'age',...
-    p.Results.age,'coneVec',observerParamsVec,'opponentParams',opponentParams,...
-    'S',p.Results.S);
+%% Find observer cone responses to the three base spds. 
+% Each vector contains two elements-one for the L cone, one for the M cone.
 T_LM = observer.T_cones(1:2,:);         % L and M cone fundamentals
-
-% Cone responses to the three base spds. Each vector contains two elements
-% - one for the L cone, one for the M cone.
 p1Res = T_LM*p1Spd;
 p2Res = T_LM*p2Spd;
 testRes = T_LM*testSpd;
@@ -121,7 +114,7 @@ primaryMixtureSpd = lambda*p1Spd + (1-lambda)*p2Spd;
 testAdjustedSpd = testIntensity*testSpd;
 
 % If not monochromatic, add the dark spd
-if ~p.Results.monochromatic
+if p.Results.addDarkSpd
     if isempty(p.Results.darkSpd)
         cal = OLGetCalibrationStructure('CalibrationType',...
             getpref('ForcedChoiceCM','currentCal'));
@@ -137,6 +130,7 @@ end
 % Make optional plots of the results
 plotResults = false;
 if plotResults
+    wls = StoWls(p.Results.S);
     primaryLMS = observer.T_cones*primaryMixtureSpd;
     testLMS = observer.T_cones*testAdjustedSpd;
     OLPlotSpdCheck(wls,[primaryMixtureSpd,testAdjustedSpd]);

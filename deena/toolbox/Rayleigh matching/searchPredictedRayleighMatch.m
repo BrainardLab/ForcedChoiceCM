@@ -1,9 +1,9 @@
 function [tSpd,pSpd,tIndex,pIndex,minDiff] =...
-    bestMatchSpectra(primarySpds,testSpds,observer)
+    searchPredictedRayleighMatch(testSpds,primarySpds,observer)
 % Finds the best possible match for a given set of primary and test lights
 %
 % Syntax:
-%   findNominalMatch(primarySpds,testSpds,coneParams)
+%   searchPredictedRayleighMatch(testSpds,primarySpds,observer)
 %
 % Description:
 %    Takes in two matrices of possible primary and test spds used in a 
@@ -12,9 +12,15 @@ function [tSpd,pSpd,tIndex,pIndex,minDiff] =...
 %    spds has the smallest opponent contrast for the observer. Returns the 
 %    primary and test spds, as well as their indices in the lights array. 
 %
+%    Unlike computePredictedRayleighMatch, which computes the ideal match
+%    analytically, this routine finds the best match among an available set
+%    of lights. This avoids issues of quantization for small adjustment
+%    lengths, as well as nonlinearities due to OneLight nominal ->
+%    predicted conversion.
+%
 % Inputs:
-%    primarySpds  -spdLength x n matrix of possible primary spds
 %    testSpds     -spdLength x m matrix of possible test spds
+%    primarySpds  -spdLength x n matrix of possible primary spds
 %    observer     -Structure of a simulated observer (see
 %                  genRayleighObserver for details)
 %
@@ -33,6 +39,7 @@ function [tSpd,pSpd,tIndex,pIndex,minDiff] =...
 % History
 %    dce    08/09/20  - Adapted from findNominalMatch and dhb's
 %                       t_AnalyticRayleighMatch
+%    dce    08/10/20  - Renamed, changed order of inputs to standardize
 
 % Initial search settings 
 minDiff = Inf;

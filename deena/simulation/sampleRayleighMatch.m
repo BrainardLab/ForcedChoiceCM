@@ -13,11 +13,10 @@ function [coneAvgErr,matchAvgErr,coneAvgStdErr,matchAvgStdErr,matchAvgSampledErr
 %    Creates a series of simulated observers by sampling the chosen
 %    parameters based on their standard deviations. For each observer, runs
 %    a Rayleigh matching simulation with a set of primary/test lights
-%    (OLRayleighMatch or computePredictedRayleighMatch) and uses the match
-%    results to recover the individual difference parameters
-%    (findObserverParameters). Then, conducts a few basic analyses to
-%    validate how similar the recovered parameters are to the sampled
-%    (true) parameters.
+%    and uses the match results to recover the individual difference 
+%    parameters (findObserverParameters). Then, conducts a few basic 
+%    analyses to validate how similar the recovered parameters are to the 
+%    sampled (true) parameters.
 %
 %    The program produces five types of plots. The first is a plot of
 %    sampled vs predicted values for each parameter, aggregated across all
