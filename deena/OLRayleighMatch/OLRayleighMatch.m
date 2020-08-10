@@ -138,6 +138,7 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %   07/24/20  dce       Added exit condition for infinite looping in
 %                       threshold case
 %   08/05/20  dce       Added opponent contrast params input 
+%   08/09/20  dce       Changed ideal match to best available, not nominal 
 
 %% Close any stray figures
 close all;
@@ -280,46 +281,40 @@ primaryStartStops = lightSettings.primaryStartStops;
 testStartStops = lightSettings.testStartStops;
 p1Scales = lightSettings.p1Scales;
 testScales = lightSettings.testScales;
-darkSpd = lightSettings.darkSpd;
 wls = lightSettings.cal.computed.pr650Wls;
 
-% Compute the nominal match
-% Find spds
-p2SpdForSearch = primarySpdsPredicted(:,1)-darkSpd;
-tSpdForSearch = testSpdsPredicted(:,end)-darkSpd;
-p1SpdForSearch = primarySpdsPredicted(:,end);
-
-% Scale p1 down in the p2 region
-ind1 = find(wls==p2-lightSettings.fullWidthHalfMax);
-ind2 = find(wls==p2+lightSettings.fullWidthHalfMax);
-p1SpdForSearch(ind1:ind2) =  primarySpdsNominal(ind1:ind2,end);
-p1SpdForSearch = p1SpdForSearch-darkSpd;
-
-% Compute the nominal match. The idealForStandardObs flag means that the
-% program will find the nominal match for the standard observer, not the
-% actual observer being used.
-idealForStandardObs = false;
-if idealForStandardObs
-    [idealTestSpd,idealPrimarySpd,idealTestIntensity,idealPRatio] =...
-        computePredictedRayleighMatch(p1SpdForSearch,p2SpdForSearch,...
-        tSpdForSearch,zeros(1,9),opponentParams,'age',age,'fieldSize',...
-        fieldSize,'S',cal.computed.pr650S,'darkSpd',darkSpd);
-else
-    [idealTestSpd,idealPrimarySpd,idealTestIntensity,idealPRatio] =...
-        computePredictedRayleighMatch(p1SpdForSearch,p2SpdForSearch,...
-        tSpdForSearch,observerParams,opponentParams,'age',age,'fieldSize',...
-        fieldSize,'S',cal.computed.pr650S,'darkSpd',darkSpd);
-end
-[~,pIdealIndex] = min(abs(p1Scales-idealPRatio));
-[~,tIdealIndex] = min(abs(testScales-idealTestIntensity));
-
 %% Initialize simulated observer if desired
-observer = [];
+stdObserver = genRayleighObserver('fieldSize',fieldSize,'age',age,...
+        'coneVec',zeros(1,8),'opponentParams',opponentParams,...
+        'S',cal.computed.pr650S);
 if simObserver
     observer = genRayleighObserver('fieldSize',fieldSize,'age',age,...
         'coneVec',observerParams,'opponentParams',opponentParams,...
         'S',cal.computed.pr650S);
+else 
+    observer = stdObserver;
 end
+
+%% Find nominal match 
+% Which spds are we using in simulation?
+if simNominalLights
+    primarySpds = primarySpdsNominal;
+    testSpds = testSpdsNominal;
+else 
+    primarySpds = primarySpdsPredicted;
+    testSpds = testSpdsPredicted;
+end 
+% Compute the nominal match
+idealForStandardObs = false;
+if idealForStandardObs
+    [idealTestSpd,idealPrimarySpd,tIdealIndex,pIdealIndex] =...
+        bestMatchSpectra(primarySpds,testSpds,stdObs);
+else 
+    [idealTestSpd,idealPrimarySpd,tIdealIndex,pIdealIndex] =...
+        bestMatchSpectra(primarySpds,testSpds,observer);
+end 
+idealTestIntensity = testScales(tIdealIndex);
+idealPRatio = p1Scales(pIdealIndex);
 
 %% Intialize OneLight and button box/keypresses
 if simKeypad
@@ -470,19 +465,10 @@ while(stillLooping)
         if simObserver
             [row,~] = size(matches);
             % Prompt the observer for a decision
-            if simNominalLights
-                [p1_up,t_up,isBelowThreshold] = ...
-                    observerRayleighDecision(observer,...
-                    primarySpdsNominal(:,primaryPos),...
-                    testSpdsNominal(:,testPos),'thresholdScale',...
-                    thresholdScaleFactor,'noiseScale',noiseScaleFactor);
-            else
-                [p1_up,t_up,isBelowThreshold] = ...
-                    observerRayleighDecision(observer,...
-                    primarySpdsPredicted(:,primaryPos),...
-                    testSpdsPredicted(:,testPos),'thresholdScale',...
-                    thresholdScaleFactor,'noiseScale',noiseScaleFactor);
-            end
+            [p1_up,t_up,isBelowThreshold] = ...
+                observerRayleighDecision(observer,primarySpds(:,primaryPos),...
+                testSpds(:,testPos),'thresholdScale',thresholdScaleFactor,...
+                'noiseScale',noiseScaleFactor);
             % If we are making threshold matches, record whether this
             % combination of lights is below the threshold
             if thresholdMatching && isBelowThreshold
@@ -674,7 +660,7 @@ while(stillLooping)
                     if plotResponses
                         nAdjustments = length(subjectSettings(matchSettingInd:end,1));
                         % Individual trajectory figure
-                        figure(nPlots);cl
+                        figure(nPlots);
                         subplot(2,1,1)
                         p1 = plot(nAdjustments+1,matches(end,2),'r* ',...
                             nAdjustments+1,idealPRatio,'gs',...

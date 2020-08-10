@@ -149,6 +149,8 @@ function [coneAvgErr,matchAvgErr,coneAvgStdErr,matchAvgStdErr,matchAvgSampledErr
 %   07/29/20  dce       Moved parameter sampling to a separate function
 %   07/31/20  dce       Changed plot titling and filename conventions
 %   08/03/20  dce       Added more outputs (standard and sampled)
+%   08/09/20  dce       Changed generalized Pitt diagram to include best
+%                       available matches, not analytic
 
 % Close stray figures
 close all;
@@ -218,6 +220,7 @@ if ~isempty(p.Results.errWls)  % Calculate average error for specific wls
 else                           % Calculate average error using all wls
     selectionArr = ones(1,length(test));
 end 
+selectionArr = logical(selectionArr);
 
 % Data-storing arrays. Each row holds a different observer's params.
 recoveredParams = [];         % Cone parameters recovered by simulation
@@ -249,8 +252,8 @@ for i = 1:nObservers
         p.Results.noiseScaleFactor,'averageSpds',true);
     testIntensitiesSim = [testIntensitiesSim;testIntensitiesSimObs];
     primaryRatiosSim = [primaryRatiosSim;primaryRatiosSimObs];
-    testSpdsSelected = testSpds(selectionArr);
-    primarySpdsSelected = primarySpds(selectionArr);
+    testSpdsSelected = testSpds(:,selectionArr);
+    primarySpdsSelected = primarySpds(:,selectionArr);
     
     % Recover observer parameters and associated match error
     [calcParams] = findObserverParameters(testSpds,primarySpds,...
@@ -275,7 +278,7 @@ for i = 1:nObservers
     % found by the simulation.
     [~,~,testIntensitiesPredObs,primaryRatiosPredObs] = ...
         getMatchSeries(testingID,calcParams,opponentParams,p1,p2,test,...
-        'predicted','fieldSize',p.Results.fieldSize,...
+        'bestAvailable','fieldSize',p.Results.fieldSize,...
         'age',p.Results.age,'p1Scale',p.Results.p1Scale,...
         'p2Scale',p.Results.p2Scale,'testScale',p.Results.testScale,...
         'monochromatic',p.Results.monochromatic,'saveResults',false,...

@@ -13,10 +13,11 @@ function [testSpds,primarySpds,testIntensities,primaryRatios] = ...
 %    primary and test spds which were found by the observer for each match, 
 %    collated into two matrices. Also saves results to a file.
 %
-%    There are three options for calculating the Rayleigh matches in this
+%    There are four options for calculating the Rayleigh matches in this
 %    program, at varying levels of abstraction. Users can choose either
 %    computePredictedRayleighMatch (analytical calculation with
-%    monochromatic spds) or OLRayleighMatch (full simulation with threshold
+%    monochromatic spds), bestMatchSpectra (minimize opponent contrast 
+%    among available spds),or OLRayleighMatch (full simulation with threshold
 %    and forced-choice options). Note that when using OLRayleighMatch, some
 %    defaults in this function differ from those of OLRayleighMatch.
 %
@@ -35,7 +36,8 @@ function [testSpds,primarySpds,testIntensities,primaryRatios] = ...
 %    testWls            -Integer or numeric vector of desired wavelengths
 %                        for the test light.
 %    method             -Character vector for match method. Choose either
-%                        'predicted', 'threshold', or 'forcedChoice'.
+%                        'predicted', 'threshold', 'forcedChoice', or 
+%                        'bestAvailable'.
 % Outputs:
 %    testSpds           -spdLength x n vector representation of the
 %                        predicted spds for the chosen test lights
@@ -101,6 +103,7 @@ function [testSpds,primarySpds,testIntensities,primaryRatios] = ...
 %   07/06/20  dce       Changed matching methods.
 %   07/07/20  dce       Added primary ratio and test intensity as outputs
 %   08/05/20  dce       Added opponent contrast info 
+%   08/09/20  dce       Added bestMatchSpectra option
 
 % Input parsing
 p = inputParser;
@@ -125,7 +128,7 @@ p.parse(varargin{:});
 
 % Check that a correct method has been entered
 if ~strcmp(method,'predicted') && ~strcmp(method,'threshold') && ...
-        ~strcmp(method,'forcedChoice')
+        ~strcmp(method,'forcedChoice') && ~strcmp(method,'bestAvailable')
     error('Unrecognized Rayleigh match method');
 end
 
@@ -142,6 +145,11 @@ if p.Results.saveResults
         error('Specified file already exists');
     end
 end
+
+% Generate an observer (note that S is not modified for a predicted match,
+% since the predicted matching function doesn't use the observer struct)
+observer = genRayleighObserver('fieldSize',p.Results.fieldSize,'age',...
+    p.Results.age,'coneVec',observerParams,'opponentParams',opponentParams);
 
 % Generate an array of wavelength combinations - first column is p1,
 % second is p2, third is test
@@ -193,6 +201,36 @@ for i = 1:nCombos
         [testSpd,primarySpd,testIntensity,primaryRatio] =...
             getMatchData(simFilePath,'nominal',p.Results.nominal,...
             'averageSpds',p.Results.averageSpds);
+        
+    elseif strcmp(method,'bestAvailable')  % Use bestMatchSpectra
+        % Find precomputed spectra, or compute if they do not exist
+        lightFile = sprintf('OLRayleighMatch%gSpectralSettings_%g_%g_%g_%g_%g_%g.mat',...
+            p.Results.adjustmentLength,lightCombos(i,1),lightCombos(i,2),...
+            lightCombos(i,3),p.Results.p1Scale,p.Results.p2Scale,...
+            p.Results.testScale);
+        lightFileName = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
+            'precomputedStartStops',lightFile);
+        if ~exist(lightFileName,'file')
+            OLRayleighMatchLightSettings(lightCombos(i,1),lightCombos(i,2),...
+                lightCombos(i,3),'p1ScaleFactor',p.Results.p1Scale,...
+                'p2ScaleFactor',p.Results.p2Scale,'testScaleFactor',...
+                p.Results.testScale,'adjustmentLength',p.Results.adjustmentLength);
+        end
+        lightSettings = load(lightFileName);
+        % Identify the spds we're using 
+        if p.Results.nominal
+            pSpds = lightSettings.primarySpdsNominal;
+            tSpds = lightSettings.testSpdsNominal;
+        else 
+            pSpds = lightSettings.primarySpdsPredicted;
+            tSpds = lightSettings.testSpdsPredicted;
+        end 
+        % Find the match 
+        [testSpd,primarySpd,testInd,primaryInd] =...
+            bestMatchSpectra(pSpds,tSpds,observer);
+        % Find the primary and test ratios
+        testIntensity = lightSettings.testScales(testInd);
+        primaryRatio = lightSettings.p1Scales(primaryInd);
         
     elseif p.Results.monochromatic  % Use computePredictedRayleighMatch monochromatic
         p1Spd = makeMonochromaticSpd(lightCombos(i,1),...
