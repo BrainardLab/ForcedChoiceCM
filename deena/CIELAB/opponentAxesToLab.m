@@ -36,8 +36,15 @@ if noiseSD <= 0
     error('Noise must be greater than 0');
 end 
 
-% Initial parameters
-refLMS = [1 1 1]';  % Reference LMS coordinates (set later)
+% Load T_cones_ss2
+load T_cones_ss2
+
+% Load D65
+load spd_D65
+spd_D65 = SplineSpd(S_D65,spd_D65,S_cones_ss2);
+refLMS = T_cones_ss2*spd_D65;
+refLMS = refLMS/max(refLMS(:));
+%refLMS = [1 1 1]';  % Reference LMS coordinates (set later)
 
 % Convert reference to Lab coordinates, using itself as white point
 [refLab,~,refXYZ] = LMSToLAB(refLMS,refLMS);
