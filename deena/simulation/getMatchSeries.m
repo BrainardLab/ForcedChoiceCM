@@ -233,7 +233,7 @@ for i = 1:nCombos
         end 
         % Find the match 
         [testSpd,primarySpd,testInd,primaryInd] =...
-            bestMatchSpectra(tSpds,pSpds,observer);
+            searchPredictedRayleighMatch(tSpds,pSpds,observer);
         % Find the primary and test ratios
         testIntensity = lightSettings.testScales(testInd);
         primaryRatio = lightSettings.p1Scales(primaryInd);

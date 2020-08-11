@@ -333,7 +333,7 @@ subplot('Position', subplotPosVectors(1,1).v);
 hold on;
 bar([coneErr coneStandardErr]);
 title('Cone Spectral Sensitivity Error');
-legend('Sampled vs Recovered Params', 'Sampled vs Base Params');
+legend('Simulated vs Recovered Params', 'Simulated vs Standard Params');
 ylabel('Error');
 xlabel('Observer');
 ylim([0 0.02]);
@@ -343,7 +343,7 @@ subplot('Position', subplotPosVectors(1,2).v);
 hold on;
 bar([matchSampledErr matchErr matchStandardErr]);
 title('Match Spectral Sensitivity Error');
-legend('Sampled Params', 'Recovered Params', 'Base Params');
+legend('Simulated Parameters','Recovered Parameters','Standard Parameters');
 ylabel('Error');
 xlabel('Observer');
 ylim([0 0.2]);
@@ -367,8 +367,8 @@ for k = 1:length(plottingInds)
     l2 = plot(SToWls(S),recoveredObserver.T_cones(1:2,:),'r-',...
         'LineWidth',1.25);
     % Clean up plot
-    legend([l1(1) l2(1)],'sampled observer','recovered observer');
-    theTitle = sprintf('L and M Cone Spectral Sensitivities, observer %g',...
+    legend([l1(1) l2(1)],'Simulated Observer','Recovered Observer');
+    theTitle = sprintf('L and M Cone Spectral Sensitivities, Observer %g',...
         plottingInds(k));
     title(theTitle);
     xlabel('Wavelength (nm)');
@@ -383,7 +383,7 @@ for k = 1:length(plottingInds)
     l2 = plot(primaryRatiosPred(plottingInds(k),:),...
         testIntensitiesPred(plottingInds(k),:),'r-o','LineWidth',1.25);
     % Clean up plot
-    theTitle = sprintf('Generalized Pitt Diagram, observer %g',plottingInds(k));
+    theTitle = sprintf('Generalized Pitt Diagram, Observer %g',plottingInds(k));
     title(theTitle);
     xlabel('Primary Ratio');
     ylabel('Test Intensity');
@@ -393,25 +393,25 @@ for k = 1:length(plottingInds)
     labels = cellstr(num2str(test'));
     dx =  -0.01;   % x offset
     dy = 0.005;     % y offset
-    %         text(primaryRatiosSim(plottingInds(k),:)+dx...
-    %             ,testIntensitiesSim(plottingInds(k),:)+dy,labels);
+            text(primaryRatiosSim(plottingInds(k),:)+dx...
+                ,testIntensitiesSim(plottingInds(k),:)+dy,labels);
 end
 % Edit titles if plots were only made for best and worst observers
 if ~p.Results.makeAllObserverPlots
     subplot('Position', subplotPosVectors(2,1).v);
-    theTitle = sprintf('L and M Cone Spectral Sensitivities, observer %g (best)',bestObs);
+    theTitle = sprintf('L and M Cone Spectral Sensitivities, Observer %g (Best)',bestObs);
     title(theTitle);
     
     subplot('Position', subplotPosVectors(2,2).v);
-    theTitle = sprintf('Generalized Pitt Diagram, observer %g (best)',bestObs);
+    theTitle = sprintf('Generalized Pitt Diagram, Observer %g (Best)',bestObs);
     title(theTitle);
     
     subplot('Position', subplotPosVectors(3,1).v);
-    theTitle = sprintf('L and M Cone Spectral Sensitivities, observer %g (worst)',worstObs);
+    theTitle = sprintf('L and M Cone Spectral Sensitivities, Observer %g (Worst)',worstObs);
     title(theTitle);
     
     subplot('Position', subplotPosVectors(3,2).v);
-    theTitle = sprintf('Generalized Pitt Diagram, observer %g (worst)',worstObs);
+    theTitle = sprintf('Generalized Pitt Diagram, Observer %g (Worst)',worstObs);
     title(theTitle);
 end
 % Save plot
@@ -467,9 +467,9 @@ for ii = 1:length(paramsToVary)
     l2 = refline(1,0);
     
     % Titles and labels
-    theTitle = sprintf('%s Predicted vs Actual',cell2mat(coneParamNames(ii)));
+    theTitle = sprintf('%s Recovered vs Simulated',cell2mat(coneParamNames(ii)));
     title(theTitle);
-    xlabel('Sampled Parameters');
+    xlabel('Simulated Parameters');
     ylabel('Recovered Parameters');
     lgd = legend([l1 l2],'Parameters','y=x');
     lgd.Location = 'northwest';

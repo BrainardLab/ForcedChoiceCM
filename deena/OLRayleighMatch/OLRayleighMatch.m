@@ -308,10 +308,10 @@ end
 idealForStandardObs = false;
 if idealForStandardObs
     [idealTestSpd,idealPrimarySpd,tIdealIndex,pIdealIndex] =...
-        bestMatchSpectra(primarySpds,testSpds,stdObs);
+        searchPredictedRayleighmatch(testSpds,primarySpds,stdObs);
 else 
     [idealTestSpd,idealPrimarySpd,tIdealIndex,pIdealIndex] =...
-        bestMatchSpectra(primarySpds,testSpds,observer);
+        searchPredictedRayleighMatch(testSpds,primarySpds,observer);
 end 
 idealTestIntensity = testScales(tIdealIndex);
 idealPRatio = p1Scales(pIdealIndex);

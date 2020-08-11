@@ -579,16 +579,16 @@ if isempty(p.Results.testingParamToVary2)% Make plots for a single variable
         xVals = testingValsToVary;
     end
     % Plot results
-    plot(xVals,coneErrFC,'r-o','LineWidth',2.5);
     plot(xVals,coneErrStdFC,'g-o','LineWidth',2.5);
+    plot(xVals,coneErrFC,'r-o','LineWidth',2.5);
     if ~isempty(coneErrAdjust)
         plot(xVals,coneErrAdjust,'b-o','LineWidth',2.5);
         labels2 = cellstr(num2str(coneErrAdjust,3));
         text(xVals+dx,coneErrFC+dyThreshold*coneErrLim,labels2,'Color','b');
-        legend('Forced Choice - Recovered Cones',...
-            'Forced Choice - Standard Cones','Adjustment - Recovered Cones');
+        legend('Forced Choice - Standard Cones',...
+            'Forced Choice - Recovered Cones','Adjustment - Recovered Cones');
     else
-        legend('Forced Choice','Forced Choice - Standard Cones');
+        legend('Forced Choice - Standard Cones','Forced Choice - Recovered Cones');
     end
     labels1 = cellstr(num2str(coneErrFC,3));
     text(xVals+dx,coneErrFC+dyFC*coneErrLim,labels1,'Color','r');
@@ -604,18 +604,19 @@ if isempty(p.Results.testingParamToVary2)% Make plots for a single variable
     % Subplot 2 - Match error
     subplot('Position', subplotPosVectors(2,1).v);
     hold on;
-    plot(xVals,matchErrFC,'r-o','LineWidth',2.5);
     plot(xVals,matchErrStdFC,'g-o','LineWidth',2.5);
     plot(xVals,matchErrSampledFC,'y-o','LineWidth',2.5);
+    plot(xVals,matchErrFC,'r-o','LineWidth',2.5);
     if ~strcmp(testingParamToVary,'adjustmentLength')
         plot(xVals,matchErrAdjust,'b-o','LineWidth',2.5);
         labels2 = cellstr(num2str(matchErrAdjust,3));
         text(xVals+dx,matchErrFC+dyThreshold*matchErrLim,labels2,'Color','b')
-        legend('Forced Choice','Forced Choice - Standard Cones',...
-            'Forced Choice - Sampled Cones','Adjustment');
+        legend('Forced Choice - Standard Cones',...
+            'Forced Choice - Simulated Cones',...
+            'Forced Choice - Recovered Cones','Adjustment - Recovered Cones');
     else
-        legend('Forced Choice','Forced Choice - Standard Cones',...
-            'Forced Choice - Sampled Cones');
+        legend('Forced Choice - Standard Cones',...
+            'Forced Choice - Simulated Cones','Forced Choice - Recovered Cones');
     end
     labels1 = cellstr(num2str(matchErrFC,3));
     text(xVals+dx,matchErrFC+dyFC*matchErrLim,labels1,'Color','r');
