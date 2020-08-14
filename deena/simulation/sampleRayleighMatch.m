@@ -217,9 +217,11 @@ selectionArr = logical(selectionArr);
 % Data-storing arrays. Each row holds a different observer's params.
 recoveredParams = [];         % Cone parameters recovered by simulation
 testIntensitiesSim = [];      % Calculated test intensities
-testIntensitiesPred = [];     % Test intensities predicted from recovered params
-primaryRatiosSim = [];        % Calculated primary ratios
-primaryRatiosPred = [];       % Primary ratios predicted from recovered params
+testIntensitiesRecPred = [];     % Test intensities predicted from recovered params
+testIntensitiesSimPred = [];     % Test intensities predicted from simulated params
+primaryRatiosSim = [];            % Calculated primary ratios
+primaryRatiosRecPred = [];       % Primary ratios predicted from recovered params
+primaryRatiosSimPred = [];       % Primary ratios predicted from simulated params
 coneErr = zeros(nObservers,1);         % Error between sampled and recovered cones
 coneStandardErr = zeros(nObservers,1); % Error between sampled and standard cones
 matchErr = zeros(nObservers,1);        % Match error when using recovered parameters
@@ -275,8 +277,20 @@ for i = 1:nObservers
         'p2Scale',p.Results.p2Scale,'testScale',p.Results.testScale,...
         'monochromatic',p.Results.monochromatic,'saveResults',false,...
         'nominal',p.Results.nominal);
-    testIntensitiesPred = [testIntensitiesPred;testIntensitiesPredObs];
-    primaryRatiosPred = [primaryRatiosPred;primaryRatiosPredObs];
+    testIntensitiesRecPred = [testIntensitiesRecPred;testIntensitiesPredObs];
+    primaryRatiosRecPred = [primaryRatiosRecPred;primaryRatiosPredObs];
+    
+    % Calculate predicted test intensity and primary ratio based on
+    % simulated parameters.
+        [~,~,testIntensitiesPredObs2,primaryRatiosPredObs2] = ...
+        getMatchSeries(testingID,sampledParams(i,:),opponentParams,p1,p2,test,...
+        'bestAvailable','fieldSize',p.Results.fieldSize,...
+        'age',p.Results.age,'p1Scale',p.Results.p1Scale,...
+        'p2Scale',p.Results.p2Scale,'testScale',p.Results.testScale,...
+        'monochromatic',p.Results.monochromatic,'saveResults',false,...
+        'nominal',p.Results.nominal);
+    testIntensitiesSimPred = [testIntensitiesSimPred;testIntensitiesPredObs2];
+    primaryRatiosSimPred = [primaryRatiosSimPred;primaryRatiosPredObs2];
     
     % Calculate root mean square error of the spectral sensitivities for
     % the two sets of parameters, and for the sampled parameters compared
@@ -378,23 +392,25 @@ for k = 1:length(plottingInds)
     % data
     subplot('Position', subplotPosVectors(row,2).v);
     hold on;
-    l1 = plot(primaryRatiosSim(plottingInds(k),:),...
-        testIntensitiesSim(plottingInds(k),:),'b-o','LineWidth',2.5);
-    l2 = plot(primaryRatiosPred(plottingInds(k),:),...
-        testIntensitiesPred(plottingInds(k),:),'r-o','LineWidth',1.25);
+    l1 = plot(primaryRatiosRecPred(plottingInds(k),:),...
+        testIntensitiesRecPred(plottingInds(k),:),'r o','MarkerSize',8,...
+        'MarkerFaceColor','r');
+    l2 = plot(primaryRatiosSimPred(plottingInds(k),:),...
+        testIntensitiesSimPred(plottingInds(k),:),'g o','MarkerSize',6,...
+        'MarkerFaceColor','g');
+    l3 = plot(primaryRatiosSim(plottingInds(k),:),...
+        testIntensitiesSim(plottingInds(k),:),'b o','MarkerSize',4,...
+        'MarkerFaceColor','b');
     % Clean up plot
     theTitle = sprintf('Generalized Pitt Diagram, Observer %g',plottingInds(k));
     title(theTitle);
     xlabel('Primary Ratio');
     ylabel('Test Intensity');
-    lgd = legend([l1 l2],'Simulated','Predicted');
+    lgd = legend([l1 l2 l3],'Predicted Matches - Recovered Params',...
+        'Predicted Matches - Simulated Params','Simulated Matches');
     lgd.Location = 'northwest';
-    % Add text labels for wavelength
-    labels = cellstr(num2str(test'));
-    dx =  -0.01;   % x offset
-    dy = 0.005;     % y offset
-            text(primaryRatiosSim(plottingInds(k),:)+dx...
-                ,testIntensitiesSim(plottingInds(k),:)+dy,labels);
+    xlim([0 1]);
+    ylim([0 0.5]);
 end
 % Edit titles if plots were only made for best and worst observers
 if ~p.Results.makeAllObserverPlots

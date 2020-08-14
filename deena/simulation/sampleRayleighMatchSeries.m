@@ -59,7 +59,7 @@ function sampleRayleighMatchSeries(subjID,nObservers,p1,p2,test,...
 %    'baseConeParams'    -Eight-element numeric vector of individual
 %                         difference parameters used as a starting point.
 %                         Default is zeros(1,8)
-%    opponentParams      -4-element vector with opponent contrast  
+%    'opponentParams'    -4-element vector with opponent contrast  
 %                         parameters. Default is [0.8078 4.1146 1.2592 0.02].
 %    'p1Scale'           -Numerical scale factor for the first primary
 %                         light, between 0 and 1. Default is 1.
@@ -87,7 +87,7 @@ function sampleRayleighMatchSeries(subjID,nObservers,p1,p2,test,...
 %    'noiseScaleFactor'  -Number >=0 which determines which scalar 
 %                         multiple of the opponent noise SD should be 
 %                         used as the observer noise SD. Default is 0.
-%    'LMEqualOD'         -Logical. If true, the parameter search constrnMatains
+%    'LMEqualOD'         -Logical. If true, the parameter search constrnatains
 %                         L and M cone optical densities to be equal.
 %                         Default is false.
 %    'dlens0'            -Logical. If true, the parameter search constrains
@@ -316,7 +316,7 @@ for i = 1:length(testingValsToVary)
                 % Define the parameters
                 testSpds = test(1):testingValsToVary(i):test(end);
                 plotTitle = ['Noise = ' num2str(p.Results.testingValsToVary2(j)...
-                    *opponentNoise) ', nWavelengths = ' num2str(length(testSpds))];
+                    *p.Results.opponentParams(4)) ', nWavelengths = ' num2str(length(testSpds))];
                 % Run the simulation with the two methods
                 [coneErrAdjust(i,j),matchErrAdjust(i,j),coneErrStdAdjust(i,j),...
                     matchErrStdAdjust(i,j),matchErrSampledAdjust(i,j)] = ...
@@ -356,7 +356,7 @@ for i = 1:length(testingValsToVary)
                 % Define the parameters
                 nObserverMatches = testingValsToVary(i);
                 plotTitle = ['Noise = ' num2str(p.Results.testingValsToVary2(j)...
-                    *opponentNoise) ', nMatches = ' num2str(nObserverMatches)];
+                    *p.Results.opponentParams(4)) ', nMatches = ' num2str(nObserverMatches)];
                 % Run the simulation with the two methods
                 [coneErrAdjust(i,j),matchErrAdjust(i,j),coneErrStdAdjust(i,j),...
                     matchErrStdAdjust(i,j),matchErrSampledAdjust(i,j)] = ...
@@ -452,7 +452,7 @@ for i = 1:length(testingValsToVary)
             
             % Vary noise
         elseif strcmp(testingParamToVary,'noise')
-            plotTitle = ['Noise = ' num2str(testingValsToVary(i))];
+            plotTitle = ['Noise = ' num2str(testingValsToVary(i))*p.Results.opponentParams(4)];
             % Sample, test, and recover parameters with the two methods
             [coneErrAdjust(i),matchErrAdjust(i),coneErrStdAdjust(i),...
                 matchErrStdAdjust(i),matchErrSampledAdjust(i)] = ...
@@ -550,8 +550,8 @@ matchErrLim = 0.2;
 
 % Offsets for text labels
 dx =  -0.001* [0,ones(1,length(testingValsToVary)-1)];
-dyFC = 0.2;
-dyThreshold = 0.3;
+dyHigh = 0.1;
+dyLow = 0.05;
 
 if isempty(p.Results.testingParamToVary2)% Make plots for a single variable
     theFig = figure();
@@ -560,7 +560,7 @@ if isempty(p.Results.testingParamToVary2)% Make plots for a single variable
     subplotPosVectors = NicePlot.getSubPlotPosVectors(...
         'rowsNum', 2, ...
         'colsNum', 1, ...
-        'heightMargin',  0.1, ...
+        'heightMargin',  0.15, ...
         'widthMargin',    0.1, ...
         'leftMargin',     0.1, ...
         'rightMargin',    0.1, ...
@@ -573,9 +573,10 @@ if isempty(p.Results.testingParamToVary2)% Make plots for a single variable
     % If wavelength increment is being varied, the x value is the number of
     % wavelengths, not the increment.
     if strcmp(testingParamToVary,'testWlIncr')
-        xVals = ceil(length(570:610)*(1./testingValsToVary));
-        %xVals = ceil(length(test(1):test(end))*(1./testingValsToVary));
-    else
+        xVals = ceil(length(test(1):test(end))*(1./testingValsToVary));
+    elseif strcmp(testingParamToVary,'noise')
+         xVals = testingValsToVary*p.Results.opponentParams(4);
+    else 
         xVals = testingValsToVary;
     end
     % Plot results
@@ -584,46 +585,50 @@ if isempty(p.Results.testingParamToVary2)% Make plots for a single variable
     if ~isempty(coneErrAdjust)
         plot(xVals,coneErrAdjust,'b-o','LineWidth',2.5);
         labels2 = cellstr(num2str(coneErrAdjust,3));
-        text(xVals+dx,coneErrFC+dyThreshold*coneErrLim,labels2,'Color','b');
+        text(xVals+dx,coneErrAdjust+dyLow*coneErrLim,labels2,'Color','b');
         legend('Forced Choice - Standard Cones',...
-            'Forced Choice - Recovered Cones','Adjustment - Recovered Cones');
+            'Forced Choice - Recovered Cones','Adjustment - Recovered Cones',...
+            'Location','northwest');
     else
-        legend('Forced Choice - Standard Cones','Forced Choice - Recovered Cones');
+        legend('Forced Choice - Standard Cones',...
+            'Forced Choice - Recovered Cones','Location','northeast');
     end
     labels1 = cellstr(num2str(coneErrFC,3));
-    text(xVals+dx,coneErrFC+dyFC*coneErrLim,labels1,'Color','r');
+    text(xVals+dx,coneErrFC+dyLow*coneErrLim,labels1,'Color','r');
     labels3 = cellstr(num2str(coneErrStdFC,3));
-    text(xVals+dx,coneErrStdFC+dyFC*coneErrLim*0.5,labels3,'Color','g');
+    text(xVals+dx,coneErrStdFC+dyHigh*coneErrLim*0.5,labels3,'Color','g');
     
     title('Average Cone Spectral Sensitivity Error');
     xlabel(paramName);
     ylabel('Average RMS Error');
     ylim([0 coneErrLim]);
-    text(xVals(end)/10,0.0175,['n = ' num2str(nObservers)]);
+    text(xVals(end)*9/10,0.0175,['n = ' num2str(nObservers)]);
     
     % Subplot 2 - Match error
     subplot('Position', subplotPosVectors(2,1).v);
     hold on;
     plot(xVals,matchErrStdFC,'g-o','LineWidth',2.5);
-    plot(xVals,matchErrSampledFC,'y-o','LineWidth',2.5);
+    plot(xVals,matchErrSampledFC,'m-o','LineWidth',2.5);
     plot(xVals,matchErrFC,'r-o','LineWidth',2.5);
-    if ~strcmp(testingParamToVary,'adjustmentLength')
+    if ~isempty(matchErrAdjust)
         plot(xVals,matchErrAdjust,'b-o','LineWidth',2.5);
         labels2 = cellstr(num2str(matchErrAdjust,3));
-        text(xVals+dx,matchErrFC+dyThreshold*matchErrLim,labels2,'Color','b')
+        text(xVals+dx,matchErrAdjust+1.5*dyHigh*matchErrLim,labels2,'Color','b')
         legend('Forced Choice - Standard Cones',...
             'Forced Choice - Simulated Cones',...
-            'Forced Choice - Recovered Cones','Adjustment - Recovered Cones');
+            'Forced Choice - Recovered Cones','Adjustment - Recovered Cones',...
+            'Location','northwest');
     else
         legend('Forced Choice - Standard Cones',...
-            'Forced Choice - Simulated Cones','Forced Choice - Recovered Cones');
+            'Forced Choice - Simulated Cones','Forced Choice - Recovered Cones',...
+            'Location','northeast');
     end
     labels1 = cellstr(num2str(matchErrFC,3));
-    text(xVals+dx,matchErrFC+dyFC*matchErrLim,labels1,'Color','r');
+    text(xVals+dx,matchErrFC+dyLow*matchErrLim,labels1,'Color','r');
     labels3 = cellstr(num2str(matchErrStdFC,3));
-    text(xVals+dx,matchErrStdFC+dyFC*matchErrLim*0.5,labels3,'Color','g');
+    text(xVals+dx,matchErrStdFC+dyHigh*matchErrLim*0.5,labels3,'Color','g');
     labels4 = cellstr(num2str(matchErrSampledFC,3));
-    text(xVals+dx,matchErrFC+0.5*dyFC*matchErrLim,labels4,'Color','y');
+    text(xVals+dx,matchErrSampledFC+dyHigh*matchErrLim,labels4,'Color','m');
     
     title('Average Match Error');
     xlabel(paramName);
@@ -631,7 +636,6 @@ if isempty(p.Results.testingParamToVary2)% Make plots for a single variable
     ylim([0 matchErrLim]);
     text(xVals(end)/10,0.045,['n = ' num2str(nObservers)]);
     sgtitle(['Vary ' paramName]);
-    
 else            % Make plots for variation of two parameters
     theFig = figure();
     set(theFig,'Color',[1 1 1],'Position',[10 10 1400 800]);
@@ -654,6 +658,9 @@ else            % Make plots for variation of two parameters
         yVals = testingValsToVary;
     end
     xVals = p.Results.testingValsToVary2;
+    if strcmp(p.Results.testingParamToVary2,'noise')
+        xVals = xVals*p.Results.opponentParams(4);
+    end 
     
     % Subplot 1 - cone spectral sensitivity error threshold
     subplot('Position', subplotPosVectors(1,1).v);
