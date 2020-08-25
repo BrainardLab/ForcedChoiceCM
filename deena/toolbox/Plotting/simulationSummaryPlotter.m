@@ -2,7 +2,7 @@
 paramsNoiseFig = figure();
 set(paramsNoiseFig,'Color',[1 1 1],'Position',[10 10 800 800]);
 hold on;
-nCols2 = 3;
+nCols2 = 2;
 nRows2 = 2;
 subplotPosVectors = NicePlot.getSubPlotPosVectors(...
     'rowsNum', nRows2, ...
@@ -13,16 +13,15 @@ subplotPosVectors = NicePlot.getSubPlotPosVectors(...
     'rightMargin',    0.04, ...
     'bottomMargin',   0.1, ...
     'topMargin',      0.1);
-plotNames = {'Noise SD = 0','Noise SD = 0.02',...
-    'Noise SD = 0.04','Noise SD = 0.06','Noise SD = 0.08'};
-file0 = load('\Users\deena\Dropbox (Aguirre-Brainard Lab)\MELA_datadev\Experiments\ForcedChoiceCM\OLRayleighMatch\paramsSearch\varyNoiseForPaper2_0_FC\varyNoiseForPaper2_0_FC_paramsSearchData.mat');
-file1 = load('\Users\deena\Dropbox (Aguirre-Brainard Lab)\MELA_datadev\Experiments\ForcedChoiceCM\OLRayleighMatch\paramsSearch\varyNoiseForPaper2_1_FC\varyNoiseForPaper2_1_FC_paramsSearchData.mat');
-file2 = load('\Users\deena\Dropbox (Aguirre-Brainard Lab)\MELA_datadev\Experiments\ForcedChoiceCM\OLRayleighMatch\paramsSearch\varyNoiseForPaper2_2_FC\varyNoiseForPaper2_2_FC_paramsSearchData.mat');
-file3 = load('\Users\deena\Dropbox (Aguirre-Brainard Lab)\MELA_datadev\Experiments\ForcedChoiceCM\OLRayleighMatch\paramsSearch\varyNoiseForPaper2_3_FC\varyNoiseForPaper2_3_FC_paramsSearchData.mat');
-file4 = load('\Users\deena\Dropbox (Aguirre-Brainard Lab)\MELA_datadev\Experiments\ForcedChoiceCM\OLRayleighMatch\paramsSearch\varyNoiseForPaper2_4_FC\varyNoiseForPaper2_4_FC_paramsSearchData.mat');
-files = {file0 file1 file2 file3 file4}; 
+plotNames = {'1 Match','2 Matches',...
+    '3 Matches','4 Matches'};
+file1 = load('\Users\deena\Dropbox (Aguirre-Brainard Lab)\MELA_datadev\Experiments\ForcedChoiceCM\OLRayleighMatch\paramsSearch\varyNMatchesForPaper7_1_FC\varyNMatchesForPaper7_1_FC_paramsSearchData.mat');
+file2 = load('\Users\deena\Dropbox (Aguirre-Brainard Lab)\MELA_datadev\Experiments\ForcedChoiceCM\OLRayleighMatch\paramsSearch\varyNMatchesForPaper7_2_FC\varyNMatchesForPaper7_2_FC_paramsSearchData.mat');
+file3 = load('\Users\deena\Dropbox (Aguirre-Brainard Lab)\MELA_datadev\Experiments\ForcedChoiceCM\OLRayleighMatch\paramsSearch\varyNMatchesForPaper7_3_FC\varyNMatchesForPaper7_3_FC_paramsSearchData.mat');
+file4 = load('\Users\deena\Dropbox (Aguirre-Brainard Lab)\MELA_datadev\Experiments\ForcedChoiceCM\OLRayleighMatch\paramsSearch\varyNMatchesForPaper7_4_FC\varyNMatchesForPaper7_4_FC_paramsSearchData.mat');
+files = {file1 file2 file3 file4}; 
 
-for i = 1:5
+for i = 1:4
     % Make a subplot in the correct position
     row = ceil(i/nCols2);
     col = mod(i,nCols2);
@@ -31,22 +30,20 @@ for i = 1:5
     end
     subplot('Position', subplotPosVectors(row,col).v);
     hold on;
-    xlim([-5 5]);
-    ylim([-5 5]);
+    xlim([-40 40]);
+    ylim([-40 40]);
     axis('square');
     theFile = cell2mat(files(i));
-    xVals = theFile.sampledParams(:,7);   % Predicted parameters
-    yVals = theFile.recoveredParams(:,7);         % Recovered params
+    xVals = theFile.sampledParams(:,4);   % Predicted parameters
+    yVals = theFile.recoveredParams(:,4);         % Recovered params
     l1 = plot(xVals,yVals,'b* ','MarkerSize',7,'LineWidth',1);
     l2 = refline(1,0);
     theTitle = sprintf(cell2mat(plotNames(i)));
     title(theTitle);
     xlabel('Simulated Parameter');
     ylabel('Recovered Parameter');
-    lgd = legend([l1 l2],'Parameter','y=x');
-    lgd.Location = 'northwest';
 end 
-sgtitle('M Cone Lambda Max Recovery - Vary Noise')
+sgtitle('M Cone Optical Density Recovery - Effect of Number of Matches')
 
 %% Error chart
     plottingInds = [bestObs worstObs];

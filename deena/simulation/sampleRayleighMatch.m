@@ -123,7 +123,7 @@ function [coneAvgErr,matchAvgErr,coneAvgStdErr,matchAvgStdErr,matchAvgSampledErr
 %    'restrictBySd'      -Logical. If true, the parameter search restricts
 %                         all params to within three standard deviations of
 %                         their means. Default is true.
-%    'sampledObservers'  -length(baseParams)xnObservers array of
+%    'sampledObservers'  -nObservers x length(baseParams)array of
 %                         previously-sampled observer parameters (useful
 %                         for when observers are used across multiple
 %                         experimental conditions). Default is [].

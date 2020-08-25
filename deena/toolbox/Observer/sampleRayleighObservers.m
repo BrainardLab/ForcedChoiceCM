@@ -23,7 +23,7 @@ function sampledParams = sampleRayleighObservers(nObservers,baseParams,...
 %                    standard deviation, while parameters set to 0 will
 %                    stay at the values specified in baseParams.
 % Outputs:
-%    sampledObservers  -8x nObservers array of sampled observer parameters.
+%    sampledObservers  -nObservers x 8 array of sampled observer parameters.
 %
 % Optional key-value pairs:
 %    none
