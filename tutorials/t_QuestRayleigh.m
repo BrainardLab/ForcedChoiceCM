@@ -77,7 +77,7 @@ psiParamsLabels = {'Lens Density', 'Macular Pigment Density', 'L density', 'M de
 % Marginalize?  Costs considerable time as domain grows.  Empty for not.
 marginalizeVector = [];
 
-USE_PRECOMPUTE = true;
+USE_PRECOMPUTE = false;
 if (~USE_PRECOMPUTE)
     fprintf('Initializing quest structure ...\n');
     
