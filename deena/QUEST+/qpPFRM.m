@@ -5,6 +5,7 @@ function [predictedProportions] = qpPFRM(stimParamsVec,coneParamsVec,opponentPar
 %     [predictedProportions] =
 %     qpPFRM(stimParamsVec,coneParamsVec,opponentParamsVec,noiseSD,S,p1Spd,p2Spd,tSpds,tWls)
 %
+%
 % Description:
 %     Psychometric function for Rayleigh matching of luminance or 
 %     chromaticity. Takes in a matrix of stimulus parameters which are used 
