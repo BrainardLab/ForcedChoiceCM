@@ -117,9 +117,9 @@ function [coneAvgErr,matchAvgErr,coneAvgStdErr,matchAvgStdErr,matchAvgSampledErr
 %                         L and M cone optical densities to be equal.
 %                         Default is false.
 %    'dlens0'            -Logical. If true, the parameter search constrains
-%                         the lens pigment density to 0. Default is false.
+%                         the lens pigment density to 0. Default is true.
 %    'dmac0'             -Logical. If true, the parameter search constrains
-%                         macular pigment density to 0. Default is false.
+%                         macular pigment density to 0. Default is true.
 %    'restrictBySd'      -Logical. If true, the parameter search restricts
 %                         all params to within three standard deviations of
 %                         their means. Default is true.
@@ -170,8 +170,8 @@ p.addParameter('nBelowThreshold',1,@(x)(isnumeric(x)));
 p.addParameter('thresholdScaleFactor',0.5,@(x)(isnumeric(x)));
 p.addParameter('noiseScaleFactor',0,@(x)(isnumeric(x)));
 p.addParameter('LMEqualOD',false,@(x)(islogical(x)));
-p.addParameter('dlens0',false,@(x)(islogical(x)));
-p.addParameter('dmac0',false,@(x)(islogical(x)));
+p.addParameter('dlens0',true,@(x)(islogical(x)));
+p.addParameter('dmac0',true,@(x)(islogical(x)));
 p.addParameter('restrictBySd',true,@(x)(islogical(x)));
 p.addParameter('errWls',[],@(x)(isnumeric(x)));
 p.addParameter('sampledObservers',[],@(x)(isnumeric(x)));

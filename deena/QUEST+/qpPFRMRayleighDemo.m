@@ -2,6 +2,9 @@
 % psychometric function. Tests variations in chromaticity, brightness, and
 % test wavelength. 
 
+% History
+%  10/08/20    dce  -Wrote script
+
 %% Setup 
 close all; 
 
@@ -32,18 +35,19 @@ opponentParams = [observer.colorDiffParams.lumWeight,...
     observer.colorDiffParams.rgWeight,observer.colorDiffParams.byWeight,...
     observer.colorDiffParams.noiseSd];
 coneParams = ObserverParamsToVec('basic',observer);
+lambdaRef = 0.8; % Lambda for reference spd
 
 % Set up different noise levels. These are all multiples of the noise SD
 % set in the cone parameters vector, which defaults to 0.02.
 noiseSd = coneParams(9);    
-noise = noiseSd * [1 5 10 200];
+noise = noiseSd * [1 5 10 20];
 colors = 'rgbm';       % Colors for plotting the various noise levels
 
 %% Demo 1 - lambda
 % how does p(red) change as a function of lambda?
 lambdas = 0:0.02:1;
-testIntensity = 1;
-testWl = 600;
+testIntensity = 0.5;
+testWl = 560;
 
 % 2-column vector of lambdas and stimulus parameters
 stimParams = [lambdas' repmat(testIntensity,length(lambdas),1),...
@@ -56,7 +60,7 @@ hold on;
 
 for i = 1:length(noise)
     proportions = qpPFRM(stimParams,coneParams(1:8),opponentParams,...
-        noise(i),S,p1Spd,p2Spd,testSpds,testWls,'judgeLum',false);
+        noise(i),S,p1Spd,p2Spd,testSpds,testWls,lambdaRef,'judgeLum',false);
     % The first column contains probabilities of the "no" response - the
     % test light is not redder than the primary mixture, i.e. the primary
     % mixture is redder. 
@@ -85,7 +89,7 @@ hold on;
 
 for i = 1:length(noise)
     proportions = qpPFRM(stimParams,coneParams(1:8),opponentParams,...
-        noise(i),S,p1Spd,p2Spd,testSpds,testWls,'judgeLum',true);
+        noise(i),S,p1Spd,p2Spd,testSpds,testWls,lambdaRef,'judgeLum',true);
     % The second column contains probabilities of the "yes" response - the
     % test light is brighter than the primary mixture.
     pBright = proportions(:,2);
@@ -119,7 +123,7 @@ hold on;
 
 for i = 1:length(noise)
     proportions = qpPFRM(stimParams,coneParams(1:8),opponentParams,...
-        noise(i),S,p1Spd,p2Spd,testSpds,testWls,'judgeLum',false);
+        noise(i),S,p1Spd,p2Spd,testSpds,testWls,lambdaRef,'judgeLum',false);
     % The second column contains probabilities of the "yes" response - the  
     % test light is redder than the primary light.
     pTestRed = proportions(:,2);

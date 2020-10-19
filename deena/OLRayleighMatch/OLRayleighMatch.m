@@ -453,8 +453,8 @@ while(stillLooping)
             hold on;
             xlim([0 1]);
             ylim([0 1]);
-            xlabel('Proportional Test Intensity');
-            ylabel('Primary Ratio (Proportion Red)');
+            ylabel('Proportional Test Intensity');
+            xlabel('Primary Ratio (Proportion Red)');
             title2 = sprintf('Subject Settings Over Time, Match %g',nPlots/2);
             title(title2);
             plot(idealTestIntensity,idealPRatio,'gs',...
@@ -649,12 +649,12 @@ while(stillLooping)
                         subplot(2,1,1)
                         p1 = plot(nAdjustments+1,matches(end,2),'r* ',...
                             nAdjustments+1,idealPRatio,'gs',...
-                            'MarkerSize',7);
+                            'MarkerSize',10,'LineWidth',2);
                         legend(p1,'Subject Match','Nominal Match');
                         subplot(2,1,2);
                         p2 = plot(nAdjustments+1,matches(end,1),'r*',...
                             nAdjustments+1,idealTestIntensity,'gs',...
-                            'MarkerSize',7);
+                            'MarkerSize',10,'LineWidth',2);
                         legend(p2,'Subject Match','Nominal Match');
                         
                         % Joint trajectory figure
@@ -689,7 +689,7 @@ while(stillLooping)
                         'subjectSettings','p1','p2','test','cal',...
                         'primarySpdsNominal','primarySpdsPredicted',...
                         'testSpdsNominal','testSpdsPredicted',...
-                        'primaryStartStops','testStartStops','subjectID',...
+                        'subjectID',...
                         'sessionNum','annulusData','sInterval','lInterval',...
                         'adjustmentLength','foveal','simNominalLights',...
                         'nReversals','switchInterval','observer',...
@@ -824,12 +824,12 @@ while(stillLooping)
                     || key.charCode == keyCodes.increaseIntensity)
                 figure(nPlots);
                 subplot(2,1,1);
-                plot(subjectSettings(matchSettingInd:end,2),'b*-');
+                plot(subjectSettings(matchSettingInd:end,2),'bo-','LineWidth',2);
                 subplot(2,1,2);
-                plot(subjectSettings(matchSettingInd:end,1),'b*-');
+                plot(subjectSettings(matchSettingInd:end,1),'bo-','LineWidth',2);
                 figure(nPlots+1);
                 plot(subjectSettings(matchSettingInd:end,1),...
-                    subjectSettings(matchSettingInd:end,2), 'b*-');
+                    subjectSettings(matchSettingInd:end,2), 'bo-','LineWidth',2);
             end
         end
     end

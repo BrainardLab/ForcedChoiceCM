@@ -1,9 +1,9 @@
-function [predictedProportions] = qpPFRM(stimParamsVec,coneParamsVec,opponentParamsVec,noiseSD,S,p1Spd,p2Spd,tSpds,tWls,varargin)
+function [predictedProportions] = qpPFRM(stimParamsVec,coneParamsVec,opponentParamsVec,noiseSD,S,p1Spd,p2Spd,tSpds,tWls,lambdaRef,varargin)
 % Psychometric function for Rayleigh matching
 %
 % Usage:
 %     [predictedProportions] =
-%     qpPFRM(stimParamsVec,coneParamsVec,opponentParamsVec,noiseSD,S,p1Spd,p2Spd,tSpds,tWls)
+%     qpPFRM(stimParamsVec,coneParamsVec,opponentParamsVec,noiseSD,S,p1Spd,p2Spd,tSpds,tWls,lambdaRef)
 %
 %
 % Description:
@@ -16,9 +16,9 @@ function [predictedProportions] = qpPFRM(stimParamsVec,coneParamsVec,opponentPar
 %
 % Input:
 %     stimParamsVec      Matrix, with each row being a vector of stimulus
-%                        parameters [lambda,test intensity,test peak wavelength].
-%                        (lambda is the proportion of p1 in the primary
-%                        mixture). 
+%                        parameters [lambda,test intensity,test peak 
+%                        wavelength].(lambda is the proportion of p1 in the 
+%                        primary mixture). 
 %     coneParamsVec      Row vector of cone parameters for the observer.
 %                        Consists of eight individual difference parameters 
 %                        that follow the Asano model (2016). See  
@@ -34,10 +34,13 @@ function [predictedProportions] = qpPFRM(stimParamsVec,coneParamsVec,opponentPar
 %     p2Spd              Spd for second primary in mixture (green), entered
 %                        as a column vector.
 %     tSpds              Matrix of spds for possible test lights at 
-%                        different peak wavelengths. Has dimensions of spdLength 
-%                        x nWls. 
+%                        different peak wavelengths. Has dimensions of  
+%                        spdLength x nWls. 
 %     tWls               Vector specifying which peak wavelengths are included
 %                        in tSpds. Its length must equal the width of tSpds.
+%     lambdaRef          Specifies a value of lambda used to generate the 
+%                        reference primary mixture for calculating opponent 
+%                        contrasts. Must be between 0 and 1. 
 %
 % Output:
 %     predictedProportions   Matrix, where each row is a vector of 
@@ -53,8 +56,11 @@ function [predictedProportions] = qpPFRM(stimParamsVec,coneParamsVec,opponentPar
 %     'judgeLum'             Compute proportions for a luminance judgement,  
 %                            not a red/green judgement. Default is
 %                            false.
-%
-% 10/08/20  dce  Wrote it 
+
+% History
+%     10/08/20  dce  -Wrote it 
+%     10/13/20  dce  -Changed so opponent contrast is calculated relative 
+%                     to a reference primary mixture.
 
 %% Parse input
 p = inputParser;
@@ -67,9 +73,10 @@ p.addRequired('p1Spd',@isnumeric);
 p.addRequired('p2Spd',@isnumeric);
 p.addRequired('tSpds',@isnumeric);
 p.addRequired('tWls',@isnumeric);
+p.addRequired('lambdaRef',@isnumeric);
 p.addParameter('judgeLum',false,@(x)(islogical(x)));
 p.parse(stimParamsVec,coneParamsVec,opponentParamsVec,noiseSD,S,p1Spd,...
-    p2Spd,tSpds,tWls,varargin{:});
+    p2Spd,tSpds,tWls,lambdaRef,varargin{:});
 
 %% Input checks 
 if length(tWls) ~= size(tSpds,2)
@@ -80,11 +87,17 @@ elseif ~all(stimParamsVec(:,1) >= 0) || ~all(stimParamsVec(:,1) <= 1)
     error('Chosen lambda values must be between 0 and 1');
 elseif ~all(stimParamsVec(:,2) >= 0) || ~all(stimParamsVec(:,2) <= 1)
     error('Chosen test intensity values must be between 0 and 1');
+    elseif lambdaRef < 0 || lambdaRef > 1
+    error('Reference lambda must be between 0 and 1');
 end 
 
 %% Generate observer based on passed parameters 
 observer = genRayleighObserver('coneVec',coneParamsVec,'opponentParams',...
     opponentParamsVec,'S',S); 
+
+%% Generate the reference spectrum for opponent contrast calculations
+pRef = lambdaRef*p1Spd + (1-lambdaRef)*p2Spd;
+refLMS = observer.T_cones * pRef; 
 
 %% Loop over stimuli and get the proportions for each 
 nStim = size(stimParamsVec,1);
@@ -103,18 +116,20 @@ for ii = 1:nStim
     pLMS = observer.T_cones * primary;
     tLMS = observer.T_cones * test;
     
-    % Compute opponent contrast of test light relative to the primary
-    % mixture (the primary is displayed for longer by default in the 
-    % OneLight version of the experiment)
-    opponentContrast = LMSToOpponentContrast(observer.colorDiffParams,...
-        pLMS,tLMS);
+    % Compute opponent contrast of the two lights relate to the reference
+    % primary
+    pOpponentContrast = LMSToOpponentContrast(observer.colorDiffParams,...
+        refLMS,pLMS);
+    tOpponentContrast = LMSToOpponentContrast(observer.colorDiffParams,...
+        refLMS,tLMS);
+    opponentContrastDiff = tOpponentContrast - pOpponentContrast; 
     
     % Which channel are we looking at? Use this to set the mean of the
     % cumulative distribution.
     if p.Results.judgeLum
-        mu = opponentContrast(1); % Luminance channel 
+        mu = opponentContrastDiff(1); % Luminance channel 
     else 
-        mu = opponentContrast(2); % RG channel 
+        mu = opponentContrastDiff(2); % RG channel 
     end 
     
     % Generate probability distribution for the test light being
@@ -123,7 +138,7 @@ for ii = 1:nStim
     
     % Fill in complement - probability of the test light being
     % brighter/redder than primary
-    predictedProportions(ii,2) = 1-predictedProportions(ii,1);  
+    predictedProportions(ii,2) = 1 - predictedProportions(ii,1);  
 end
 
 %% Don't allow complete certainty

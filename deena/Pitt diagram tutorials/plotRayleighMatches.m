@@ -46,9 +46,9 @@ function plotRayleighMatches(lambdaMaxes, baseLambdaMaxes, dphotopigments,...
 
 % Parse input
 p = inputParser;
-p.addParameter('p1', 545, @(x) (isnumeric(x)));
-p.addParameter('p2', 679, @(x) (isnumeric(x)));
-p.addParameter('test', 580, @(x) (isnumeric(x)));
+p.addParameter('p1', 560, @(x) (isnumeric(x)));
+p.addParameter('p2', 670, @(x) (isnumeric(x)));
+p.addParameter('test', 590, @(x) (isnumeric(x)));
 p.parse(varargin{:});
 
 % Range parameters for simulated anomaloscope
@@ -81,7 +81,7 @@ for kk = 1:size(lambdaMaxes,2)
     figure(theFigure);
     xlim([min(mixingRatioRange) max(mixingRatioRange)]);
     ylim([min(testIntensityRange) max(testIntensityRange)]);
-    xlabel(' Mixing Ratio (0 -> green; 1 -> red)');
+    xlabel(' Primary Ratio (Proportion Red)');
     ylabel('Test Intensity');
     axis('square');
     legend(theLegend);

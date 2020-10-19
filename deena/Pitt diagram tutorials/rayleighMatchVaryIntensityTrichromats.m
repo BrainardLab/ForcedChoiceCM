@@ -277,7 +277,7 @@ end
 % lambdaMaxes +-2nm from average
 lambdaMaxes = [
     [556.9 530.3 420.7]'...
-    [560.9 530.3 420.7]'];
+    [559.9 530.3 420.7]'];
 % Optical density +- 10%, 20% from average
 dphotopigments1 = [...
     [0 0 0]'...
@@ -287,8 +287,8 @@ dphotopigments2 = [...
     [-15 -15 0]'];
 
 % Legends
-l1 = {'556.9', '560.9'};
-l2 = {'556.9/+15', '560.9/-15'};
+l1 = {'556.9', '559.9'};
+l2 = {'556.9/+15', '559.9/-15'};
 
 % Plot the two observers with the default 590-nm test light
 plotRayleighMatches(lambdaMaxes, lambdaMaxes, dphotopigments1,...
