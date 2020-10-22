@@ -30,7 +30,7 @@ for i = 1:length(testWls)
 end 
 
 % Define a standard observer with default opponent contrast parameters
-observer = genRayleighObserver(); 
+observer = genRayleighObserver('S',S); 
 opponentParams = [observer.colorDiffParams.lumWeight,...
     observer.colorDiffParams.rgWeight,observer.colorDiffParams.byWeight,...
     observer.colorDiffParams.noiseSd];
