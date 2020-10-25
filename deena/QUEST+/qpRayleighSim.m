@@ -40,24 +40,30 @@ end
 % coneVec = sampleRayleighObservers(1,zeros(1,8),[0 0 0 0 0 1 0 0]);
 % simConeParams = [0 0 20 10 0 0 0 0];
 simConeParams = [0 0 0 0 0 -3 2 0];
-observer = genRayleighObserver('coneVec',simConeParams);
+observer = genRayleighObserver('coneVec',simConeParams,'S',S);
 opponentVec = [observer.colorDiffParams.lumWeight,...
     observer.colorDiffParams.rgWeight,observer.colorDiffParams.byWeight,...
     observer.colorDiffParams.noiseSd];
 
 % Inputs
 lambdaRef = 0.8;
-indDiffSds = [18.7 36.5 9.0 9.0 7.4 2.0 1.5 1.3];
+variableParams = [0 0 0 0 0 1 1 0];  % Which cone params are we varying?
+indDiffSds = [18.7 36.5 9.0 9.0 7.4 2.0 1.5 1.3]; % Param standard deviations
 
 stimParamsDomainList = {0:0.05:1,0:0.05:1,testWls};
-psiParamsDomainList = {0,0,0,0,0,-3:0.2:3,-3:0.2:3,0};
-% psiParamsDomainList = {0,0,0,0,0,-3:0.2:3,-3:0.2:3,0};
+% Spacing for possible individual difference values. Note that lambda maxes
+% are slightly more coarsly spaced than optical densities.
+psiParamsDomainList = {linspace(-2,2,10),linspace(-2,2,10),...
+    linspace(-2,2,10),linspace(-2,2,10),linspace(-2,2,10),...
+    linspace(-2,2,9),linspace(-2,2,9),linspace(-2,2,9)};
+
 for i = 1:length(indDiffSds)
-    psiParamsDomainList{i} = psiParamsDomainList{i}*indDiffSds(i);
+    psiParamsDomainList{i} = psiParamsDomainList{i}*variableParams(i)*indDiffSds(i);
+    psiParamsDomainList{i} = unique(psiParamsDomainList{i});
 end
 
 % Psychometric function
-noiseScaleFactor = 5;
+noiseScaleFactor = 3;
 PFSim = @(stimParams,coneParams)qpPFRMFull(stimParams,coneParams,...
     opponentVec,observer.colorDiffParams.noiseSd*noiseScaleFactor,S,...
     p1Spd,p2Spd,testSpds,testWls,lambdaRef);
@@ -67,12 +73,12 @@ simObserverFun = @(stimParams) qpSimulatedObserver(stimParams,PFSim,simConeParam
 
 % Set up a Quest object, with an option to use precomputed data if
 % available
-USE_PRECOMPUTE = false;
+USE_PRECOMPUTE = true;
 if (~USE_PRECOMPUTE)
     startTime = tic;
     fprintf('Initializing quest structure ...\n');
     questDataRaw = qpInitialize('nOutcomes', 4, ...
-        'qpPF',PFSim,...
+        'qpPF',PFSim,'qpOutcomeF',[],...
         'stimParamsDomainList',stimParamsDomainList, ...
         'psiParamsDomainList',psiParamsDomainList, ...
         'verbose', true);
@@ -144,17 +150,20 @@ fprintf('\n');
 
 %% Plotting
 % Plot of QUEST runs
-figure();
+figure(1);
 stimCounts = qpCounts(qpData(questData.trialData),questData.nOutcomes);
 xVals = [];
 yVals = [];
 zVals = [];
 markerColors = [];
-markerAlphas = [];
+markerSizes = [];
 for cc = 1:length(stimCounts)
     stim = stimCounts(cc).stim;
     for jj = 1:questData.nOutcomes
         outcomeCount = stimCounts(cc).outcomeCounts(jj);
+        if outcomeCount == 0 
+            continue;
+        end 
 %         switch (jj)
 %             case 1
 %                 theColor = 'r';
@@ -169,12 +178,11 @@ for cc = 1:length(stimCounts)
         yVals = [yVals, stim(2)];
         zVals = [zVals, stim(3)];
         markerColors = [markerColors, jj];
-        markerAlphas = [markerAlphas,outcomeCount/max(nTrials)];
+        markerSizes = [markerSizes,1000*outcomeCount/max(nTrials)];
     end
 end
-scatter3(xVals,yVals,zVals,100,markerColors,'o')
-%     'MarkerFaceAlpha',markerAlphas,...
-%     'MarkerEdgeAlpha',markerAlphas);
+scatter3(xVals,yVals,zVals,markerSizes,markerColors,'o','LineWidth',2,...
+    'MarkerEdgeAlpha',0.4,'MarkerFaceAlpha',0.4);
 xlim([0 1]);
 ylim([0 1]);
 zlim([min(testWls)-10,max(testWls)+10]);
@@ -233,8 +241,26 @@ for ii = 1:length(psiParamsFit)
     xlabel('Simulated Parameters');
     ylabel('Recovered Parameters');
 end
+title('QUEST+ Parameter Recovery');
 
-% Plot of cone fundamentals
+% Plots of cone fundamentals
 observerRecovered = genRayleighObserver('coneVec',psiParamsFit,...
-    'opponentParams',opponentVec);
+    'opponentParams',opponentVec,'S',S);
+figure(3)
+hold on;
+h1 = plot(wls,observer.T_cones(1:2,:),'r-','LineWidth',2.5);
+h2 = plot(wls,observerRecovered.T_cones(1:2,:),'b-','LineWidth',1.5);
+legend([h1(1) h2(1)],'Simulated Cones', 'Recovered Cones'); 
+title('L and M Cones');
+xlabel('Wavelength (nm)');
+ylabel('Sensitivity');
+
+figure(4)
+hold on;
+plot(wls,observer.T_cones(1:2,:)-observerRecovered.T_cones(1:2,:),'r-',...
+    'LineWidth',2.5);
+refline(0,0);
+title('L and M Cone Sensitivity Differences');
+xlabel('Wavelength (nm)');
+ylabel('Sensitivity Difference (Simulated - Recovered)');
 end

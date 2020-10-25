@@ -59,6 +59,7 @@ function [predictedProportions] = qpPFRMFull(stimParamsVec,coneParamsVec,opponen
 
 % History
 %     10/21/20  dce  -Adapted from qpPFRM
+%     10/23/20  dce  -Edited to not allow complete certainty
 
 %% Parse input
 p = inputParser;
@@ -136,8 +137,12 @@ for ii = 1:nStim
     % not too bright. 
     predictedProportions(ii,:) = [pPRed*pTBright, pPRed*pTNbright,...
         pPGreen*pTBright,pPGreen*pTNbright];
+    
+    % Don't allow complete certainty
+    predictedProportions(ii,predictedProportions(ii,:) > 0.9999) = 0.9999;
+    predictedProportions(ii,predictedProportions(ii,:) < 0.0001) = 0.0001;
+    predictedProportions(ii,:) = predictedProportions(ii,:)./sum(predictedProportions(ii,:));
+    if any(predictedProportions(ii,:)==0 | predictedProportions(ii,:)== 1)
+        error('Probability normalization algorithm does not work');
+    end 
 end
-
-%% Don't allow complete certainty
-% predictedProportions(predictedProportions > 0.9999) = 0.9999;
-% predictedProportions(predictedProportions < 0.0001) = 0.0001;
