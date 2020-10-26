@@ -259,7 +259,6 @@ for ii = 1:length(psiParamsFit)
     xlabel('Simulated Parameters');
     ylabel('Recovered Parameters');
 end
-title('QUEST+ Parameter Recovery');
 
 % Plots of cone fundamentals
 observerRecovered = genRayleighObserver('coneVec',psiParamsFit,...
