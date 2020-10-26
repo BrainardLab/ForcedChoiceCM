@@ -9,7 +9,7 @@ function qpRayleighSim()
 %    10/13/20   dce   -Wrote it
 %    10/21/20   dce   -Changed to use a single QUEST object
 %    10/23/20   dce   -Added likelihood function and plotting
-
+%    10/26/20   dhb   -Commenting and a little cosmetic editing.
 
 close all; 
 
@@ -39,41 +39,49 @@ end
 
 % coneVec = sampleRayleighObservers(1,zeros(1,8),[0 0 0 0 0 1 0 0]);
 % simConeParams = [0 0 20 10 0 0 0 0];
-simConeParams = [0 0 0 0 0 -3 2 0];
+simConeParams = [0 0 20 10 0 -3 2 0];
 observer = genRayleighObserver('coneVec',simConeParams,'S',S);
 opponentVec = [observer.colorDiffParams.lumWeight,...
     observer.colorDiffParams.rgWeight,observer.colorDiffParams.byWeight,...
     observer.colorDiffParams.noiseSd];
 
-% Inputs
-lambdaRef = 0.8;
-variableParams = [0 0 0 0 0 1 1 0];  % Which cone params are we varying?
+% Set up psychometric function parameters.  First indicator variable
+% determines what parameters we allow to vary.  These are set up in terms
+% of a multiple of the population standard deviations.
+variableParams = [0 0 1 1 0 1 1 0];               % Which cone params are we varying?
 indDiffSds = [18.7 36.5 9.0 9.0 7.4 2.0 1.5 1.3]; % Param standard deviations
 
-stimParamsDomainList = {0:0.05:1,0:0.05:1,testWls};
-% Spacing for possible individual difference values. Note that lambda maxes
-% are slightly more coarsly spaced than optical densities.
+% Spacing for possible individual difference values in terms of stddev multiple.
+% Note that lambda maxes are slightly more coarsly spaced than optical densities.
 psiParamsDomainList = {linspace(-2,2,10),linspace(-2,2,10),...
     linspace(-2,2,10),linspace(-2,2,10),linspace(-2,2,10),...
     linspace(-2,2,9),linspace(-2,2,9),linspace(-2,2,9)};
-
 for i = 1:length(indDiffSds)
     psiParamsDomainList{i} = psiParamsDomainList{i}*variableParams(i)*indDiffSds(i);
     psiParamsDomainList{i} = unique(psiParamsDomainList{i});
 end
 
+% Stimulus parameter list
+stimParamsDomainList = {0:0.05:1,0:0.05:1,testWls};
+
 % Psychometric function
 noiseScaleFactor = 3;
+lambdaRef = 0.8;
 PFSim = @(stimParams,coneParams)qpPFRMFull(stimParams,coneParams,...
     opponentVec,observer.colorDiffParams.noiseSd*noiseScaleFactor,S,...
     p1Spd,p2Spd,testSpds,testWls,lambdaRef);
 
 % Simulated observer function, as a function of stimulus parameter
+for ii = 1:length(simConeParams)
+    if (simConeParams(ii) ~= 0 & variableParams(ii) == 0)
+        error('Varying a simulated parameter that we are telling Quest+ is locked');
+    end
+end
 simObserverFun = @(stimParams) qpSimulatedObserver(stimParams,PFSim,simConeParams);
 
 % Set up a Quest object, with an option to use precomputed data if
 % available
-USE_PRECOMPUTE = true;
+USE_PRECOMPUTE = false;
 if (~USE_PRECOMPUTE)
     startTime = tic;
     fprintf('Initializing quest structure ...\n');
