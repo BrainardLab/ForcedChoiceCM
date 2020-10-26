@@ -41,6 +41,7 @@ end
 % simConeParams = [0 0 20 10 0 0 0 0];
 simConeParams = [0 0 20 10 0 -3 2 0];
 observer = genRayleighObserver('coneVec',simConeParams,'S',S);
+observerStandard = genRayleighObserver('coneVec',zeros(size(simConeParams)),'S',S);
 opponentVec = [observer.colorDiffParams.lumWeight,...
     observer.colorDiffParams.rgWeight,observer.colorDiffParams.byWeight,...
     observer.colorDiffParams.noiseSd];
@@ -81,7 +82,7 @@ simObserverFun = @(stimParams) qpSimulatedObserver(stimParams,PFSim,simConeParam
 
 % Set up a Quest object, with an option to use precomputed data if
 % available
-USE_PRECOMPUTE = false;
+USE_PRECOMPUTE = true;
 if (~USE_PRECOMPUTE)
     startTime = tic;
     fprintf('Initializing quest structure ...\n');
@@ -119,7 +120,7 @@ end
 questData = questDataRaw;
 
 % Run trials
-nTrials = 256;
+nTrials = 120;
 trialPrintout = 20;
 startTime = tic;
 for tt = 1:nTrials
@@ -272,12 +273,30 @@ title('L and M Cones');
 xlabel('Wavelength (nm)');
 ylabel('Sensitivity');
 
-figure(4)
+figure(4); clf;
 hold on;
-plot(wls,observer.T_cones(1:2,:)-observerRecovered.T_cones(1:2,:),'r-',...
+subplot(1,2,1); hold on
+plot(wls,observer.T_cones(1,:)-observerRecovered.T_cones(1,:),'r-',...
+    'LineWidth',2.5);
+plot(wls,observer.T_cones(1,:)-observerStandard.T_cones(1,:),'k-',...
     'LineWidth',2.5);
 refline(0,0);
-title('L and M Cone Sensitivity Differences');
+title('L Cone Sensitivity Differences');
 xlabel('Wavelength (nm)');
-ylabel('Sensitivity Difference (Simulated - Recovered)');
+ylabel('Sensitivity Difference');
+ylim([-0.06 0.06]);
+legend({'Recovered', 'Standard'},'Location','SouthEast');
+
+subplot(1,2,2); hold on
+plot(wls,observer.T_cones(2,:)-observerRecovered.T_cones(2,:),'r-',...
+    'LineWidth',2.5);
+plot(wls,observer.T_cones(2,:)-observerStandard.T_cones(2,:),'k-',...
+    'LineWidth',2.5);
+refline(0,0);
+title('M Cone Sensitivity Differences');
+xlabel('Wavelength (nm)');
+ylabel('Sensitivity Difference');
+ylim([-0.06 0.06]);
+legend({'Recovered', 'Standard'},'Location','SouthEast');
+
 end
