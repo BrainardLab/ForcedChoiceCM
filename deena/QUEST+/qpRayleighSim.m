@@ -26,7 +26,7 @@ p2Spd = zeros(length(wls),1);
 p2Wl = 540;
 p2Spd(wls==p2Wl) = 1;
 
-testWls = [570 600]; % Possible wavelengths for the test light
+testWls = [570 590 610 630 650]; % Possible wavelengths for the test light
 testSpds = zeros(length(wls),length(testWls));
 for i = 1:length(testWls)
     testSpds(wls==testWls(i),i) = 1;
@@ -119,7 +119,9 @@ end
 questData = questDataRaw;
 
 % Run trials
-nTrials = 128;
+nTrials = 256;
+trialPrintout = 20;
+startTime = tic;
 for tt = 1:nTrials
     % Get stimulus for this trial
     stim = qpQuery(questData);
@@ -129,7 +131,14 @@ for tt = 1:nTrials
     
     % Update quest data structure
     questData = qpUpdate(questData,stim,outcome);
+    
+    % Periodic prientout
+    if (rem(tt,trialPrintout) == 0)
+        fprintf('\tTrial %d of %d\n',tt,nTrials);
+    end
 end
+elapsedTime = toc(startTime);
+fprintf('Done with trial simulation, %0.3f calculation time per trial\n',(elapsedTime)/nTrials);
 save('qDataSim','questData');
 disp('Done Looping');
 
