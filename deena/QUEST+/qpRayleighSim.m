@@ -120,7 +120,7 @@ end
 questData = questDataRaw;
 
 % Run trials
-nTrials = 120;
+nTrials = 300;
 trialPrintout = 20;
 startTime = tic;
 for tt = 1:nTrials
