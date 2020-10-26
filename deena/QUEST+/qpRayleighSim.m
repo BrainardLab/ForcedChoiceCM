@@ -23,7 +23,7 @@ p1Wl = 670;
 p1Spd(wls==p1Wl) = 1;
 
 p2Spd = zeros(length(wls),1);
-p2Wl = 540;
+p2Wl = 560;
 p2Spd(wls==p2Wl) = 1;
 
 testWls = [570 590 610 630 650]; % Possible wavelengths for the test light
@@ -82,7 +82,7 @@ simObserverFun = @(stimParams) qpSimulatedObserver(stimParams,PFSim,simConeParam
 
 % Set up a Quest object, with an option to use precomputed data if
 % available
-USE_PRECOMPUTE = true;
+USE_PRECOMPUTE = false;
 if (~USE_PRECOMPUTE)
     startTime = tic;
     fprintf('Initializing quest structure ...\n');
