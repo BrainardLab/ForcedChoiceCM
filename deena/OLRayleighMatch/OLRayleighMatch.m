@@ -110,6 +110,12 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %    'simNominalLights'     - Logical indicating to run the simulation with
 %                             nominal, rather than predicted, spds. Default
 %                             is false.
+%    'monochromatic'        - Logical indicating to run the simulation with
+%                             monochromatic spds. Default is false.
+%    'monochromaticS'       - Vector with wavelength sampling if 
+%                             monochromatic lights are used. Default is 
+%                             [380 2 201].
+
 
 % History:
 %   xx/xx/19  dce       Wrote it.
@@ -139,6 +145,7 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %                       threshold case
 %   08/05/20  dce       Added opponent contrast params input 
 %   08/09/20  dce       Changed ideal match to best available, not nominal 
+%   10/28/20  dce       Added monochromatic simulation matching
 
 %% Close any stray figures
 close all;
@@ -171,6 +178,8 @@ p.addParameter('nBelowThreshold',1,@(x)(isnumeric(x)));
 p.addParameter('noiseScaleFactor',0,@(x)(isnumeric(x)));
 p.addParameter('thresholdScaleFactor',0.5,@(x)(isnumeric(x)));
 p.addParameter('simNominalLights',false,@(x)(islogical(x)));
+p.addParameter('monochromatic',false,@(x)(islogical(x)));
+p.addParameter('monochromaticS',[380 2 201],@(x)(isnumeric(x)));
 p.parse(varargin{:});
 
 p1 = p.Results.p1;
@@ -199,6 +208,8 @@ thresholdScaleFactor = p.Results.thresholdScaleFactor;
 noiseScaleFactor = p.Results.noiseScaleFactor;
 plotResponses = p.Results.plotResponses;
 simNominalLights = p.Results.simNominalLights;
+monochromatic = p.Results.monochromatic;
+monochromaticS = p.Results.monochromaticS;
 
 % Input error checking
 if (length(nReversals)~=2)
@@ -212,6 +223,9 @@ if (length(opponentParams)~=4)
 end
 if (simKeypad && simObserver)
     error('Only one simulation method can be chosen');
+end
+if (monochromatic && (~simKeypad && ~simObserver))
+    error('Monochromatic matching can only be used with a simulation method');
 end
 
 if foveal
@@ -260,37 +274,57 @@ end
 
 %% Find light settings
 % Find precomputed spectra, or compute if they do not exist
-lightFile = sprintf('OLRayleighMatch%gSpectralSettings_%g_%g_%g_%g_%g_%g.mat',...
-    adjustmentLength,p1,p2,test,p1Scale,p2Scale,testScale);
-lightFileName = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
-    'precomputedStartStops',lightFile);
-if ~exist(lightFileName,'file')
-    OLRayleighMatchLightSettings(p1,p2,test,'p1ScaleFactor',p1Scale,...
-        'p2ScaleFactor',p2Scale,'testScaleFactor',testScale,...
-        'adjustmentLength',adjustmentLength);
+calName = [];
+lightFileName = [];
+if ~monochromatic  % Matching using OL primaries
+    lightFile = sprintf('OLRayleighMatch%gSpectralSettings_%g_%g_%g_%g_%g_%g.mat',...
+        adjustmentLength,p1,p2,test,p1Scale,p2Scale,testScale);
+    lightFileName = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
+        'precomputedStartStops',lightFile);
+    if ~exist(lightFileName,'file')
+        OLRayleighMatchLightSettings(p1,p2,test,'p1ScaleFactor',p1Scale,...
+            'p2ScaleFactor',p2Scale,'testScaleFactor',testScale,...
+            'adjustmentLength',adjustmentLength);
+    end
+    % Save some variables locally
+    lightSettings = load(lightFileName);
+    calName = lightSettings.cal.describe.calType;
+    primarySpdsNominal = lightSettings.primarySpdsNominal;
+    primarySpdsPredicted = lightSettings.primarySpdsPredicted;
+    testSpdsNominal = lightSettings.testSpdsNominal;
+    testSpdsPredicted = lightSettings.testSpdsPredicted;
+    primaryStartStops = lightSettings.primaryStartStops;
+    testStartStops = lightSettings.testStartStops;
+    p1Scales = lightSettings.p1Scales;
+    testScales = lightSettings.testScales;
+    wls = lightSettings.cal.computed.pr650Wls;
+    S = lightSettings.cal.computed.pr650S;
+    
+else  % Monochromatic matching
+    p1Scales = linspace(0,1,adjustmentLength);
+    p2Scales = 1-p1Scales;
+    testScales = linspace(0,1,adjustmentLength);
+    
+    S = monochromaticS;
+    wls = SToWls(S);
+    primarySpdsNominal = zeros(length(wls),length(p1Scales));
+    primarySpdsNominal(wls==p1,:) = p1Scale*p1Scales;
+    primarySpdsNominal(wls==p2,:) = p2Scale*p2Scales;
+    primarySpdsPredicted = primarySpdsNominal;
+    
+    testSpdsNominal = zeros(length(wls),length(testScales));
+    testSpdsNominal(wls==test,:) = testScale*testScales;
+    testSpdsPredicted = testSpdsNominal;
 end
-lightSettings = load(lightFileName);
-
-% Load light settings and save some variables locally
-cal = lightSettings.cal;
-primarySpdsNominal = lightSettings.primarySpdsNominal;
-primarySpdsPredicted = lightSettings.primarySpdsPredicted;
-testSpdsNominal = lightSettings.testSpdsNominal;
-testSpdsPredicted = lightSettings.testSpdsPredicted;
-primaryStartStops = lightSettings.primaryStartStops;
-testStartStops = lightSettings.testStartStops;
-p1Scales = lightSettings.p1Scales;
-testScales = lightSettings.testScales;
-wls = lightSettings.cal.computed.pr650Wls;
 
 %% Initialize simulated observer if desired
 stdObserver = genRayleighObserver('fieldSize',fieldSize,'age',age,...
         'coneVec',zeros(1,8),'opponentParams',opponentParams,...
-        'S',cal.computed.pr650S);
+        'S',S);
 if simObserver
     observer = genRayleighObserver('fieldSize',fieldSize,'age',age,...
         'coneVec',observerParams,'opponentParams',opponentParams,...
-        'S',cal.computed.pr650S);
+        'S',S);
 else 
     observer = stdObserver;
 end
@@ -360,8 +394,8 @@ lightModeRev = ['t' 'p'];  % Switch primary and test lights
 lightTimes = [lInterval sInterval]; % Durations
 
 % Initial display settings
-primaryPos = 1;             % Start with first position in primary array
-testPos = 1;                % Start with first position in test array
+primaryPos = 2;             % Start with first position in primary array
+testPos = 2;                % Start with first position in test array
 stepModePos = 1;            % Start with the largest step size
 lightModePos = 1;           % Start with the first light in lights array
 rev = false;                % Start with forward, not reverse order
@@ -674,7 +708,17 @@ while(stillLooping)
                     stepModePos = 1;
                     firstAdjustment = true;
                     primaryPos = randi(adjustmentLength);
+                    
+                    % Prevent the program from setting the positions to 1,
+                    % as this can cause problems of divison by 0
+                    if primaryPos==1
+                        primaryPos = 2;
+                    end 
                     testPos = randi(adjustmentLength);
+                    if testPos==1
+                        testPos = 2;
+                    end 
+                    
                     subjectSettings = [subjectSettings;...
                         [testScales(testPos),p1Scales(primaryPos)]];
                     
@@ -686,7 +730,7 @@ while(stillLooping)
                         fprintf('User exited program\n');
                     end
                     save(fileLoc, 'matches','matchPositions',...
-                        'subjectSettings','p1','p2','test','cal',...
+                        'subjectSettings','p1','p2','test','calName',...
                         'primarySpdsNominal','primarySpdsPredicted',...
                         'testSpdsNominal','testSpdsPredicted',...
                         'subjectID',...
@@ -699,7 +743,8 @@ while(stillLooping)
                         'p1Scales','testScales','observerParams',...
                         'opponentParams','nObserverMatches','pIdealIndex',...
                         'tIdealIndex','idealForStandardObs','idealTestSpd',...
-                        'idealPrimarySpd','idealTestIntensity','idealPRatio');
+                        'idealPrimarySpd','idealTestIntensity','idealPRatio',...
+                        'monochromatic');
                     stillLooping = false;
                     break;
                     
