@@ -54,9 +54,9 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %    'p1Scale'        - Numerical scale factor for the first primary light,
 %                       between 0 and 1. Default is 1.
 %    'p2Scale'        - Numerical scale factor for the second primary
-%                       light, between 0 and 1. Default is 0.02.
+%                       light, between 0 and 1. Default is 0.01.
 %    'testScale'      - Numerical scale factor for the test light, between
-%                       0 and 1. Default is 0.07.
+%                       0 and 1. Default is 0.5.
 %    'sInterval'      - length of time in s that the short stimulus is
 %                       displayed for. Default is 0.25.
 %    'lInterval'      - length of time in s that the long stimulus is

@@ -56,12 +56,6 @@ p.addParameter('noiseScale',1, @(x)(isnumeric(x)));
 p.addParameter('thresholdScale',0.5, @(x)(isnumeric(x)));
 p.parse(varargin{:});
 
-% Spds generated for OLRayleighMatch will always be sampled over S = 
-% [380 2 201]. Check if the simulated observer follows this convention.
-if ~all(observer.S == [380 2 201])
-    error('Observer wavelength sampling does not follow OneLight convention'); 
-end 
-
 % Cone responses for the given spectra
 test_LMS = observer.T_cones*testSpd; 
 primary_LMS = observer.T_cones*primarySpd; 

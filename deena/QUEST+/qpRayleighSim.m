@@ -45,7 +45,6 @@ function [questData,psiParamsQuest,psiParamsFit] = ...
 %                      parameters.
 %
 % Optional key-value pairs:
-%    'makePlots'         -Logical.
 %    'precomputeQuest'   -Logical. When true, the program uses precomputed
 %                         QUEST data if it is available. Default is true.
 %    'fieldSize'         -Integer field size, in degrees. Default is 2.
@@ -73,8 +72,10 @@ function [questData,psiParamsQuest,psiParamsFit] = ...
 %    'S'                 -Wavelength sampling for cone calculations, in the
 %                         form [start increment numTerms]. Default is
 %                         [380 2 201];
-%    'makePlots'         -Logical. If true, make plots summarizing QUEST+
-%                         results. Default is true.
+%    'plotAll'           -Logical. If true, make plots summarizing QUEST+
+%                         results for all subjects. Default is false.
+%    'plotLast'           -Logical. If true, make plots summarizing QUEST+
+%                         results for the last subject. Default is true.
 
 % History
 %    10/13/20   dce   -Wrote it
@@ -89,7 +90,8 @@ close all;
 
 % Parse optional input
 p = inputParser;
-p.addParameter('makePlots',true,@(x)(islogical(x)));
+p.addParameter('plotAll',false,@(x)(islogical(x)));
+p.addParameter('plotLast',true,@(x)(islogical(x)));
 p.addParameter('precomputeQuest',true,@(x)(islogical(x)));
 p.addParameter('age',32,@(x)(isnumeric(x)));
 p.addParameter('fieldSize',2,@(x)(isnumeric(x)));
@@ -101,6 +103,15 @@ p.addParameter('lambdaRef',0.8,@(x)(isnumeric(x)));
 p.addParameter('sampledObservers',[],@(x)(isnumeric(x)));
 p.addParameter('S',[380 2 201],@(x)(isnumeric(x)));
 p.parse(varargin{:});
+
+% Define output directory 
+outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
+    'Quest',subjID);
+if (~exist(outputDir,'dir'))
+    mkdir(outputDir);
+end
+fName = [subjID '.mat'];
+outputFile = fullfile(outputDir,fName);
 
 % Define spectra
 wls = SToWls(p.Results.S);
@@ -199,6 +210,9 @@ psiParamsQuest = zeros(nObservers,length(baseConeParams)); % Recovered params (m
 psiParamsFit = zeros(nObservers,length(baseConeParams));   % Recovered params (maximum likelihood)
 trialPrintout = 20;  % Print message after every 20 trials
 
+% Nominal matches for each observer and test wavelength, in the form [lambda testIntensity]
+nominalMatch = zeros(nObservers,length(testWls),2); 
+
 % Loop through observers
 for ii = 1:nObservers
     % Generate simulated observer and associated function
@@ -262,14 +276,21 @@ for ii = 1:nObservers
         psiParamsFit(ii,4),psiParamsFit(ii,5),psiParamsFit(ii,6),...
         psiParamsFit(ii,7),psiParamsFit(ii,8));
     
+    % Compute nominal matches for the observer analytically
+    for ww = 1:length(testWls)
+        [~,~,nominalMatch(ii,ww,2),nominalMatch(ii,ww,1)] = ...
+            computePredictedRayleighMatch(p1Spd,p2Spd,testSpds(:,ww),...
+            observer,'addDarkSpd',false);
+    end
+    
     % Make plots, if desired
-    if p.Results.makePlots
+    if p.Results.plotAll || (p.Results.plotLast && ii == nObservers)
         % Plot of QUEST runs
-        figure();
+        figure(); clf;
         stimCounts = qpCounts(qpData(questData{ii}.trialData),questData{ii}.nOutcomes);
-        xVals = [];
-        yVals = [];
-        zVals = [];
+        lambdaVals = [];
+        tIVals = [];
+        tWlVals = [];
         markerColors = [];
         markerSizes = [];
         for cc = 1:length(stimCounts)
@@ -279,15 +300,18 @@ for ii = 1:nObservers
                 if outcomeCount == 0
                     continue;
                 end
-                xVals = [xVals, stim(1)];
-                yVals = [yVals, stim(2)];
-                zVals = [zVals, stim(3)];
+                lambdaVals = [lambdaVals, stim(1)];
+                tIVals = [tIVals, stim(2)];
+                tWlVals = [tWlVals, stim(3)];
                 markerColors = [markerColors, jj];
                 markerSizes = [markerSizes,1000*outcomeCount/max(nTrials)];
             end
         end
-        scatter3(xVals,yVals,zVals,markerSizes,markerColors,'o','LineWidth',2,...
+        scatter3(lambdaVals,tIVals,tWlVals,markerSizes,markerColors,'o','LineWidth',2,...
             'MarkerEdgeAlpha',0.4,'MarkerFaceAlpha',0.4);
+        hold on;
+        scatter3(nominalMatch(ii,:,1),nominalMatch(ii,:,2),testWls,'k*');
+        hold off;
         xlim([0 1]);
         ylim([0 1]);
         zlim([min(testWls)-10,max(testWls)+10]);
@@ -295,13 +319,14 @@ for ii = 1:nObservers
         ylabel('Test Intensity');
         zlabel('Peak Test Wavelength (nm)');
         title('QUEST+ Trial Placement');
+        legend('QUEST+ Trials', 'Nominal Matches'); 
         
         % Plot of cone parameters
-        paramsFig = figure();
+        paramsFig = figure(); clf; 
         set(paramsFig,'Color',[1 1 1],'Position',[10 10 1700 800]);
         hold on;
         nCols2 = 4;
-        nRows2 = ceil(length(psiFit)/nCols2);
+        nRows2 = ceil(length(psiParamsFit(ii,:))/nCols2);
         subplotPosVectors = NicePlot.getSubPlotPosVectors(...
             'rowsNum', nRows2, ...
             'colsNum', nCols2, ...
@@ -314,7 +339,7 @@ for ii = 1:nObservers
         coneParamNames = {'Lens Density','Macular Pigment Density',...
             'L Photopigment Density','M Photopigment Density',...
             'S photopigment density','L Lambda Max','M Lambda Max', 'S Lambda Max'};
-        for kk = 1:length(psiFit)
+        for kk = 1:length(psiParamsFit(ii,:))
             % Make a subplot in the correct position
             row = ceil(kk/nCols2);
             col = mod(kk,nCols2);
@@ -335,9 +360,9 @@ for ii = 1:nObservers
             axis('square');
         
             % Plot data
-            xVals = simConeParams(kk);   % Predicted parameters
-            yVals = psiFit(kk); % Recovered params
-            plot(xVals,yVals,'b* ','MarkerSize',7,'LineWidth',1);
+            lambdaVals = simConeParams(kk);   % Predicted parameters
+            tIVals = psiParamsFit(ii,kk); % Recovered params
+            plot(lambdaVals,tIVals,'b* ','MarkerSize',7,'LineWidth',1);
             refline(1,0);
         
             % Titles and labels
@@ -348,9 +373,9 @@ for ii = 1:nObservers
         end
         
         % Plots of cone fundamentals
-        observerRecovered = genRayleighObserver('coneVec',psiFit,...
-            'opponentParams',opponentVec,'S',S);
-        figure()
+        observerRecovered = genRayleighObserver('coneVec',psiParamsFit(ii,:),...
+            'opponentParams',p.Results.opponentParams,'S',p.Results.S);
+        figure(); clf; 
         hold on;
         h1 = plot(wls,observer.T_cones(1:2,:),'r-','LineWidth',2.5);
         h2 = plot(wls,observerRecovered.T_cones(1:2,:),'b-','LineWidth',1.5);
@@ -387,5 +412,8 @@ for ii = 1:nObservers
     end
     
 end
+save(outputFile,'subjID','nObservers','nTrials','baseConeParams','coneParamsToVary',....
+    'noiseScaleFactor','p1Wl','p2Wl','testWls','p','questData','psiParamsQuest',...
+    'psiParamsFit','nominalMatch');
 fprintf('Finished observer %g of %g\n', ii, nObservers);
 end
