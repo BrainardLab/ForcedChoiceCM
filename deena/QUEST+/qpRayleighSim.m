@@ -27,6 +27,9 @@ function [questData,psiParamsQuest,psiParamsFit] = ...
 %                       Parameters set to 1 will be sampled around their
 %                       means, while parameters set to 0 will stay at the
 %                       values specified in baseParams.
+%    noiseScaleFactor  -Number >=0 which determines which scalar multiple
+%                       of the opponent noise SD should be used as the
+%                       observer noise SD.
 %    p1Wl              -Integer value of desired wavelength for the first
 %                       primary.
 %    p2Wl              -Integer value of desired wavelength for the second
@@ -61,6 +64,9 @@ function [questData,psiParamsQuest,psiParamsFit] = ...
 %                         light, between 0 and 1. Default is 0.02.
 %    'testScale'         -Numerical scale factor for the test light,
 %                         between 0 and 1. Default is 0.5.
+%    'nStimValues'       -Number of possible stimulus values for lambda and
+%                         test intensity, spaced evenly between 0 and 1.
+%                         Default is 21.
 %    'lambdaRef'         -Numerical scale factor between 0 and 1 for the
 %                         value of lambda used for the reference light,
 %                         which is used as a baseline for computing
@@ -85,6 +91,8 @@ function [questData,psiParamsQuest,psiParamsFit] = ...
 %    10/27/20   dce   -Allowed multiple observers, changed parameters to
 %                      function inputs
 %    10/28/20   dce   -Modified plotting
+%    11/4/20    dce   -Added stimulus spacing as a key value pair, edited
+%                      plots
 
 close all;
 
@@ -99,18 +107,19 @@ p.addParameter('opponentParams',[0.8078 4.1146 1.2592 0.0200],@(x)(isvector(x)))
 p.addParameter('p1Scale',1,@(x)(isnumeric(x)));
 p.addParameter('p2Scale',0.02,@(x)(isnumeric(x)));
 p.addParameter('testScale',0.5,@(x)(isnumeric(x)));
+p.addParameter('nStimValues',21,@(x)(isnumeric(x)));
 p.addParameter('lambdaRef',0.8,@(x)(isnumeric(x)));
 p.addParameter('sampledObservers',[],@(x)(isnumeric(x)));
 p.addParameter('S',[380 2 201],@(x)(isnumeric(x)));
 p.parse(varargin{:});
 
-% Define output directory 
+% Define output directory
 outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
     'Quest',subjID);
 if (~exist(outputDir,'dir'))
     mkdir(outputDir);
 end
-fName = [subjID '.mat'];
+fName = [subjID 'QUEST.mat'];
 outputFile = fullfile(outputDir,fName);
 
 % Define spectra
@@ -160,7 +169,8 @@ end
 % Stimulus parameter list.
 % The first parameter is lambda ( = proportion red in the primary mixture),
 % the second is test intensity, and the third is the test wavelength.
-stimParamsDomainList = {0:0.05:1,0:0.05:1,testWls};
+stimParamsDomainList = {linspace(0,1,p.Results.nStimValues),...
+    linspace(0,1,p.Results.nStimValues),testWls};
 
 % Psychometric function for Rayleigh matching
 PFSim = @(stimParams,coneParams)qpPFRMFull(stimParams,coneParams,...
@@ -190,10 +200,12 @@ else
     end
     for ii = 1:length(stimParamsDomainList)
         if (any(stimParamsDomainList{ii} ~= stimParamsDomainListCheck{ii}))
+            disp('Error');
             error('Change in stim parameters since cache of questDataRaw');
         end
     end
     if (length(psiParamsDomainList) ~= length(psiParamsDomainListCheck))
+        disp('Error');
         error('Change in psi parameters since cache of questDataRaw');
     end
     for ii = 1:length(psiParamsDomainList)
@@ -208,10 +220,10 @@ end
 questData = cell(1,nObservers);                            % QUEST objects
 psiParamsQuest = zeros(nObservers,length(baseConeParams)); % Recovered params (max posterior)
 psiParamsFit = zeros(nObservers,length(baseConeParams));   % Recovered params (maximum likelihood)
-trialPrintout = 20;  % Print message after every 20 trials
 
 % Nominal matches for each observer and test wavelength, in the form [lambda testIntensity]
-nominalMatch = zeros(nObservers,length(testWls),2); 
+nominalMatch = zeros(nObservers,length(testWls),2);
+trialPrintout = 20;  % Print message after every 20 trials
 
 % Loop through observers
 for ii = 1:nObservers
@@ -245,8 +257,8 @@ for ii = 1:nObservers
         
         % Periodic printout
         if (rem(tt,trialPrintout) == 0)
-            fprintf('\t Observer %d of %d, Trial %d of %d\n',...
-                ii,nObservers,tt,nTrials);
+            fprintf('\t Observer %d of %d, Trial %d of %d, time = %d\n',...
+                ii,nObservers,tt,nTrials,toc(startTime));
         end
     end
     elapsedTime = toc(startTime);
@@ -282,12 +294,24 @@ for ii = 1:nObservers
             computePredictedRayleighMatch(p1Spd,p2Spd,testSpds(:,ww),...
             observer,'addDarkSpd',false);
     end
-    
-    % Make plots, if desired
-    if p.Results.plotAll || (p.Results.plotLast && ii == nObservers)
-        % Plot of QUEST runs
-        figure(); clf;
-        stimCounts = qpCounts(qpData(questData{ii}.trialData),questData{ii}.nOutcomes);
+    fprintf('Finished observer %g of %g\n', ii, nObservers);
+end
+
+save(outputFile,'subjID','nObservers','nTrials','baseConeParams','coneParamsToVary',....
+    'noiseScaleFactor','p1Wl','p2Wl','testWls','p','questData','psiParamsQuest',...
+    'psiParamsFit','nominalMatch');
+
+%% Make plots, if desired
+if p.Results.plotAll || p.Results.plotLast
+    if p.Results.plotAll
+        plotInds = 1:nObservers;
+    else
+        plotInds = ii;
+    end
+    % Plot of QUEST runs
+    for pp = plotInds
+        qRunPlot = figure(); clf;
+        stimCounts = qpCounts(qpData(questData{pp}.trialData),questData{pp}.nOutcomes);
         lambdaVals = [];
         tIVals = [];
         tWlVals = [];
@@ -295,7 +319,7 @@ for ii = 1:nObservers
         markerSizes = [];
         for cc = 1:length(stimCounts)
             stim = stimCounts(cc).stim;
-            for jj = 1:questData{ii}.nOutcomes
+            for jj = 1:questData{pp}.nOutcomes
                 outcomeCount = stimCounts(cc).outcomeCounts(jj);
                 if outcomeCount == 0
                     continue;
@@ -319,14 +343,17 @@ for ii = 1:nObservers
         ylabel('Test Intensity');
         zlabel('Peak Test Wavelength (nm)');
         title('QUEST+ Trial Placement');
-        legend('QUEST+ Trials', 'Nominal Matches'); 
+        legend('QUEST+ Trials', 'Nominal Matches');
+        
+        NicePlot.exportFigToPDF(fullfile(outputDir,[subjID num2str(pp) '_qPlot.pdf']),...
+            qRunPlot,300);
         
         % Plot of cone parameters
-        paramsFig = figure(); clf; 
-        set(paramsFig,'Color',[1 1 1],'Position',[10 10 1700 800]);
+        paramsPlot = figure(); clf;
+        set(paramsPlot,'Color',[1 1 1],'Position',[10 10 1700 800]);
         hold on;
         nCols2 = 4;
-        nRows2 = ceil(length(psiParamsFit(ii,:))/nCols2);
+        nRows2 = ceil(length(psiParamsFit(pp,:))/nCols2);
         subplotPosVectors = NicePlot.getSubPlotPosVectors(...
             'rowsNum', nRows2, ...
             'colsNum', nCols2, ...
@@ -339,7 +366,7 @@ for ii = 1:nObservers
         coneParamNames = {'Lens Density','Macular Pigment Density',...
             'L Photopigment Density','M Photopigment Density',...
             'S photopigment density','L Lambda Max','M Lambda Max', 'S Lambda Max'};
-        for kk = 1:length(psiParamsFit(ii,:))
+        for kk = 1:length(psiParamsFit(pp,:))
             % Make a subplot in the correct position
             row = ceil(kk/nCols2);
             col = mod(kk,nCols2);
@@ -348,7 +375,7 @@ for ii = 1:nObservers
             end
             subplot('Position', subplotPosVectors(row,col).v);
             hold on;
-        
+            
             % Define axis limits
             if (kk==6) || (kk==7) || (kk==8)  % Lambda max shifts, in nm
                 limits = [-5 5];
@@ -358,38 +385,43 @@ for ii = 1:nObservers
             xlim(limits);
             ylim(limits);
             axis('square');
-        
+            
             % Plot data
-            lambdaVals = simConeParams(kk);   % Predicted parameters
-            tIVals = psiParamsFit(ii,kk); % Recovered params
+            lambdaVals = sampledConeParams(pp,kk);   % Predicted parameters
+            tIVals = psiParamsFit(pp,kk); % Recovered params
             plot(lambdaVals,tIVals,'b* ','MarkerSize',7,'LineWidth',1);
             refline(1,0);
-        
+            
             % Titles and labels
             theTitle = sprintf('%s Recovered vs Simulated',cell2mat(coneParamNames(kk)));
             title(theTitle);
             xlabel('Simulated Parameters');
             ylabel('Recovered Parameters');
         end
+        NicePlot.exportFigToPDF(fullfile(outputDir,[subjID num2str(pp) '_paramsPlot.pdf']),...
+            paramsPlot,300);
         
-        % Plots of cone fundamentals
-        observerRecovered = genRayleighObserver('coneVec',psiParamsFit(ii,:),...
-            'opponentParams',p.Results.opponentParams,'S',p.Results.S);
-        figure(); clf; 
+        % Plot of cone fundamentals
+        observerSim = genRayleighObserver('age',p.Results.age,...
+            'fieldSize',p.Results.fieldSize,'S',p.Results.S,'opponentParams',...
+            p.Results.opponentParams,'coneVec',sampledConeParams(pp));
+        observerRecovered = genRayleighObserver('coneVec',psiParamsFit(pp,:),...
+            'opponentParams',p.Results.opponentParams,'S',p.Results.S,...
+            'age',p.Results.age,'fieldSize',p.Results.fieldSize);
+        conePlot = figure(); clf;
         hold on;
-        h1 = plot(wls,observer.T_cones(1:2,:),'r-','LineWidth',2.5);
+        subplot(3,1,1); hold on
+        h1 = plot(wls,observerSim.T_cones(1:2,:),'r-','LineWidth',2.5);
         h2 = plot(wls,observerRecovered.T_cones(1:2,:),'b-','LineWidth',1.5);
         legend([h1(1) h2(1)],'Simulated Cones', 'Recovered Cones');
         title('L and M Cones');
         xlabel('Wavelength (nm)');
         ylabel('Sensitivity');
-        
-        figure(); clf;
-        hold on;
-        subplot(1,2,1); hold on
-        plot(wls,observer.T_cones(1,:)-observerRecovered.T_cones(1,:),'r-',...
+
+        subplot(3,1,2); hold on
+        plot(wls,observerSim.T_cones(1,:)-observerRecovered.T_cones(1,:),'r-',...
             'LineWidth',2.5);
-        plot(wls,observer.T_cones(1,:)-observerStandard.T_cones(1,:),'k-',...
+        plot(wls,observerSim.T_cones(1,:)-observerStandard.T_cones(1,:),'k-',...
             'LineWidth',2.5);
         refline(0,0);
         title('L Cone Sensitivity Differences');
@@ -398,10 +430,10 @@ for ii = 1:nObservers
         ylim([-0.06 0.06]);
         legend({'Recovered', 'Standard'},'Location','SouthEast');
         
-        subplot(1,2,2); hold on
-        plot(wls,observer.T_cones(2,:)-observerRecovered.T_cones(2,:),'r-',...
+        subplot(3,1,3); hold on
+        plot(wls,observerSim.T_cones(2,:)-observerRecovered.T_cones(2,:),'r-',...
             'LineWidth',2.5);
-        plot(wls,observer.T_cones(2,:)-observerStandard.T_cones(2,:),'k-',...
+        plot(wls,observerSim.T_cones(2,:)-observerStandard.T_cones(2,:),'k-',...
             'LineWidth',2.5);
         refline(0,0);
         title('M Cone Sensitivity Differences');
@@ -410,10 +442,5 @@ for ii = 1:nObservers
         ylim([-0.06 0.06]);
         legend({'Recovered', 'Standard'},'Location','SouthEast');
     end
-    
 end
-save(outputFile,'subjID','nObservers','nTrials','baseConeParams','coneParamsToVary',....
-    'noiseScaleFactor','p1Wl','p2Wl','testWls','p','questData','psiParamsQuest',...
-    'psiParamsFit','nominalMatch');
-fprintf('Finished observer %g of %g\n', ii, nObservers);
 end

@@ -1,4 +1,4 @@
-function [opponentContrastParams,error] = opponentAxesToLab(noiseSD)
+function [opponentContrastParams,error,opponentSphere] = opponentAxesToLab(noiseSD)
 % Syntax:
 %   opponentParamsErr(opponentParams,refLMS,shiftedLMS,noiseSD)
 %
@@ -11,7 +11,7 @@ function [opponentContrastParams,error] = opponentAxesToLab(noiseSD)
 %    equal to the selected noise standard deviation on average. The search
 %    is conducted using fmincon.
 %
-%    With the current settings, the program returns ideal params of 
+%    With the current settings, the program returns ideal params of
 %    [0.8078 4.1146 1.2592 0.0200], which are used as defaults
 %    throughout the simulation programs.
 %
@@ -32,17 +32,17 @@ function [opponentContrastParams,error] = opponentAxesToLab(noiseSD)
 % History:
 %   07/29/20  dce, dhb   Wrote it.
 %   08/03/20  dce        Made a function, added plotting
-%   08/10/20  dce        Added 3D plots, passed in cones to LMS-LAB 
-%                        conversion functions 
+%   08/10/20  dce        Added 3D plots, passed in cones to LMS-LAB
+%                        conversion functions
 
 %% Generate a set of LMS coordinates that are at a uniform distance from
 %% the reference in LAB space
 % Check input
-if noiseSD <= 0 
+if noiseSD <= 0
     error('Noise must be greater than 0');
-end 
+end
 
-% Load data files 
+% Load data files
 coneData = load('T_cones_ss2');
 xyzData = load('T_xyz1931');
 spdData = load('spd_D65');
@@ -106,29 +106,28 @@ errScalar = 100;
 error = opponentParamsErr(bestODParams,refLMS,sphereLMS,noiseSD)/errScalar;
 
 % Plot to see how close to a sphere the opponent points are
-plotResults = true;
+% Generate params struct
+colorDiffParams = getColorDiffParams([bestODParams noiseSD]);
+
+% Find opponent contrast vector
+opponentContrasts = zeros(1,nPointsOnSphere);
+for i = 1:nPointsOnSphere
+    opponentContrast = LMSToOpponentContrast(colorDiffParams,refLMS,...
+        sphereLMS(:,i));
+    opponentContrasts(i) = norm(opponentContrast);
+end
+
+% Find opponent sphere coordinates in 3D
+opponentCenter = LABToLMS(refLMS,refXYZ);  % Center of opponent sphere
+opponentSphere(1,:) = baseSphere(1,:)+opponentCenter(1);
+opponentSphere(2,:) = baseSphere(2,:)+opponentCenter(2);
+opponentSphere(3,:) = baseSphere(3,:)+opponentCenter(3);
+for i = 1:nPointsOnSphere  % Scale points by opponent radius
+    opponentSphere(:,i) = opponentSphere(:,i)*opponentContrasts(i);
+end
+plotResults = false;
 if plotResults
-    % Generate params struct
-    colorDiffParams = getColorDiffParams([bestODParams noiseSD]);
-    
-    % Find opponent contrast vector 
-    opponentContrasts = zeros(1,nPointsOnSphere);
-    for i = 1:nPointsOnSphere
-        opponentContrast = LMSToOpponentContrast(colorDiffParams,refLMS,...
-            sphereLMS(:,i));
-        opponentContrasts(i) = norm(opponentContrast);
-    end
-    
-    % Find opponent sphere coordinates in 3D
-    opponentCenter = LABToLMS(refLMS,refXYZ);  % Center of opponent sphere
-    opponentSphere(1,:) = baseSphere(1,:)+opponentCenter(1);
-    opponentSphere(2,:) = baseSphere(2,:)+opponentCenter(2);
-    opponentSphere(3,:) = baseSphere(3,:)+opponentCenter(3);
-    for i = 1:nPointsOnSphere  % Scale points by opponent radius
-        opponentSphere(:,i) = opponentSphere(:,i)*opponentContrasts(i);
-    end
-    
-    % 2D plot 
+    % 2D plot
     figure();
     plot(1:nPointsOnSphere,opponentContrasts,'ro ');
     ylim([0 2*noiseSD]);

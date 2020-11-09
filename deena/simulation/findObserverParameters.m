@@ -50,7 +50,7 @@ function [params,error,observer] = findObserverParameters(testSpds,primarySpds,v
 %    'dmac0'         -Logical. If true, constrains the macular pigment 
 %                     density(params(2)) to be 0. Default is false.
 %    'restrictBySD'  -Logical. If true, adds lower and upper bounds on all
-%                     paramters to keep them within three standard
+%                     paramters to keep them within two standard
 %                     deviations of their means. Default is true. 
 %    'S'             -Wavelength sampling for cone calculations, in the
 %                     form [start delta nTerms]. Default is [380 2 201];

@@ -297,7 +297,6 @@ if ~monochromatic  % Matching using OL primaries
     testStartStops = lightSettings.testStartStops;
     p1Scales = lightSettings.p1Scales;
     testScales = lightSettings.testScales;
-    wls = lightSettings.cal.computed.pr650Wls;
     S = lightSettings.cal.computed.pr650S;
     
 else  % Monochromatic matching
@@ -308,12 +307,12 @@ else  % Monochromatic matching
     S = monochromaticS;
     wls = SToWls(S);
     primarySpdsNominal = zeros(length(wls),length(p1Scales));
-    primarySpdsNominal(wls==p1,:) = p1Scale*p1Scales;
-    primarySpdsNominal(wls==p2,:) = p2Scale*p2Scales;
+    primarySpdsNominal(wls==p1,:) = 1*p1Scale*p1Scales;
+    primarySpdsNominal(wls==p2,:) = 1*p2Scale*p2Scales;
     primarySpdsPredicted = primarySpdsNominal;
     
     testSpdsNominal = zeros(length(wls),length(testScales));
-    testSpdsNominal(wls==test,:) = testScale*testScales;
+    testSpdsNominal(wls==test,:) = 1*testScale*testScales;
     testSpdsPredicted = testSpdsNominal;
 end
 
@@ -744,7 +743,7 @@ while(stillLooping)
                         'opponentParams','nObserverMatches','pIdealIndex',...
                         'tIdealIndex','idealForStandardObs','idealTestSpd',...
                         'idealPrimarySpd','idealTestIntensity','idealPRatio',...
-                        'monochromatic');
+                        'monochromatic','S');
                     stillLooping = false;
                     break;
                     

@@ -3,7 +3,7 @@ function sampledParams = sampleRayleighObservers(nObservers,baseParams,...
 % Samples a set of observers for Rayleigh matching 
 %
 % Syntax:
-%   sampleRayleighIbservers(nObservers,baseParams,paramsToVary);
+%   sampleRayleighObservers(nObservers,baseParams,paramsToVary);
 %
 % Description:
 %    Takes in a vector of cone individual difference parameters as a

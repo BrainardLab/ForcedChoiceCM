@@ -13,7 +13,7 @@ age = 32;
 fieldSize = 2;
 rayleighPlots = false;
 saveResults = false;
-adjustmentLength = 3201;
+adjustmentLength = 51;
 noiseScaleFactor = 0;  % Start with the noiseless case
 monochromatic = true;
 nObserverMatches = 1;
@@ -21,7 +21,7 @@ averageSpds = true;
 nReversals = [1 4];
 nBelowThreshold = 1;
 thresholdScaleFactor = 0.5;
-baseSubjID = 'TestNTrials4';
+baseSubjID = 'TestNTrialsWideSpacing1';
 
 % Observer params
 sampledConeParams = sampleRayleighObservers(nObservers,baseConeParams,...
@@ -54,15 +54,15 @@ for i = 1:nObservers
         'nReversals',nReversals,'nBelowThreshold',nBelowThreshold,...
         'nObserverMatches',nObserverMatches,'thresholdScaleFactor',...
         thresholdScaleFactor);
-    getMatchSeries(subjIDThreshold,sampledConeParams(i,:),opponentParams,...
-        p1Wl,p2Wl,testWls,'threshold','age',age,'fieldSize',fieldSize,...
-        'monochromatic',monochromatic,'p1Scale',p1Scale,'p2Scale',p2Scale,...
-        'testScale',testScale,'sPredicted',S,'rayleighPlots',rayleighPlots,...
-        'saveResults',saveResults,'adjustmentLength',adjustmentLength,...
-        'noiseScaleFactor',noiseScaleFactor,'averageSpds',averageSpds,...
-        'nReversals',nReversals,'nBelowThreshold',nBelowThreshold,...
-        'nObserverMatches',nObserverMatches,'thresholdScaleFactor',...
-        thresholdScaleFactor);
+%     getMatchSeries(subjIDThreshold,sampledConeParams(i,:),opponentParams,...
+%         p1Wl,p2Wl,testWls,'threshold','age',age,'fieldSize',fieldSize,...
+%         'monochromatic',monochromatic,'p1Scale',p1Scale,'p2Scale',p2Scale,...
+%         'testScale',testScale,'sPredicted',S,'rayleighPlots',rayleighPlots,...
+%         'saveResults',saveResults,'adjustmentLength',adjustmentLength,...
+%         'noiseScaleFactor',noiseScaleFactor,'averageSpds',averageSpds,...
+%         'nReversals',nReversals,'nBelowThreshold',nBelowThreshold,...
+%         'nObserverMatches',nObserverMatches,'thresholdScaleFactor',...
+%         thresholdScaleFactor);
     
     % Loop through match files and extract the number of adjustments
     dirFC = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
@@ -81,21 +81,21 @@ for i = 1:nObservers
         
         % Load data
         dataFC = load(simFilePathFC);
-        dataThresh = load(simFilePathThresh);
+%         dataThresh = load(simFilePathThresh);
         
-        % Count number of adjustments
+%         Count number of adjustments
         [nTrialsFC,~] = size(dataFC.subjectSettings);
-        [nTrialsThresh,~] = size(dataThresh.subjectSettings);
+%         [nTrialsThresh,~] = size(dataThresh.subjectSettings);
         
-        % Add trial data to running counts 
+%         Add trial data to running counts 
         countAdjustmentsFC = countAdjustmentsFC + nTrialsFC;
-        countAdjustmentsThresh = countAdjustmentsThresh + nTrialsThresh;
+%         countAdjustmentsThresh = countAdjustmentsThresh + nTrialsThresh;
     end 
     
     nAdjustmentsFC(i) = countAdjustmentsFC; 
-    nAdjustmentsThresh(i) = countAdjustmentsThresh; 
+%     nAdjustmentsThresh(i) = countAdjustmentsThresh; 
 end 
 
 % Average over observers
 meanTrialsFC = mean(nAdjustmentsFC);
-meanTrialsThresh = mean(nAdjustmentsThresh);
+% meanTrialsThresh = mean(nAdjustmentsThresh);
