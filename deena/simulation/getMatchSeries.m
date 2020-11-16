@@ -96,6 +96,20 @@ function [testSpds,primarySpds,testIntensities,primaryRatios] = ...
 %                         Default is true.
 %    'saveResults'       -Logical indicating to save a file with the series
 %                         of match spds. Default is true.
+%    'stimLimits'       -length(testWls) x 5 matrix for storing limits on 
+%                         observer parameters. Each row represents a given  
+%                         test wavelength and the limits which are associated 
+%                         with it. The columns are arranged as follows: 
+%                         [test wl, min lambda, max lambda, min test 
+%                         intensity, max test intensity]. Default is [].
+%                         Note that these limits are not applied to nominal
+%                         or best available matches. 
+%    'lambdaRef'           - Number between 0 and 1 indicating which value 
+%                            of lambda to use for a reference primary when
+%                            calculating simulated opponent contrasts. Must 
+%                            be a member of p1Scales. When empty, opponent 
+%                            contrasts are not computed relative to a 
+%                            reference. Default is []. 
 % History:
 %   06/12/20  dce       Wrote it
 %   06/25/20  dce       Added key-value pairs
@@ -105,6 +119,8 @@ function [testSpds,primarySpds,testIntensities,primaryRatios] = ...
 %   08/05/20  dce       Added opponent contrast info
 %   08/09/20  dce       Added bestAvailable option
 %   10/28/20  dce       Added OL matching with monochromatic lights
+%   11/15/20  dce       Added options to limit stimulus range and use
+%                       reference spectrum
 
 % Input parsing
 p = inputParser;
@@ -125,6 +141,8 @@ p.addParameter('monochromatic',false,@(x)(islogical(x)));
 p.addParameter('rayleighPlots',true,@(x)(islogical(x)));
 p.addParameter('averageSpds',true,@(x)(islogical(x)));
 p.addParameter('saveResults',true,@(x)(islogical(x)));
+p.addParameter('stimLimits',[],@(x)(isnumeric(x)));
+p.addParameter('lambdaRef',[],@(x)(isnumeric(x)));
 p.parse(varargin{:});
 
 % Check that a correct method has been entered
@@ -132,6 +150,12 @@ if ~strcmp(method,'predicted') && ~strcmp(method,'threshold') && ...
         ~strcmp(method,'forcedChoice') && ~strcmp(method,'bestAvailable')
     error('Unrecognized Rayleigh match method');
 end
+% Check that appropriate parameter limits have been entered
+if ~isempty(p.Results.stimLimits)
+    if any(p.Results.stimLimits(:,1) ~= testWls')
+        error('Passed parameter limits do not match provided test wavelengths');
+    end 
+end 
 
 % Set up subject directory
 outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
@@ -169,6 +193,13 @@ primarySpds = [];
 testIntensities = [];
 primaryRatios = [];
 for i = 1:nCombos
+    % Find parameter limits
+    trialStimLimits = [];
+    if ~isempty(p.Results.stimLimits)
+        trialStimLimits = p.Results.stimLimits(p.Results.stimLimits(:,1)...
+            ==lightCombos(i,3),2:5);
+    end
+    
     if strcmp(method,'threshold')  % Use OLRayleighMatch threshold
         % Run simulation
         OLRayleighMatch(subjID,i,'simObserver',true,'thresholdMatching',...
@@ -184,7 +215,8 @@ for i = 1:nCombos
             p.Results.rayleighPlots,'adjustmentLength',...
             p.Results.adjustmentLength,'opponentParams',opponentParams,...
             'noiseScaleFactor',p.Results.noiseScaleFactor,'monochromatic',...
-            p.Results.monochromatic,'monochromaticS',p.Results.sPredicted);
+            p.Results.monochromatic,'monochromaticS',p.Results.sPredicted,...
+            'stimLimits',trialStimLimits,'lambdaRef',p.Results.lambdaRef);
         % Extract spds from the data file
         simFile = [subjID,'_',num2str(i),'.mat'];
         simFilePath = fullfile(outputDir,simFile);
@@ -204,7 +236,8 @@ for i = 1:nCombos
             'adjustmentLength',p.Results.adjustmentLength,'opponentParams',...
             opponentParams,'noiseScaleFactor',p.Results.noiseScaleFactor,...
             'monochromatic',p.Results.monochromatic,'monochromaticS',...
-            p.Results.sPredicted);
+            p.Results.sPredicted,'stimLimits',trialStimLimits,'lambdaRef',...
+            p.Results.lambdaRef);
         % Extract spds from the data file
         simFile = [subjID,'_',num2str(i),'.mat'];
         simFilePath = fullfile(outputDir,simFile);

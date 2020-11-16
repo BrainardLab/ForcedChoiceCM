@@ -59,7 +59,7 @@ function [params,error,observer] = findObserverParameters(testSpds,primarySpds,v
 %    'initialConeParams' -1x8 numerical vector of cone individual  
 %                         difference parameters. Default is zeros(1,8);
 %    'opponentParams'    -1x4 numerical vector of opponent contrast
-%                         parameters. Default is [0.8078 4.1146 1.2592 0.02].
+%                         parameters. Default is [40.3908 205.7353 62.9590 1.0000].
 
 % History:
 %   06/12/20  dce       Wrote it.
@@ -79,7 +79,7 @@ p.addParameter('dlens0',false,@(x)(islogical(x)));
 p.addParameter('dmac0',false,@(x)(islogical(x)));
 p.addParameter('restrictBySd',true,@(x)(islogical(x)));
 p.addParameter('initialConeParams',zeros(1,8),@(x)(isnumeric(x)));
-p.addParameter('opponentParams',[0.8078 4.1146 1.2592 0.02],@(x)(isvector(x)));
+p.addParameter('opponentParams',[40.3908 205.7353 62.9590 1.0000],@(x)(isvector(x)));
 p.addParameter('S',[380 2 201],@(x)(isnumeric(x)));
 p.addParameter('errScalar',100,@(x)(isnumeric(x)));
 p.parse(varargin{:});

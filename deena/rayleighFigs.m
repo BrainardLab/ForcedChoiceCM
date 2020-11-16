@@ -79,13 +79,13 @@ ylim([-0.06 0.06]);
 
 %% Opponent contrast sphere figure figure
 % May want to fix random number generator at some point
-noiseSD = 0.02;
+noiseSD = 1;
 [~,~,opponentSphere] = opponentAxesToLab(noiseSD);
 figure(3);
 plot3(opponentSphere(1,:),opponentSphere(2,:),opponentSphere(3,:),'o-');
 xlabel('x');
 ylabel('y');
 zlabel('z');
-title('Optimized Opponent Sphere, Radius = 0.02');
+title('Optimized Opponent Sphere, Radius = 1');
 
 %% Rayleigh simulation plots

@@ -21,8 +21,8 @@ function [primary_redder,test_brighter,isMatch,differenceVector] = ...
 % Inputs:
 %     observer          -Struct with observer parameters. Must contain the
 %                        following fields: colorDiffParams, T_cones. 
-%     primarySpd        -201x1 vector representation of the primary spd
-%     testSpd           -201x1 vector represetation of the test spd  
+%     primarySpd        -nWlsx1 vector representation of the primary spd
+%     testSpd           -nWlsx1 vector represetation of the test spd  
 %
 % Outputs:
 %     primary_redder    -Logical indicating whether primary ratio should 
@@ -33,13 +33,18 @@ function [primary_redder,test_brighter,isMatch,differenceVector] = ...
 %                        lights are below the matching threshold.
 %
 % Optional key-value pairs:
-%     noiseScale        -Number >=0 which determines which scalar multiple
-%                        of the opponent noise SD should be used as the
-%                        observer noise SD. Default is 1.
-%     thresholdScale    -Number >0 which determines which scalar multiple 
-%                        of the observer noise should be used. Default is
-%                        1.
-%                        as the matching threshold. Default is 0.5. 
+%     'noiseScale'      -Number >=0 which determines which scalar multiple
+%                        of the opponent noise Sd should be used as the
+%                        observer noise Sd. Default is 1.
+%     'thresholdScale'  -Number >0 which determines which scalar multiple 
+%                        of the observer noise should be used as the 
+%                        matching threshold. Default is 0.5.
+%     'refSpd'          -nWlsx1 vector represetation of the reference spd.
+%                        If this is nonempty, the program computes the 
+%                        opponent contrast of both primary mixture and test 
+%                        light relative to the reference, rather than their 
+%                        opponent contrast relative to one another. Default 
+%                        is [].
 % History:
 %   06/02/20  dce       Wrote initial code
 %   06/03/20  dce       Added noise, style edits
@@ -49,21 +54,37 @@ function [primary_redder,test_brighter,isMatch,differenceVector] = ...
 %   07/06/20  dce       Got rid of "noisy" key-value pair, do noise based
 %                       on SD only
 %   08/05/20  dce       Distinguished opponent noise and observer noise.
+%   11/15/20  dce       Added option to compute opponent contrast relative 
+%                       to a reference, changed so opponent contrast of
+%                       test is computed relative to primary mixture.
 
 % Parse input 
 p = inputParser;
 p.addParameter('noiseScale',1, @(x)(isnumeric(x)));
 p.addParameter('thresholdScale',0.5, @(x)(isnumeric(x)));
+p.addParameter('refSpd',[], @(x)(isnumeric(x)));
 p.parse(varargin{:});
 
 % Cone responses for the given spectra
 test_LMS = observer.T_cones*testSpd; 
 primary_LMS = observer.T_cones*primarySpd; 
 
-% Opponent contrasts for the given spectra (primary mixing light relative 
-% to test light). The result has the form [LUM; RG; BY].
-opponentContrast = LMSToOpponentContrast(observer.colorDiffParams,...
-    test_LMS,primary_LMS);
+% Opponent contrasts for the given spectra. The result has the form [LUM; RG; BY].
+if isempty(p.Results.refSpd)
+    % No reference light provided - return opponent contrast of test
+    % relative to primary mixture.
+    opponentContrastDiff = LMSToOpponentContrast(observer.colorDiffParams,...
+        primary_LMS,test_LMS);
+else
+    % Reference light provided - return opponent contrast of test -
+    % opponent contrast of primary mixture.
+    ref_LMS = observer.T_cones*p.Results.refSpd;
+    pOpponentContrast = LMSToOpponentContrast(observer.colorDiffParams,...
+        ref_LMS,primary_LMS);
+    tOpponentContrast = LMSToOpponentContrast(observer.colorDiffParams,...
+        ref_LMS,test_LMS);
+    opponentContrastDiff = tOpponentContrast - pOpponentContrast;
+end 
 
 % Add noise to opponent contrast by sampling three values from a Gaussian
 % distribution.
@@ -71,21 +92,22 @@ opponentNoiseSd = observer.colorDiffParams.noiseSd;
 observerNoiseSd = p.Results.noiseScale*opponentNoiseSd;
 if observerNoiseSd ~= 0 % The simulated matching is noisy
     noise = normrnd(0,observerNoiseSd,3,1); 
-    opponentContrast = opponentContrast+noise; 
+    opponentContrastDiff = opponentContrastDiff+noise; 
 end 
 
-% Check luminance 
-if opponentContrast(1) > 0 % Primary mixture is brighter than test 
+% Check luminance. If negative, the test light needs to be made brighter. 
+if opponentContrastDiff(1) < 0 % Test is less bright than primary mixture 
     test_brighter = true;
 else 
     test_brighter = false; 
 end 
 
-% Check R/G ratio
-if opponentContrast(2) < 0 % Primary mixture is greener than test
-    primary_redder = true; 
-else 
+% Check R/G ratio. If negative, the primary mixture needs to be made
+% redder.
+if opponentContrastDiff(2) < 0 % Test is greener than primary mixture 
     primary_redder = false; 
+else 
+    primary_redder = true; 
 end
 
 % Define matching threshold 
@@ -96,7 +118,7 @@ else
 end
 
 % Check whether we're below the matching threshold  
-differenceVector = norm(opponentContrast(1:2)); 
+differenceVector = norm(opponentContrastDiff(1:2)); 
 if differenceVector < threshold
     isMatch = true; 
 else

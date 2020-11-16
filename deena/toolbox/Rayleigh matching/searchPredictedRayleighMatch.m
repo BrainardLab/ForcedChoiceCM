@@ -40,6 +40,8 @@ function [tSpd,pSpd,tIndex,pIndex,minDiff] =...
 %    dce    08/09/20  - Adapted from findNominalMatch and dhb's
 %                       t_AnalyticRayleighMatch
 %    dce    08/10/20  - Renamed, changed order of inputs to standardize
+%    dce    11/15/20  - Changed to compute opponent contrast of test
+%                       relative to primary mixture.
 
 % Initial search settings 
 minDiff = Inf;
@@ -50,12 +52,13 @@ pIndex = NaN;
 primaryConeEffects = observer.T_cones*primarySpds;
 testConeEffects = observer.T_cones*testSpds;
 
-% Loop through lights and find the minimal opponent contrast error
-for testTrialInd = 1:size(testSpds,2)
+% Loop through lights and find the minimal opponent contrast error (test
+% relative to primary mixture)
+for primaryTrialInd = 1:size(testSpds,2)
     opponentDiffs = LMSToOpponentContrast(observer.colorDiffParams,...
-        testConeEffects(:,testTrialInd),primaryConeEffects);
+        primaryConeEffects(:,primaryTrialInd),testConeEffects);
     diffVec = vecnorm(opponentDiffs(1:2,:));
-    [diff,primaryTrialInd] = min(diffVec);
+    [diff,testTrialInd] = min(diffVec);
     if (diff < minDiff)
         minDiff = diff;
         tIndex = testTrialInd;

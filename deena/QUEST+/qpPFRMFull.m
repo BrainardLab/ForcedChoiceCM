@@ -1,4 +1,5 @@
-function [predictedProportions] = qpPFRMFull(stimParamsVec,coneParamsVec,opponentParamsVec,noiseSD,S,p1Spd,p2Spd,tSpds,tWls,lambdaRef)
+function [predictedProportions] = qpPFRMFull(stimParamsVec,coneParamsVec,...
+    opponentParamsVec,noiseSD,S,p1Spd,p2Spd,tSpds,tWls,varargin)
 % Psychometric function for Rayleigh matching
 %
 % Usage:
@@ -40,9 +41,6 @@ function [predictedProportions] = qpPFRMFull(stimParamsVec,coneParamsVec,opponen
 %                        spdLength x nWls. 
 %     tWls               Vector specifying which peak wavelengths are included
 %                        in tSpds. Its length must equal the width of tSpds.
-%     lambdaRef          Specifies a value of lambda used to generate the 
-%                        reference primary mixture for calculating opponent 
-%                        contrasts. Must be between 0 and 1. 
 %
 % Output:
 %     predictedProportions   4-column matrix, where each row contains the
@@ -55,11 +53,15 @@ function [predictedProportions] = qpPFRMFull(stimParamsVec,coneParamsVec,opponen
 %                            4: primary too green/test too dim
 %
 % Optional key/value pairs
-%     None
+%     'refSpd'         -Spd used as a reference for computing opponent
+%                       contrasts. If empty, the opponent contrast of the
+%                       primary mixture is calculated relative to the test. 
+%                       Default is [].
 
 % History
 %     10/21/20  dce  -Adapted from qpPFRM
 %     10/23/20  dce  -Edited to not allow complete certainty
+%`    11/14/20  dce  -Added option to use without reference spd
 
 %% Parse input
 p = inputParser;
@@ -72,9 +74,9 @@ p.addRequired('p1Spd',@isnumeric);
 p.addRequired('p2Spd',@isnumeric);
 p.addRequired('tSpds',@isnumeric);
 p.addRequired('tWls',@isnumeric);
-p.addRequired('lambdaRef',@isnumeric);
+p.addParameter('refSpd',[],@isnumeric);
 p.parse(stimParamsVec,coneParamsVec,opponentParamsVec,noiseSD,S,p1Spd,...
-    p2Spd,tSpds,tWls,lambdaRef);
+    p2Spd,tSpds,tWls,varargin{:});
 
 %% Input checks 
 if length(tWls) ~= size(tSpds,2)
@@ -85,8 +87,6 @@ elseif ~all(stimParamsVec(:,1) >= 0) || ~all(stimParamsVec(:,1) <= 1)
     error('Chosen lambda values must be between 0 and 1');
 elseif ~all(stimParamsVec(:,2) >= 0) || ~all(stimParamsVec(:,2) <= 1)
     error('Chosen test intensity values must be between 0 and 1');
-    elseif lambdaRef < 0 || lambdaRef > 1
-    error('Reference lambda must be between 0 and 1');
 end 
 
 %% Generate observer based on passed parameters 
@@ -94,8 +94,9 @@ observer = genRayleighObserver('coneVec',coneParamsVec,'opponentParams',...
     opponentParamsVec,'S',S); 
 
 %% Generate the reference spectrum for opponent contrast calculations
-pRef = lambdaRef*p1Spd + (1-lambdaRef)*p2Spd;
-refLMS = observer.T_cones * pRef; 
+if ~isempty(p.Results.refSpd)
+    refLMS = observer.T_cones * p.Results.refSpd;
+end 
 
 %% Loop over stimuli and get the proportions for each 
 nStim = size(stimParamsVec,1);         % Number of stimulus combinations
@@ -114,13 +115,20 @@ for ii = 1:nStim
     pLMS = observer.T_cones * primary;
     tLMS = observer.T_cones * test;
     
-    % Compute opponent contrast of the two lights relate to the reference
-    % primary
-    pOpponentContrast = LMSToOpponentContrast(observer.colorDiffParams,...
-        refLMS,pLMS);
-    tOpponentContrast = LMSToOpponentContrast(observer.colorDiffParams,...
-        refLMS,tLMS);
-    opponentContrastDiff = tOpponentContrast - pOpponentContrast; 
+    % Compute opponent contrast of the two lights. If a reference primary
+    % is provided, compute each opponent contrast relative to the
+    % reference, and return the difference as [test - primary mixture]. 
+    % Otherwise, return the contrast of the test relative to the primary mixture.
+    if isempty(p.Results.refSpd)
+        opponentContrastDiff = LMSToOpponentContrast(observer.colorDiffParams,...
+            pLMS,tLMS);
+    else
+        pOpponentContrast = LMSToOpponentContrast(observer.colorDiffParams,...
+            refLMS,pLMS);
+        tOpponentContrast = LMSToOpponentContrast(observer.colorDiffParams,...
+            refLMS,tLMS);
+        opponentContrastDiff = tOpponentContrast - pOpponentContrast;
+    end
     
     % Compute proportions for luminance judgements: test is not brighter,
     % test is brighter

@@ -144,6 +144,18 @@ function [coneAvgErr,matchAvgErr,coneAvgStdErr,matchAvgStdErr,...
 %    'S'                 -Wavelength sampling for cone calculations, in the
 %                         form [start increment numTerms]. Default is
 %                         [380 2 201];
+%    'stimLimits'        -length(testWls) x 5 matrix for storing limits on 
+%                         stimulus parameters. Each row represents a given  
+%                         test wavelength and the limits which are associated 
+%                         with it. The columns are arranged as follows: 
+%                         [test wl, min lambda, max lambda, min test 
+%                         intensity, max test intensity]. Default is [].
+%    'lambdaRef'         - Number between 0 and 1 indicating which value 
+%                          of lambda to use for a reference primary when
+%                          calculating simulated opponent contrasts. Must 
+%                          be a member of p1Scales. When empty, opponent 
+%                          contrasts are not computed relative to a 
+%                          reference. Default is []. 
 
 % History:
 %   07/06/20  dce       Wrote it.
@@ -161,6 +173,7 @@ function [coneAvgErr,matchAvgErr,coneAvgStdErr,matchAvgStdErr,...
 %                       available matches, not analytic
 %   10/28/20  dce       Added sampled and recovered parameters as outputs
 %   11/01/20  dce       Added wavelength sampling as key-value pair
+%   11/15/20  dce       Added option to restrict stimuli
 
 % Close stray figures
 close all;
@@ -190,6 +203,8 @@ p.addParameter('restrictBySd',true,@(x)(islogical(x)));
 p.addParameter('errWls',[],@(x)(isnumeric(x)));
 p.addParameter('sampledObservers',[],@(x)(isnumeric(x)));
 p.addParameter('S',[380 2 201],@(x)(isnumeric(x)));
+p.addParameter('stimLimits',[],@(x)(isnumeric(x)));
+p.addParameter('lambdaRef',[],@(x)(isnumeric(x)));
 p.parse(varargin{:});
 
 % Base observer, used for comparison
@@ -259,7 +274,9 @@ for i = 1:nObservers
         p.Results.thresholdScaleFactor,'rayleighPlots',false,...
         'saveResults',false,'nominal',p.Results.nominal,'adjustmentLength',...
         p.Results.adjustmentLength,'noiseScaleFactor',...
-        p.Results.noiseScaleFactor,'averageSpds',true,'sPredicted',p.Results.S);
+        p.Results.noiseScaleFactor,'averageSpds',true,'sPredicted',...
+        p.Results.S,'stimLimits',p.Results.stimLimits,'lambdaRef',...
+        p.Results.lambdaRef);
     testIntensitiesSim = [testIntensitiesSim;testIntensitiesSimObs];
     primaryRatiosSim = [primaryRatiosSim;primaryRatiosSimObs];
     testSpdsSelected = testSpds(:,selectionArr);
@@ -294,7 +311,8 @@ for i = 1:nObservers
         'age',p.Results.age,'p1Scale',p.Results.p1Scale,...
         'p2Scale',p.Results.p2Scale,'testScale',p.Results.testScale,...
         'monochromatic',p.Results.monochromatic,'saveResults',false,...
-        'nominal',p.Results.nominal,'sPredicted',p.Results.S);
+        'nominal',p.Results.nominal,'sPredicted',p.Results.S,'lambdaRef',...
+        p.Results.lambdaRef);
     testIntensitiesRecPred = [testIntensitiesRecPred;testIntensitiesPredObs];
     primaryRatiosRecPred = [primaryRatiosRecPred;primaryRatiosPredObs];
     
@@ -306,7 +324,8 @@ for i = 1:nObservers
         'age',p.Results.age,'p1Scale',p.Results.p1Scale,...
         'p2Scale',p.Results.p2Scale,'testScale',p.Results.testScale,...
         'monochromatic',p.Results.monochromatic,'saveResults',false,...
-        'nominal',p.Results.nominal,'sPredicted',p.Results.S);
+        'nominal',p.Results.nominal,'sPredicted',p.Results.S,'lambdaRef',...
+        p.Results.lambdaRef);
     testIntensitiesSimPred = [testIntensitiesSimPred;testIntensitiesPredObs2];
     primaryRatiosSimPred = [primaryRatiosSimPred;primaryRatiosPredObs2];
     

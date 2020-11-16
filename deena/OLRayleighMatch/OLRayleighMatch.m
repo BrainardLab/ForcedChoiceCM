@@ -79,7 +79,7 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %    'observerParams' - 1x8 vector of Asano individual difference params
 %                       for simulated observer. Default is zeros(1,8)
 %    'opponentParams' - 1x4 vector of opponent contrast parameters. Default 
-%                       is [0.8078 4.1146 1.2592 0.0200].
+%                       is [40.3908  205.7353   62.9590    1.0000].
 %    'switchInterval' - When using a simulated observer, number of
 %                       adjustments to make in a particular dimension
 %                       (luminance or RG) before switching. Default is 1.
@@ -115,7 +115,17 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %    'monochromaticS'       - Vector with wavelength sampling if 
 %                             monochromatic lights are used. Default is 
 %                             [380 2 201].
-
+%    'lambdaRef'           - Number between 0 and 1 indicating which value 
+%                            of lambda to use for a reference primary when
+%                            calculating simulated opponent contrasts. Must 
+%                            be a member of p1Scales. When empty, opponent 
+%                            contrasts are not computed relative to a 
+%                            reference. Default is [].   
+%    'stimLimits'           -4-element vector to store limits on stimulus 
+%                            parameters. Follows the format [min lambda, 
+%                            max lambda, min test intensity, max test 
+%                            intensity].Each element must be between 0 and 
+%                            1. Default is [].
 
 % History:
 %   xx/xx/19  dce       Wrote it.
@@ -146,6 +156,7 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %   08/05/20  dce       Added opponent contrast params input 
 %   08/09/20  dce       Changed ideal match to best available, not nominal 
 %   10/28/20  dce       Added monochromatic simulation matching
+%   11/15/20  dce       Added optional stimulus limits, reference light
 
 %% Close any stray figures
 close all;
@@ -169,7 +180,7 @@ p.addParameter('silent',true,@(x)(islogical(x)));
 p.addParameter('simKeypad',false,@(x)(islogical(x)));
 p.addParameter('simObserver',true,@(x)(islogical(x)));
 p.addParameter('observerParams',zeros(1,8),@(x)(isnumeric(x)));
-p.addParameter('opponentParams',[0.8078 4.1146 1.2592 0.02],@(x)(isvector(x)));
+p.addParameter('opponentParams',[40.3908 205.7353 62.9590 1.0000],@(x)(isvector(x)));
 p.addParameter('nObserverMatches',1,@(x)(isnumeric(x)));
 p.addParameter('switchInterval',1,@(x)(isnumeric(x)));
 p.addParameter('nReversals',[1 4],@(x)(isnumeric(x)));
@@ -180,6 +191,8 @@ p.addParameter('thresholdScaleFactor',0.5,@(x)(isnumeric(x)));
 p.addParameter('simNominalLights',false,@(x)(islogical(x)));
 p.addParameter('monochromatic',false,@(x)(islogical(x)));
 p.addParameter('monochromaticS',[380 2 201],@(x)(isnumeric(x)));
+p.addParameter('lambdaRef',[],@(x)(isnumeric(x)));
+p.addParameter('stimLimits',[],@(x)(isnumeric(x)));
 p.parse(varargin{:});
 
 p1 = p.Results.p1;
@@ -210,6 +223,8 @@ plotResponses = p.Results.plotResponses;
 simNominalLights = p.Results.simNominalLights;
 monochromatic = p.Results.monochromatic;
 monochromaticS = p.Results.monochromaticS;
+stimLimits = p.Results.stimLimits;
+lambdaRef = p.Results.lambdaRef;
 
 % Input error checking
 if (length(nReversals)~=2)
@@ -315,6 +330,35 @@ else  % Monochromatic matching
     testSpdsNominal(wls==test,:) = 1*testScale*testScales;
     testSpdsPredicted = testSpdsNominal;
 end
+    
+%% Set up limits on stimulus parameters. By default, all available indices
+% are allowed
+allowedLambdaInds = 1:adjustmentLength;
+allowedTIInds = 1:adjustmentLength;
+if ~isempty(stimLimits)
+    allowedLambdaInds = allowedLambdaInds(p1Scales >= stimLimits(1)...
+        & p1Scales <= stimLimits(2));
+    allowedTIInds = allowedTIInds(testScales >= stimLimits(3)...
+        & testScales <= stimLimits(4));
+    
+    % Fill in so there are at least 2 values in each vector
+    if isempty(allowedLambdaInds) || length(allowedLambdaInds) == 1
+        [~,minInd] = min(abs(p1Scales - stimLimits(1)));
+        [~,maxInd] = min(abs(p1Scales - stimLimits(2)));
+        if maxInd == minInd
+            maxInd = minInd+1;
+        end
+        allowedLambdaInds = [minInd,maxInd];
+    end
+    if isempty(allowedTIInds) || length(allowedTIInds) == 1
+        [~,minInd] = min(abs(testScales - stimLimits(3)));
+        [~,maxInd] = min(abs(testScales - stimLimits(4)));
+        if maxInd == minInd
+            maxInd = minInd+1;
+        end
+        allowedTIInds = [minInd,maxInd];
+    end
+end
 
 %% Initialize simulated observer if desired
 stdObserver = genRayleighObserver('fieldSize',fieldSize,'age',age,...
@@ -348,6 +392,15 @@ else
 end 
 idealTestIntensity = testScales(tIdealIndex);
 idealPRatio = p1Scales(pIdealIndex);
+
+%% Find reference spd, if desired
+refSpd = [];
+if ~isempty(lambdaRef)
+    refSpd = primarySpds(:,p1Scales==lambdaRef);
+    if isempty(refSpd)
+        error('Provided reference lambda is not a selected primary mixture scalar');
+    end 
+end 
 
 %% Intialize OneLight and button box/keypresses
 if simKeypad
@@ -388,13 +441,23 @@ stepModes = stepModes(stepModes ~= 0);
 % The experiment includes an option to switch the order that primary and
 % test lights are displayed. If rev is set to true, lights will be
 % displayed in the order specified by lightModeRev, not lightMode.
+%
+% Note that typically, the primary mixture is displayed for longer than the
+% test light. 
 lightMode = ['p' 't'];     % Possible lights - primary, test
 lightModeRev = ['t' 'p'];  % Switch primary and test lights
 lightTimes = [lInterval sInterval]; % Durations
 
 % Initial display settings
-primaryPos = 2;             % Start with first position in primary array
-testPos = 2;                % Start with first position in test array
+primaryPos = allowedLambdaInds(1); % Start with first allowed position in primary array
+if monochromatic && primaryPos==1
+    primaryPos = 2;
+end 
+testPos = allowedTIInds(1);        % Start with first allowed position in test array
+if monochromatic && testPos==1
+    testPos = 2;
+end 
+
 stepModePos = 1;            % Start with the largest step size
 lightModePos = 1;           % Start with the first light in lights array
 rev = false;                % Start with forward, not reverse order
@@ -501,7 +564,7 @@ while(stillLooping)
             [p1_up,t_up,isBelowThreshold] = ...
                 observerRayleighDecision(observer,primarySpds(:,primaryPos),...
                 testSpds(:,testPos),'thresholdScale',thresholdScaleFactor,...
-                'noiseScale',noiseScaleFactor);
+                'noiseScale',noiseScaleFactor,'refSpd',refSpd);
             % If we are making threshold matches, record whether this
             % combination of lights is below the threshold
             if thresholdMatching && isBelowThreshold
@@ -550,7 +613,7 @@ while(stillLooping)
                 if p1_up == p1_up_prev || nReversalsP < nReversals(1)...
                         || stepModePos == length(stepModes)
                     if p1_up
-                        if primaryPos == adjustmentLength
+                        if primaryPos == allowedLambdaInds(end)
                             % Flag for reaching primary limit
                             Snd('Play',sin(0:5000));
                         end
@@ -706,18 +769,14 @@ while(stillLooping)
                     % Reset initial condition, and reset lights randomly
                     stepModePos = 1;
                     firstAdjustment = true;
-                    primaryPos = randi(adjustmentLength);
-                    
-                    % Prevent the program from setting the positions to 1,
-                    % as this can cause problems of divison by 0
-                    if primaryPos==1
+                    primaryPos = randsample(allowedLambdaInds,1);
+                    testPos = randsample(allowedTIInds,1);
+                    if monochromatic && primaryPos==1
                         primaryPos = 2;
-                    end 
-                    testPos = randi(adjustmentLength);
-                    if testPos==1
+                    end
+                    if monochromatic && testPos==1
                         testPos = 2;
-                    end 
-                    
+                    end                  
                     subjectSettings = [subjectSettings;...
                         [testScales(testPos),p1Scales(primaryPos)]];
                     
@@ -732,7 +791,7 @@ while(stillLooping)
                         'subjectSettings','p1','p2','test','calName',...
                         'primarySpdsNominal','primarySpdsPredicted',...
                         'testSpdsNominal','testSpdsPredicted',...
-                        'subjectID',...
+                        'subjectID','allowedLambdaInds','allowedTIInds',...
                         'sessionNum','annulusData','sInterval','lInterval',...
                         'adjustmentLength','foveal','simNominalLights',...
                         'nReversals','switchInterval','observer',...
@@ -775,8 +834,8 @@ while(stillLooping)
                     
                 case keyCodes.increaseIntensity % Scale up test intensity
                     testPos = testPos+stepModes(stepModePos);
-                    if testPos > adjustmentLength
-                        testPos = adjustmentLength;
+                    if testPos > allowedTIInds(end)
+                        testPos = allowedTIInds(end);
                         if ~silent
                             Snd('Play',sin(0:5000));
                         end
@@ -797,8 +856,8 @@ while(stillLooping)
                     
                 case keyCodes.decreaseIntensity % Scale down test intensity
                     testPos = testPos-stepModes(stepModePos);
-                    if testPos < 1
-                        testPos = 1;
+                    if testPos < allowedTIInds(1)
+                        testPos = allowedTIInds(1);
                         if ~silent
                             Snd('Play',sin(0:5000));
                         end
@@ -819,8 +878,8 @@ while(stillLooping)
                     
                 case keyCodes.increaseP1 % Move towards p1
                     primaryPos = primaryPos+stepModes(stepModePos);
-                    if primaryPos > adjustmentLength
-                        primaryPos = adjustmentLength;
+                    if primaryPos > allowedLambdaInds(end)
+                        primaryPos = allowedLambdaInds(end);
                         if ~silent
                             Snd('Play',sin(0:5000));
                         end
@@ -841,8 +900,8 @@ while(stillLooping)
                     
                 case keyCodes.decreaseP1 % Move towards p2
                     primaryPos = primaryPos-stepModes(stepModePos);
-                    if primaryPos < 1
-                        primaryPos = 1;
+                    if primaryPos < allowedLambdaInds(1)
+                        primaryPos = allowedLambdaInds(1);
                         if ~silent
                             Snd('Play',sin(0:5000));
                         end

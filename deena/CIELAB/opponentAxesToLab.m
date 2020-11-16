@@ -11,9 +11,10 @@ function [opponentContrastParams,error,opponentSphere] = opponentAxesToLab(noise
 %    equal to the selected noise standard deviation on average. The search
 %    is conducted using fmincon.
 %
-%    With the current settings, the program returns ideal params of
-%    [0.8078 4.1146 1.2592 0.0200], which are used as defaults
-%    throughout the simulation programs.
+%    With a noise level of 0.02, the program returns ideal params of
+%    [0.8078 4.1146 1.2592 0.0200]. With a noise level of 1, the program 
+%    returns ideal params of [40.3908 205.7353 62.9590 1.0000], which are 
+%    used as defaults throughout the simulation programs.
 %
 % Inputs:
 %    noiseSD        -Numerical measure of noise standard deviation

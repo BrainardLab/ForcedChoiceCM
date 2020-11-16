@@ -37,7 +37,7 @@ function observer = genRayleighObserver(varargin)
 %    opponentParams    -4-element vector with opponent contrast parameters. 
 %                       (1) is the luminance weight, (2) is the rg weight,
 %                       (3) is the by weight, and (4) is the noise standard
-%                       deviation. Default is [0.8078 4.1146 1.2592 0.02].
+%                       deviation. Default is [40.3908 205.7353 62.9590 1.0000].
 %    age               -Integer for subject age. Default is 32.
 %    fieldSize         -Integer field size in degrees. Default is 2. 
 %    calcCones         -Logical indicating whether to calculate cone
@@ -57,7 +57,7 @@ function observer = genRayleighObserver(varargin)
 % Parse input 
 p = inputParser;
 p.addParameter('coneVec',zeros(1,8),@(x)(isvector(x)));
-p.addParameter('opponentParams',[0.8078 4.1146 1.2592 0.0200],@(x)(isvector(x)));
+p.addParameter('opponentParams',[40.3908 205.7353 62.9590 1.0000],@(x)(isvector(x)));
 p.addParameter('age',32,@(x)(isnumeric(x)));
 p.addParameter('fieldSize',2,@(x)(isnumeric(x))); 
 p.addParameter('calcCones',true,@(x)(islogical(x)));

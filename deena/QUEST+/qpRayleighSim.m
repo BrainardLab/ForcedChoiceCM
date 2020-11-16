@@ -57,7 +57,7 @@ function [questData,psiParamsQuest,psiParamsFit] = ...
 %                         parameters. (1) is the luminance weight, (2) is
 %                         the RG weight, (3) is the BY weight, and (4) is
 %                         the baseline noise standard deviation. Default is
-%                         [0.8078 4.1146 1.2592 0.02].
+%                         [40.3908  205.7353   62.9590    1.0000].
 %    'p1Scale'           -Numerical scale factor for the first primary
 %                         light, between 0 and 1. Default is 1.
 %    'p2Scale'           -Numerical scale factor for the second primary
@@ -70,7 +70,10 @@ function [questData,psiParamsQuest,psiParamsFit] = ...
 %    'lambdaRef'         -Numerical scale factor between 0 and 1 for the
 %                         value of lambda used for the reference light,
 %                         which is used as a baseline for computing
-%                         opponent contrasts. Default is 0.8.
+%                         opponent contrasts. Default is 0.8. If set to [],
+%                         no reference light is used, and the opponent
+%                         contrast of the test is calculated relative to
+%                         the primary mixture.
 %    'sampledObservers'  -nObservers x 8 array of previously-sampled
 %                         observer parameters, useful for when observers
 %                         are used across multiple experimental conditions.
@@ -80,9 +83,14 @@ function [questData,psiParamsQuest,psiParamsFit] = ...
 %                         [380 2 201];
 %    'plotAll'           -Logical. If true, make plots summarizing QUEST+
 %                         results for all subjects. Default is false.
-%    'plotLast'           -Logical. If true, make plots summarizing QUEST+
+%    'plotLast'          -Logical. If true, make plots summarizing QUEST+
 %                         results for the last subject. Default is true.
-
+%    'stimLimits'        -length(testWls) x 5 matrix for storing limits on 
+%                         stimulus parameters. Each row represents a given  
+%                         test wavelength and the limits which are associated 
+%                         with it. The columns are arranged as follows: 
+%                         [test wl, min lambda, max lambda, min test 
+%                         intensity, max test intensity]. Default is [].
 % History
 %    10/13/20   dce   -Wrote it
 %    10/21/20   dce   -Changed to use a single QUEST object
@@ -93,6 +101,8 @@ function [questData,psiParamsQuest,psiParamsFit] = ...
 %    10/28/20   dce   -Modified plotting
 %    11/4/20    dce   -Added stimulus spacing as a key value pair, edited
 %                      plots
+%    11/14/20   dce   -Added reference spd calculation
+%    11/15/20   dce   -Added option to filter stimuli
 
 close all;
 
@@ -103,7 +113,7 @@ p.addParameter('plotLast',true,@(x)(islogical(x)));
 p.addParameter('precomputeQuest',true,@(x)(islogical(x)));
 p.addParameter('age',32,@(x)(isnumeric(x)));
 p.addParameter('fieldSize',2,@(x)(isnumeric(x)));
-p.addParameter('opponentParams',[0.8078 4.1146 1.2592 0.0200],@(x)(isvector(x)));
+p.addParameter('opponentParams',[40.3908 205.7353 62.9590 1.0000],@(x)(isvector(x)));
 p.addParameter('p1Scale',1,@(x)(isnumeric(x)));
 p.addParameter('p2Scale',0.02,@(x)(isnumeric(x)));
 p.addParameter('testScale',0.5,@(x)(isnumeric(x)));
@@ -111,6 +121,7 @@ p.addParameter('nStimValues',21,@(x)(isnumeric(x)));
 p.addParameter('lambdaRef',0.8,@(x)(isnumeric(x)));
 p.addParameter('sampledObservers',[],@(x)(isnumeric(x)));
 p.addParameter('S',[380 2 201],@(x)(isnumeric(x)));
+p.addParameter('stimLimits',[],@(x)(isnumeric(x)));
 p.parse(varargin{:});
 
 % Define output directory
@@ -172,10 +183,24 @@ end
 stimParamsDomainList = {linspace(0,1,p.Results.nStimValues),...
     linspace(0,1,p.Results.nStimValues),testWls};
 
+% Stimulis parameter filtering function
+if isempty(p.Results.stimLimits)
+    stimParamFilterFun = [];
+else
+    stimParamFilterFun = @(stimParams) qpRayleighLimitParams(stimParams,p.Results.stimLimits);
+end 
+
+% Define a reference spectrum if available
+if isempty(p.Results.lambdaRef)
+    refSpd = [];
+else 
+    refSpd = p.Results.lambdaRef*p1Spd + (1-p.Results.lambdaRef)*p2Spd;
+end 
+
 % Psychometric function for Rayleigh matching
 PFSim = @(stimParams,coneParams)qpPFRMFull(stimParams,coneParams,...
     p.Results.opponentParams,p.Results.opponentParams(4)*noiseScaleFactor,...
-    p.Results.S,p1Spd,p2Spd,testSpds,testWls,p.Results.lambdaRef);
+    p.Results.S,p1Spd,p2Spd,testSpds,testWls,'refSpd',refSpd);
 
 % Set up a Quest object, with an option to use precomputed data if
 % available
@@ -186,7 +211,7 @@ if (~p.Results.precomputeQuest)
         'qpPF',PFSim,'qpOutcomeF',[],...
         'stimParamsDomainList',stimParamsDomainList, ...
         'psiParamsDomainList',psiParamsDomainList, ...
-        'verbose', true);
+        'filterStimParamsDomainFun',stimParamFilterFun,'verbose', true);
     elapsedTime = toc(startTime);
     stimParamsDomainListCheck = stimParamsDomainList;
     psiParamsDomainListCheck = psiParamsDomainList;
@@ -230,11 +255,11 @@ for ii = 1:nObservers
     % Generate simulated observer and associated function
     simConeParams = sampledConeParams(ii,:); % Cone vector for the observer
     % Check that we are not varying a locked parameter
-    for kk = 1:length(simConeParams)
-        if (simConeParams(kk) ~= 0 && coneParamsToVary(kk) == 0)
-            error('Varying a simulated parameter that we are telling Quest+ is locked');
-        end
-    end
+%     for kk = 1:length(simConeParams)
+%         if (simConeParams(kk) ~= 0 && coneParamsToVary(kk) == 0)
+%             error('Varying a simulated parameter that we are telling Quest+ is locked');
+%         end
+%     end
     observer = genRayleighObserver('age',p.Results.age,...
         'fieldSize',p.Results.fieldSize,'S',p.Results.S,'opponentParams',...
         p.Results.opponentParams,'coneVec',simConeParams);
@@ -312,11 +337,12 @@ if p.Results.plotAll || p.Results.plotLast
     for pp = plotInds
         qRunPlot = figure(); clf;
         stimCounts = qpCounts(qpData(questData{pp}.trialData),questData{pp}.nOutcomes);
-        lambdaVals = [];
-        tIVals = [];
-        tWlVals = [];
-        markerColors = [];
-        markerSizes = [];
+        lambdaVals = zeros(1,length(stimCounts)*questData{pp}.nOutcomes);
+        tIVals = zeros(1,length(stimCounts)*questData{pp}.nOutcomes);
+        tWlVals = zeros(1,length(stimCounts)*questData{pp}.nOutcomes);
+        markerColors = zeros(1,length(stimCounts)*questData{pp}.nOutcomes);
+        markerSizes = zeros(1,length(stimCounts)*questData{pp}.nOutcomes);
+        arrInd = 0;
         for cc = 1:length(stimCounts)
             stim = stimCounts(cc).stim;
             for jj = 1:questData{pp}.nOutcomes
@@ -324,13 +350,21 @@ if p.Results.plotAll || p.Results.plotLast
                 if outcomeCount == 0
                     continue;
                 end
-                lambdaVals = [lambdaVals, stim(1)];
-                tIVals = [tIVals, stim(2)];
-                tWlVals = [tWlVals, stim(3)];
-                markerColors = [markerColors, jj];
-                markerSizes = [markerSizes,1000*outcomeCount/max(nTrials)];
+                arrInd = arrInd + 1;
+                lambdaVals(arrInd) = stim(1);
+                tIVals(arrInd) = stim(2);
+                tWlVals(arrInd) = stim(3);
+                markerColors(arrInd) = jj;
+                markerSizes(arrInd) = 1000*outcomeCount/max(nTrials);
             end
         end
+        % Remove extra zeros from arrays
+        lambdaVals = lambdaVals(1:arrInd);
+        tIVals = tIVals(1:arrInd);
+        tWlVals = tWlVals(1:arrInd);
+        markerColors = markerColors(1:arrInd);
+        markerSizes = markerSizes(1:arrInd);
+        
         scatter3(lambdaVals,tIVals,tWlVals,markerSizes,markerColors,'o','LineWidth',2,...
             'MarkerEdgeAlpha',0.4,'MarkerFaceAlpha',0.4);
         hold on;
@@ -404,7 +438,7 @@ if p.Results.plotAll || p.Results.plotLast
         % Plot of cone fundamentals
         observerSim = genRayleighObserver('age',p.Results.age,...
             'fieldSize',p.Results.fieldSize,'S',p.Results.S,'opponentParams',...
-            p.Results.opponentParams,'coneVec',sampledConeParams(pp));
+            p.Results.opponentParams,'coneVec',sampledConeParams(pp,:));
         observerRecovered = genRayleighObserver('coneVec',psiParamsFit(pp,:),...
             'opponentParams',p.Results.opponentParams,'S',p.Results.S,...
             'age',p.Results.age,'fieldSize',p.Results.fieldSize);

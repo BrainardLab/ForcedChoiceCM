@@ -73,7 +73,7 @@ function [coneErrStaircase,coneErrQuest,coneErrStd] = ...
 %                         parameters. (1) is the luminance weight, (2) is
 %                         the RG weight, (3) is the BY weight, and (4) is
 %                         the baseline noise standard deviation. Default is
-%                         [0.8078 4.1146 1.2592 0.02].
+%                         [40.3908 205.7353 62.9590 1.0000].
 %    'p1Scale'           -Numerical scale factor for the first primary
 %                         light, between 0 and 1. Default is 1.
 %    'p2Scale'           -Numerical scale factor for the second primary
@@ -86,7 +86,10 @@ function [coneErrStaircase,coneErrQuest,coneErrStd] = ...
 %    'lambdaRef'         -Numerical scale factor between 0 and 1 for the
 %                         value of lambda used for the reference light,
 %                         which is used as a baseline for computing
-%                         opponent contrasts. Default is 0.8.
+%                         opponent contrasts. Default is 0.8. If set to [],
+%                         no reference light is used, and the opponent
+%                         contrast of the test is calculated relative to
+%                         the primary mixture.
 %    'S'                 -Wavelength sampling for cone calculations, in the
 %                         form [start increment numTerms]. Default is
 %                         [380 2 201];
@@ -109,11 +112,18 @@ function [coneErrStaircase,coneErrQuest,coneErrStd] = ...
 %    'thresholdScaleFactor' -When using a simulated observer with
 %                            threshold matching, scale factor for matching
 %                            threshold. Default is 0.5.
+%    'stimLimits'        -length(testWls) x 5 matrix for storing limits on 
+%                         stimulus parameters. Each row represents a given  
+%                         test wavelength and the limits which are associated 
+%                         with it. The columns are arranged as follows: 
+%                         [test wl, min lambda, max lambda, min test 
+%                         intensity, max test intensity]. Default is [].
 
 % History
 %    10/28/20   dce   -Wrote it
 %    11/4/20    dce   -Changed plotting, added option to set QUEST+
 %                      parameter spacing
+%    11/15/20   dce   -Added option to limit stim spacing
 
 %% Setup
 % Parse input 
@@ -121,7 +131,7 @@ p = inputParser;
 p.addParameter('precomputeQuest',false,@(x)(islogical(x)));
 p.addParameter('age',32,@(x)(isnumeric(x)));
 p.addParameter('fieldSize',2,@(x)(isnumeric(x)));
-p.addParameter('opponentParams',[0.8078 4.1146 1.2592 0.0200],@(x)(isvector(x)));
+p.addParameter('opponentParams',[40.3908 205.7353 62.9590 1.0000],@(x)(isvector(x)));
 p.addParameter('p1Scale',1,@(x)(isnumeric(x)));
 p.addParameter('p2Scale',0.02,@(x)(isnumeric(x)));
 p.addParameter('testScale',0.5,@(x)(isnumeric(x)));
@@ -132,6 +142,7 @@ p.addParameter('nObserverMatches',1,@(x)(isnumeric(x)));
 p.addParameter('nReversals',[1 4],@(x)(isnumeric(x)));
 p.addParameter('nBelowThreshold',1,@(x)(isnumeric(x)));
 p.addParameter('thresholdScaleFactor',0.5,@(x)(isnumeric(x)));
+p.addParameter('stimLimits',[],@(x)(isnumeric(x)));
 p.parse(varargin{:});
 
 % Define output directory 
@@ -159,7 +170,8 @@ sampledConeParams = sampleRayleighObservers(nObservers,baseConeParams,...
     p.Results.nBelowThreshold,'thresholdScaleFactor',...
     p.Results.thresholdScaleFactor,'noiseScaleFactor',noiseScaleFactor,...
     'LMEqualOD',false,'dlens0',true,'dmac0',true,'restrictBySd',true,...
-    'makeNoObserverPlots',true,'sampledObservers',sampledConeParams);
+    'makeNoObserverPlots',true,'sampledObservers',sampledConeParams,...
+    'lambdaRef',p.Results.lambdaRef,'stimLimits',p.Results.stimLimits);
 
 %% QUEST+
 [~,recoveredQuestParams,fittedQuestParams] = ...
@@ -170,7 +182,7 @@ sampledConeParams = sampleRayleighObservers(nObservers,baseConeParams,...
     'p1Scale',p.Results.p1Scale,'p2Scale',p.Results.p2Scale,'testScale',...
     p.Results.testScale,'lambdaRef',p.Results.lambdaRef,'S',p.Results.S,...
     'plotAll',false,'plotLast',false,'sampledObservers',sampledConeParams,...
-    'nStimValues',p.Results.nStimValues);
+    'nStimValues',p.Results.nStimValues,'stimLimits',p.Results.stimLimits);
 
 %% Analyze results
 % Calculate error associated with recovered parameters
