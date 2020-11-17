@@ -5,7 +5,7 @@
 %   11/2/20  dce   Wrote it.
 
 % Rayleigh match settings (can be modified).
-nObservers = 20;
+nObservers = 30;
 coneParamsToVary = [0 0 1 1 0 1 1 0];
 baseConeParams = zeros(1,length(coneParamsToVary));
 opponentParams = [40.3908 205.7353 62.9590 1.0000];
@@ -13,7 +13,7 @@ age = 32;
 fieldSize = 2;
 rayleighPlots = false;
 saveResults = false;
-adjustmentLength = 51;
+adjustmentLength = 101;
 noiseScaleFactor = 0;  % Start with the noiseless case
 monochromatic = true;
 nObserverMatches = 1;
@@ -21,8 +21,8 @@ averageSpds = true;
 nReversals = [1 4];
 nBelowThreshold = 1;
 thresholdScaleFactor = 0.5;
-baseSubjID = 'TestNTrialsFiner2';
-lambdaRef = 0.8;
+baseSubjID = 'TestNTrialsNoRef1';
+lambdaRef = [];
 
 % 8 SD matrix
   limMatrix = [570.0000   0    0.1264    0.0399    0.0459;...

@@ -26,9 +26,7 @@ function plotRayleighMatches(lambdaMaxes, baseLambdaMaxes, dphotopigments,...
 %    theLegend        - 1x1 cell array containing n character vectors for
 %                       the plot legend entries.
 %    theTitle         - character vector for lot title
-%    lambdaMax        - logical indicating whether we are plotting lambda
-%                       max variation (true) or optical density variation
-%                       (false).
+%
 % Outputs:
 %    Pitt Diagram that plots passed cone parameters
 %

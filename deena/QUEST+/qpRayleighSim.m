@@ -111,8 +111,8 @@ function [questData,psiParamsQuest,psiParamsFit] = ...
       610.0000    0.2617    0.8120    0.0695    0.1325;...
       630.0000    0.6046    0.9604    0.1619    0.2685;...
       650.0000    0.8688    0.9938    0.5109    0.6458];
-    qpRayleighSim('testQPFilter4',5,200,zeros(1,8),[0 0 1 1 0 1 1 0],0,670,560,...
-        [570 590 610 630 650],'precomputeQuest',true,'nStimValues',51,'stimLimits',limMatrix);
+    qpRayleighSim('testQPRayleigh',1,135,zeros(1,8),[0 0 1 1 0 1 1 0],0,670,560,...
+        [570 590 610 630 650],'precomputeQuest',false,'nStimValues',101,'stimLimits',limMatrix);
 %}
 close all;
 
@@ -485,6 +485,8 @@ if p.Results.plotAll || p.Results.plotLast
         ylabel('Sensitivity Difference');
         ylim([-0.06 0.06]);
         legend({'Recovered', 'Standard'},'Location','SouthEast');
+        NicePlot.exportFigToPDF(fullfile(outputDir,[subjID num2str(pp) '_paramsPlot.pdf']),...
+            conePlot,300);
     end
 end
 end
