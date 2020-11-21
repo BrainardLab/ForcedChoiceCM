@@ -334,7 +334,7 @@ end
 
 save(outputFile,'subjID','nObservers','nTrials','baseConeParams','coneParamsToVary',....
     'noiseScaleFactor','p1Wl','p2Wl','testWls','p','questData','psiParamsQuest',...
-    'psiParamsFit','nominalMatch');
+    'psiParamsFit','nominalMatch','-v7.3');
 
 %% Make plots, if desired
 if p.Results.plotAll || p.Results.plotLast
