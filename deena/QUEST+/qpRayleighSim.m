@@ -179,9 +179,10 @@ end
 % Spacing for possible individual difference values in terms of stddev multiple.
 % Note that lambda maxes are slightly more coarsly spaced than optical densities.
 indDiffSds = [18.7 36.5 9.0 9.0 7.4 2.0 1.5 1.3]; % Parameter standard deviations
+nLevels = 8;
 psiParamsDomainList = {linspace(-2,2,10),linspace(-2,2,10),...
-    linspace(-2,2,10),linspace(-2,2,10),linspace(-2,2,10),...
-    linspace(-2,2,9),linspace(-2,2,9),linspace(-2,2,9)};
+    linspace(-2,2,nLevels),linspace(-2,2,nLevels),linspace(-2,2,nLevels),...
+    linspace(-2,2,nLevels),linspace(-2,2,nLevels),linspace(-2,2,nLevels)};
 for i = 1:length(indDiffSds)
     psiParamsDomainList{i} = psiParamsDomainList{i}*coneParamsToVary(i)*indDiffSds(i);
     psiParamsDomainList{i} = unique(psiParamsDomainList{i});
