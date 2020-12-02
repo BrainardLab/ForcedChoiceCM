@@ -129,7 +129,7 @@ function [coneAvgErr,matchAvgErr,coneAvgStdErr,matchAvgStdErr,...
 %    'dmac0'             -Logical. If true, the parameter search constrains
 %                         macular pigment density to 0. Default is true.
 %    'restrictBySd'      -Logical. If true, the parameter search restricts
-%                         all params to within two standard deviations of
+%                         all params to within three standard deviations of
 %                         their means. Default is true.
 %    'sampledObservers'  -nObservers x length(baseParams)array of
 %                         previously-sampled observer parameters (useful
@@ -312,7 +312,7 @@ for i = 1:nObservers
         'p2Scale',p.Results.p2Scale,'testScale',p.Results.testScale,...
         'monochromatic',p.Results.monochromatic,'saveResults',false,...
         'nominal',p.Results.nominal,'sPredicted',p.Results.S,'lambdaRef',...
-        p.Results.lambdaRef);
+        p.Results.lambdaRef,'adjustmentLength',p.Results.adjustmentLength);
     testIntensitiesRecPred = [testIntensitiesRecPred;testIntensitiesPredObs];
     primaryRatiosRecPred = [primaryRatiosRecPred;primaryRatiosPredObs];
     
@@ -325,7 +325,7 @@ for i = 1:nObservers
         'p2Scale',p.Results.p2Scale,'testScale',p.Results.testScale,...
         'monochromatic',p.Results.monochromatic,'saveResults',false,...
         'nominal',p.Results.nominal,'sPredicted',p.Results.S,'lambdaRef',...
-        p.Results.lambdaRef);
+        p.Results.lambdaRef,'adjustmentLength',p.Results.adjustmentLength);
     testIntensitiesSimPred = [testIntensitiesSimPred;testIntensitiesPredObs2];
     primaryRatiosSimPred = [primaryRatiosSimPred;primaryRatiosPredObs2];
     

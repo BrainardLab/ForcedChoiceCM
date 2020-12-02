@@ -208,6 +208,7 @@ end
 coneFig = figure(); clf;
 hold on;
 bar([coneErrStaircase' coneErrQuest' coneErrStd']);
+ylim([0 0.03]);
 title('Cone Spectral Sensitivity Error');
 legend('Simulated vs Staircase Params','Simulated vs QUEST+ Params',...
     'Simulated vs Standard Params');

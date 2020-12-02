@@ -110,7 +110,7 @@ ub = Inf*ones(1,8);    % Upper bounds
 % percent deviations from the mean, except for last three parameters
 % (lambda max shifts) which are expressed as deviations in nm.
 sds = [18.7 36.5 9.0 9.0 7.4 2.0 1.5 1.3]; % Standard deviations
-scaleFactor = 2;    % Set limits at 2 standard deviations from the mean
+scaleFactor = 3;    % Set limits at 3 standard deviations from the mean
 if p.Results.restrictBySd
     lb = -1*scaleFactor*sds;
     ub = scaleFactor*sds;

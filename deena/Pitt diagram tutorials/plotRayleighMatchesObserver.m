@@ -1,5 +1,5 @@
 function plotRayleighMatchesObserver(observer,p1Spd,p2Spd,testSpd,...
-    noiseScalar,colors,theLegend,theTitle,varargin)
+    noiseScalar,colorName,theTitle,varargin)
 % Create Pitt diagrams using parameters from the observer model
 %
 % Syntax:
@@ -15,11 +15,11 @@ function plotRayleighMatchesObserver(observer,p1Spd,p2Spd,testSpd,...
 %                       following fields: colorDiffParams, T_cones. See
 %                       genRayleighObserver for details.
 %    p1Spd            - Column vector representation of the first primary
+%                       (green)
 %    p2Spd            - Column vector representation of the second primary
+%                       (red)
 %    testSpd          - Column vector representation of the test spd 
-%    colors           - 1xn character vector containing keys for plot colors
-%    theLegend        - 1x1 cell array containing n character vectors for
-%                       the plot legend entries.
+%    colorName        - Character vector with color name
 %    theTitle         - Character vector for plot title
 %
 % Outputs:
@@ -32,6 +32,7 @@ function plotRayleighMatchesObserver(observer,p1Spd,p2Spd,testSpd,...
 
 % History
 %    11/16/20   dce  - Adapeed from plotRayleighMatches
+%    11/18/20   dce  - Edited plotting
 
 % Parse input
 p = inputParser;
@@ -52,30 +53,21 @@ if ~isempty(p.Results.figHandle)
 else 
     theFigure = figure();
 end 
-clf; hold on
+hold on;
 
 [testIntensity,mixingRatio,matchDiff] = ...
     ComputeRayleighConfusionsObs(observer,p1Spd,p2Spd,testSpd,...
     testIntensityRange,mixingRatioRange);
-% Reshape arrays 
-testIntensity = reshape(testIntensity,[1 length(mixingRatioRange)...
-    *length(testIntensityRange)]);
-mixingRatio = reshape(mixingRatio,[1 length(mixingRatioRange)...
-    *length(testIntensityRange)]);
-matchDiff = reshape(matchDiff,[1 length(mixingRatioRange)...
-    *length(testIntensityRange)]);
 
 index = find(matchDiff < thresholdVal);
-plot(mixingRatio(index),testIntensity(index),...
-    [colors 'o'],'MarkerFaceColor',colors);
+plot(mixingRatio(index),testIntensity(index),'.','MarkerSize',20,...
+    'MarkerFaceColor',colorName,'MarkerEdgeColor',colorName);
 
 % Finish off the Pitt diagram plots (Figures 1-2)
-figure(theFigure);
-xlim([min(mixingRatioRange) max(mixingRatioRange)]);
-ylim([min(testIntensityRange) max(testIntensityRange)]);
+xlim([0 1]);
+ylim([0 1]);
 xlabel(' Primary Ratio (Proportion Red)');
 ylabel('Test Intensity');
 axis('square');
-legend(theLegend);
-title(theTitle);
+title(theTitle,'interpreter','Latex');
 end

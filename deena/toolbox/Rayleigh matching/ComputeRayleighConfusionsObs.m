@@ -79,31 +79,38 @@ addedBackgroundCones = [0 0 1]';
 
 % Construct each test and compute cone responses
 testSpectrum = cell(1,length(testIntensityRange));
+testCones = cell(1,length(testIntensityRange));
 for ii = 1:length(testIntensityRange)
     testIntensity = testIntensityRange(ii);
     testSpectrum{ii} = testSpd.* testIntensity;
-    testCones{ii} = observer.T_cones*testSpectrum{ii};
+    testCones{ii} = observer.T_cones*(testSpectrum{ii}) + addedBackgroundCones;
 end
 
 % Construct each primary mixture and compute cone responses
 matchSpectrum = cell(1,length(mixingRatioRange));
+matchCones = cell(1,length(mixingRatioRange));
 for jj = 1:length(mixingRatioRange)
     mixingRatio = mixingRatioRange(jj);
-    matchSpectrum{jj} = mixingRatio*p1Spd + (1-mixingRatio)*p2Spd;
-    matchCones{jj} = observer.T_cones*matchSpectrum{jj};
+    matchSpectrum{jj} = (1-mixingRatio)*p1Spd + mixingRatio*p2Spd;
+    matchCones{jj} = observer.T_cones*(matchSpectrum{jj})+addedBackgroundCones;
 end
 
 % Compute a measure of color difference for each test/match pairing. Uses
-% the test as the adapting background, and computes the opponent contrast
-% of the primary mixture relative to it. 
+% the mixture as the adapting background, and computes the opponent contrast
+% of the test relative to it. 
+matchDiff = zeros(length(testIntensityRange),length(mixingRatioRange));
+mixingRatio = zeros(length(testIntensityRange),length(mixingRatioRange));
+testIntensity = zeros(length(testIntensityRange),length(mixingRatioRange));
 for ii = 2:length(testIntensityRange)
     for jj = 1:length(mixingRatioRange)
-        effectiveBackgroundCones{ii} = testCones{ii} + addedBackgroundCones;
         opponentContrasts = LMSToOpponentContrast(observer.colorDiffParams,...
-            effectiveBackgroundCones{ii},matchCones{jj});
+            testCones{ii},matchCones{jj});
         testIntensity(ii,jj) = testIntensityRange(ii);
         mixingRatio(ii,jj) = mixingRatioRange(jj);
         matchDiff(ii,jj) = norm(opponentContrasts);
     end
 end
+matchDiff = matchDiff(2:end,:);
+mixingRatio = mixingRatio(2:end,:);
+testIntensity = testIntensity(2:end,:);
 end

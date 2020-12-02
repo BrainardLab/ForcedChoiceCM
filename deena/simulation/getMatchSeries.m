@@ -284,9 +284,18 @@ for i = 1:nCombos
                 tSpds = lightSettings.testSpdsPredicted;
             end
         end
+        % Define reference spectrum
+        refSpd = [];
+        if ~isempty(p.Results.lambdaRef)
+            refSpd = pSpds(:,p1Scales==p.Results.lambdaRef);
+            if isempty(refSpd)
+                error('Provided reference lambda is not a selected primary mixture scalar');
+            end
+        end
+        
         % Find the match
         [testSpd,primarySpd,testInd,primaryInd] =...
-            searchPredictedRayleighMatch(tSpds,pSpds,observer);
+            searchPredictedRayleighMatch(tSpds,pSpds,observer,'refSpd',refSpd);
         % Find the primary and test ratios
         testIntensity = testScales(testInd);
         primaryRatio = p1Scales(primaryInd);

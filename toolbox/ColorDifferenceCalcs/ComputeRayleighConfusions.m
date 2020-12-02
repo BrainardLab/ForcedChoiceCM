@@ -37,8 +37,8 @@
 %                              right given the way the other parameters are
 %                              set.
 %    mixingRatioRange         -Row vector of g/r mixing ratios. 0 means all
-%                              green primary, 1 means all red. Here green
-%                              and red are really defined by the
+%                              green primary (p1), 1 means all red (p2). 
+%                              Here green and red are really defined by the
 %                              wavelengths of the two matching primaries
 %                              defined in the parameters for this routine.
 %

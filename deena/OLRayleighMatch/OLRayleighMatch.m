@@ -342,21 +342,15 @@ if ~isempty(stimLimits)
         & testScales <= stimLimits(4));
     
     % Fill in so there are at least 2 values in each vector
-    if isempty(allowedLambdaInds) || length(allowedLambdaInds) == 1
-        [~,minInd] = min(abs(p1Scales - stimLimits(1)));
+    if isempty(allowedLambdaInds) || length(allowedLambdaInds)< 4
+        [~,minInd] = min(abs(p1Scales - stimLimits(1)));        
         [~,maxInd] = min(abs(p1Scales - stimLimits(2)));
-        if maxInd == minInd
-            maxInd = minInd+1;
-        end
-        allowedLambdaInds = [minInd,maxInd];
+        allowedLambdaInds = unique([minInd-1,minInd,maxInd,maxInd+1]);
     end
-    if isempty(allowedTIInds) || length(allowedTIInds) == 1
+    if isempty(allowedTIInds) || length(allowedTIInds) <3
         [~,minInd] = min(abs(testScales - stimLimits(3)));
-        [~,maxInd] = min(abs(testScales - stimLimits(4)));
-        if maxInd == minInd
-            maxInd = minInd+1;
-        end
-        allowedTIInds = [minInd,maxInd];
+        [~,maxInd] = min(abs(p1Scales - stimLimits(4)));
+        allowedTIInds = unique([minInd-1,minInd,maxInd,maxInd+1]);
     end
 end
 
@@ -372,7 +366,8 @@ else
     observer = stdObserver;
 end
 
-%% Find nominal match 
+%% Find reference spd, if desired
+refSpd = [];
 % Which spds are we using in simulation?
 if simNominalLights
     primarySpds = primarySpdsNominal;
@@ -381,26 +376,25 @@ else
     primarySpds = primarySpdsPredicted;
     testSpds = testSpdsPredicted;
 end 
-% Compute the nominal match
-idealForStandardObs = false;
-if idealForStandardObs
-    [idealTestSpd,idealPrimarySpd,tIdealIndex,pIdealIndex] =...
-        searchPredictedRayleighmatch(testSpds,primarySpds,stdObs);
-else 
-    [idealTestSpd,idealPrimarySpd,tIdealIndex,pIdealIndex] =...
-        searchPredictedRayleighMatch(testSpds,primarySpds,observer);
-end 
-idealTestIntensity = testScales(tIdealIndex);
-idealPRatio = p1Scales(pIdealIndex);
-
-%% Find reference spd, if desired
-refSpd = [];
 if ~isempty(lambdaRef)
     refSpd = primarySpds(:,p1Scales==lambdaRef);
     if isempty(refSpd)
         error('Provided reference lambda is not a selected primary mixture scalar');
     end 
 end 
+
+%% Find nominal match 
+% Compute the nominal match
+idealForStandardObs = false;
+if idealForStandardObs
+    [idealTestSpd,idealPrimarySpd,tIdealIndex,pIdealIndex] =...
+        searchPredictedRayleighmatch(testSpds,primarySpds,stdObs,'refSpd',refSpd);
+else 
+    [idealTestSpd,idealPrimarySpd,tIdealIndex,pIdealIndex] =...
+        searchPredictedRayleighMatch(testSpds,primarySpds,observer,'refSpd',refSpd);
+end 
+idealTestIntensity = testScales(tIdealIndex);
+idealPRatio = p1Scales(pIdealIndex);
 
 %% Intialize OneLight and button box/keypresses
 if simKeypad
