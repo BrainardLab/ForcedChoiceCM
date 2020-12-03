@@ -67,6 +67,9 @@ function [questData,psiParamsQuest,psiParamsFit] = ...
 %    'nStimValues'       -Number of possible stimulus values for lambda and
 %                         test intensity, spaced evenly between 0 and 1.
 %                         Default is 21.
+%    'nPsiValues'        -Number of possible levels for the recovered cone
+%                         parameters, spaced evenly between -2 and 2
+%                         standard deviations. Default is 8.
 %    'lambdaRef'         -Numerical scale factor between 0 and 1 for the
 %                         value of lambda used for the reference light,
 %                         which is used as a baseline for computing
@@ -85,11 +88,11 @@ function [questData,psiParamsQuest,psiParamsFit] = ...
 %                         results for all subjects. Default is false.
 %    'plotLast'          -Logical. If true, make plots summarizing QUEST+
 %                         results for the last subject. Default is true.
-%    'stimLimits'        -length(testWls) x 5 matrix for storing limits on 
-%                         stimulus parameters. Each row represents a given  
-%                         test wavelength and the limits which are associated 
-%                         with it. The columns are arranged as follows: 
-%                         [test wl, min lambda, max lambda, min test 
+%    'stimLimits'        -length(testWls) x 5 matrix for storing limits on
+%                         stimulus parameters. Each row represents a given
+%                         test wavelength and the limits which are associated
+%                         with it. The columns are arranged as follows:
+%                         [test wl, min lambda, max lambda, min test
 %                         intensity, max test intensity]. Default is [].
 % History
 %    10/13/20   dce   -Wrote it
@@ -103,6 +106,8 @@ function [questData,psiParamsQuest,psiParamsFit] = ...
 %                      plots
 %    11/14/20   dce   -Added reference spd calculation
 %    11/15/20   dce   -Added option to filter stimuli
+%    12/02/20   dce   -Changed how saved QUEST+ data structs are loaded,
+%                      added nPsiValues as a key-value pair
 
 % Examples:
 %{
@@ -128,6 +133,7 @@ p.addParameter('p1Scale',1,@(x)(isnumeric(x)));
 p.addParameter('p2Scale',0.02,@(x)(isnumeric(x)));
 p.addParameter('testScale',0.5,@(x)(isnumeric(x)));
 p.addParameter('nStimValues',21,@(x)(isnumeric(x)));
+p.addParameter('nPsiValues',8,@(x)(isnumeric(x)));
 p.addParameter('lambdaRef',0.8,@(x)(isnumeric(x)));
 p.addParameter('sampledObservers',[],@(x)(isnumeric(x)));
 p.addParameter('S',[380 2 201],@(x)(isnumeric(x)));
@@ -179,10 +185,10 @@ end
 % Spacing for possible individual difference values in terms of stddev multiple.
 % Note that lambda maxes are slightly more coarsly spaced than optical densities.
 indDiffSds = [18.7 36.5 9.0 9.0 7.4 2.0 1.5 1.3]; % Parameter standard deviations
-nLevels = 8;
 psiParamsDomainList = {linspace(-2,2,10),linspace(-2,2,10),...
-    linspace(-2,2,nLevels),linspace(-2,2,nLevels),linspace(-2,2,nLevels),...
-    linspace(-2,2,nLevels),linspace(-2,2,nLevels),linspace(-2,2,nLevels)};
+    linspace(-2,2,p.Results.nPsiValues),linspace(-2,2,p.Results.nPsiValues)...
+    ,linspace(-2,2,p.Results.nPsiValues),linspace(-2,2,p.Results.nPsiValues),...
+    linspace(-2,2,p.Results.nPsiValues),linspace(-2,2,p.Results.nPsiValues)};
 for i = 1:length(indDiffSds)
     psiParamsDomainList{i} = psiParamsDomainList{i}*coneParamsToVary(i)*indDiffSds(i);
     psiParamsDomainList{i} = unique(psiParamsDomainList{i});
@@ -199,23 +205,61 @@ if isempty(p.Results.stimLimits)
     stimParamFilterFun = [];
 else
     stimParamFilterFun = @(stimParams) qpRayleighLimitParams(stimParams,p.Results.stimLimits);
-end 
+end
 
 % Define a reference spectrum if available
 if isempty(p.Results.lambdaRef)
     refSpd = [];
-else 
+else
     refSpd = p.Results.lambdaRef*p1Spd + (1-p.Results.lambdaRef)*p2Spd;
-end 
+end
 
 % Psychometric function for Rayleigh matching
 PFSim = @(stimParams,coneParams)qpPFRMFull(stimParams,coneParams,...
     p.Results.opponentParams,p.Results.opponentParams(4)*noiseScaleFactor,...
     p.Results.S,p1Spd,p2Spd,testSpds,testWls,'refSpd',refSpd);
 
-% Set up a Quest object, with an option to use precomputed data if
-% available
-if (~p.Results.precomputeQuest)
+% Load precomputed QUEST+ data if available, or generate a new file
+questDataRaw = [];
+qpDataFName = sprintf('questDataRaw_%g_%g.mat',p.Results.nStimValues,...
+    p.Results.nPsiValues);
+qpDataDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
+    'Quest','qpDataStructs',qpDataFName);
+if p.Results.precomputeQuest
+    if exist(qpDataDir,'file')
+        fprintf('Loading quest structure ...\n');
+        theData = load(qpDataDir);
+        
+        % Input checking 
+        for ii = 1:length(stimParamsDomainList)
+            if (any(stimParamsDomainList{ii} ~= theData.stimParamsDomainListCheck{ii}))
+                disp('Error');
+                error('Loaded stimulus parameters do not match current settings');
+            end
+        end
+        for ii = 1:length(psiParamsDomainList)
+            if (any(psiParamsDomainList{ii} ~= theData.psiParamsDomainListCheck{ii}))
+                disp('Error');
+                error('Loaded psi parameters do not match current settings');
+            end
+        end
+        if (theData.p1Wl~=p1Wl || theData.p2Wl~=p2Wl ||...
+                theData.p.Results.age~=p.Results.age || ...
+                theData.p.Results.fieldSize~=p.Results.fieldSize || ...
+                ~all(theData.p.Results.opponentParams==p.Results.opponentParams) || ...
+                theData.p.Results.p1Scale~=p.Results.p1Scale || ...
+                theData.p.Results.p2Scale~=p.Results.p2Scale || ...
+                theData.p.Results.testScale~=p.Results.testScale || ...
+                theData.p.Results.lambdaRef~=p.Results.lambdaRef || ...
+                ~all(theData.p.Results.stimLimits==p.Results.stimLimits))
+          
+            disp('Error');
+            error('Loaded experimental settings do not match current settings');
+        end
+        questDataRaw = theData.questDataRaw; 
+    end
+end
+if (~p.Results.precomputeQuest || isempty(questDataRaw))
     startTime = tic;
     fprintf('Initializing quest structure ...\n');
     questDataRaw = qpInitialize('nOutcomes', 4, ...
@@ -227,29 +271,8 @@ if (~p.Results.precomputeQuest)
     stimParamsDomainListCheck = stimParamsDomainList;
     psiParamsDomainListCheck = psiParamsDomainList;
     fprintf('Done initializing in %0.1f seconds\n',elapsedTime);
-    save('questDataRaw','questDataRaw','stimParamsDomainListCheck','psiParamsDomainListCheck','-v7.3');
-else
-    fprintf('Loading quest structure ...\n');
-    load questDataRaw questDataRaw stimParamsDomainListCheck psiParamsDomainListCheck;
-    if (length(stimParamsDomainList) ~= length(stimParamsDomainListCheck))
-        error('Change in stim parameters since cache of questDataRaw');
-    end
-    for ii = 1:length(stimParamsDomainList)
-        if (any(stimParamsDomainList{ii} ~= stimParamsDomainListCheck{ii}))
-            disp('Error');
-            error('Change in stim parameters since cache of questDataRaw');
-        end
-    end
-    if (length(psiParamsDomainList) ~= length(psiParamsDomainListCheck))
-        disp('Error');
-        error('Change in psi parameters since cache of questDataRaw');
-    end
-    for ii = 1:length(psiParamsDomainList)
-        if (any(psiParamsDomainList{ii} ~= psiParamsDomainListCheck{ii}))
-            error('Change in psi parameters since cache of questDataRaw');
-        end
-    end
-    fprintf('Done loading\n');
+    save(qpDataDir,'questDataRaw','stimParamsDomainListCheck',...
+        'psiParamsDomainListCheck','p','p1Wl','p2Wl','-v7.3');
 end
 
 % Initialize data arrays to store results for each observer
@@ -266,11 +289,11 @@ for ii = 1:nObservers
     % Generate simulated observer and associated function
     simConeParams = sampledConeParams(ii,:); % Cone vector for the observer
     % Check that we are not varying a locked parameter
-%     for kk = 1:length(simConeParams)
-%         if (simConeParams(kk) ~= 0 && coneParamsToVary(kk) == 0)
-%             error('Varying a simulated parameter that we are telling Quest+ is locked');
-%         end
-%     end
+        for kk = 1:length(simConeParams)
+            if (simConeParams(kk) ~= 0 && coneParamsToVary(kk) == 0)
+                error('Varying a simulated parameter that we are telling Quest+ is locked');
+            end
+        end
     observer = genRayleighObserver('age',p.Results.age,...
         'fieldSize',p.Results.fieldSize,'S',p.Results.S,'opponentParams',...
         p.Results.opponentParams,'coneVec',simConeParams);
@@ -462,7 +485,7 @@ if p.Results.plotAll || p.Results.plotLast
         title('L and M Cones');
         xlabel('Wavelength (nm)');
         ylabel('Sensitivity');
-
+        
         subplot(3,1,2); hold on
         plot(wls,observerSim.T_cones(1,:)-observerRecovered.T_cones(1,:),'r-',...
             'LineWidth',2.5);
