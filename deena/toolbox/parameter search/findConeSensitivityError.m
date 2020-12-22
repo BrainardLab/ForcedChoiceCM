@@ -1,4 +1,4 @@
-function error = ...
+function [error LError MError SError] = ...
     findConeSensitivityError(observerParams1,observerParams2,varargin)
 % Find root mean square error of the difference in cone spectral
 % sensitivities
@@ -26,6 +26,12 @@ function error = ...
 % Outputs:
 %    error       -Root mean square error of the two observers' spectral
 %                 sensitivities, computed across the entire range of cones.
+%    LError       -Root mean square error of the two observers' L cone 
+%                 spectral sensitivities.
+%    MError      -Root mean square error of the two observers' M cone 
+%                 spectral sensitivities.
+%    SError      -Root mean square error of the two observers' S cone 
+%                 spectral sensitivities. 
 %
 % Optional key-value pairs:
 %    'S'          -Wavelength sampling for cone calculations, in the 
@@ -41,6 +47,7 @@ function error = ...
 % History 
 %   07/10/20  dce       Wrote it
 %   08/05/20  dce       Added opponent cone parameters.
+%   12/22/20  dce       Added individual cone errors as additional outputs.
 
 % Parse input 
 p = inputParser;
@@ -75,4 +82,8 @@ for i = 1:length(wls)
 end
 
 % Calculate rms error 
+errorChannels = sqrt(mean(coneDiffs,1));
+LError = errorChannels(1);
+MError = errorChannels(2);
+SError = errorChannels(3);
 error = sqrt(mean(coneDiffs,'all'));

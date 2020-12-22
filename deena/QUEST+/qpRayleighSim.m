@@ -16,6 +16,7 @@ function [questData,psiParamsQuest,psiParamsFit] = ...
 %    subjID            -Character vector of subject ID
 %    sessionNum        -Numeric session ID.
 %    nObservers        -Number of simulated observers to test.
+%    nTrials           -Number of QUEST+ trials to run in each session.
 %    baseConeParams    -Eight-element numeric vector of individual
 %                       difference parameters: lens pigment density,
 %                       macular pigment density, L/M/S photopigment
@@ -110,6 +111,7 @@ function [questData,psiParamsQuest,psiParamsFit] = ...
 %    12/02/20   dce   -Changed how saved QUEST+ data structs are loaded,
 %                      added nPsiValues as a key-value pair
 %    12/03/20   dce   -Changed how files are saved
+%    12/21/20   dce   -Fixed qp input checking
 
 % Examples:
 %{
@@ -246,6 +248,8 @@ if p.Results.precomputeQuest
                 error('Loaded psi parameters do not match current settings');
             end
         end
+        
+        % Check key-value pairs
         if (theData.p1Wl~=p1Wl || theData.p2Wl~=p2Wl ||...
                 theData.p.Results.age~=p.Results.age || ...
                 theData.p.Results.fieldSize~=p.Results.fieldSize || ...
@@ -253,12 +257,23 @@ if p.Results.precomputeQuest
                 theData.p.Results.p1Scale~=p.Results.p1Scale || ...
                 theData.p.Results.p2Scale~=p.Results.p2Scale || ...
                 theData.p.Results.testScale~=p.Results.testScale || ...
-                theData.p.Results.lambdaRef~=p.Results.lambdaRef || ...
                 ~all(theData.p.Results.stimLimits==p.Results.stimLimits,'all'))
             
-            disp('Error');
             error('Loaded experimental settings do not match current settings');
         end
+        
+        % Compare lambdaRef values
+        if isempty(p.Results.lambdaRef)
+            if ~isempty(theData.p.Results.lambdaRef)
+                error('Loaded experimental settings do not match current settings');
+            end
+        else
+            if isempty(theData.p.Results.lambdaRef)
+                error('Loaded experimental settings do not match current settings');
+            elseif theData.p.Results.lambdaRef ~= p.Results.lambdaRef
+                error('Loaded experimental settings do not match current settings');
+            end
+        end 
         questDataRaw = theData.questDataRaw;
     end
 end
