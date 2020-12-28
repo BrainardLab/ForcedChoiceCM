@@ -1,4 +1,4 @@
-function [error LError MError SError] = ...
+function [error,LError,MError,SError] = ...
     findConeSensitivityError(observerParams1,observerParams2,varargin)
 % Find root mean square error of the difference in cone spectral
 % sensitivities
@@ -9,11 +9,9 @@ function [error LError MError SError] = ...
 % Description:
 %    Takes two sets of observer parameters and computes the root mean
 %    square error of their cone spectral sensitivities, which indicates how
-%    similar their perception generally is. Returns two values - a root
-%    mean square error across the entire range of cones (typically
-%    380-780nm), and a root mean square error at wavelengths greater than
-%    540nm (which are typically used in Rayleigh matching). Note that this
-%    program ignores observer noise.
+%    similar their perception generally is. Returns a root mean square 
+%    error across the entire range of cones, as well as individual error
+%    terms for L, M, and S. 
 %
 % Inputs:
 %    observerParams1  -Vector of eight individual difference parameters for 
