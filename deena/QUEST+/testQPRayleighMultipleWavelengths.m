@@ -92,6 +92,8 @@ function testQPRayleighMultipleWavelengths(subjID,nObservers,nTrials,...
 %    12/21/20   dce   - Wrote it
 %    12/22/20   dce   - Added file saving
 %    12/28/20   dce   - Separated L and M cone variation
+%    12/30/20   dce   - Fixed plotting
+%
 % Example:
 %    testQPRayleighMultipleWavelengths('test1vsMany',1,170,670,560,[570 590
 %    610 630 650])
@@ -278,71 +280,194 @@ save(fullfile(outputDir,'test1vsMany.mat'),'subjID','nObservers','nTrials',...
     'avgParamCombErrM','avgParamStdErrL','avgParamStdErrM','avgParamIndErrL',...
     'avgParamIndErrM','minParamIndErrL','minParamIndErrM','bestParamWlL',...
     'bestParamWlM');
-%% Plot of recovery 
+%% Plots
+%
+% 1 - parameter recovery (all wavelengths)
 % Initial setup 
-% nCols = 2;
-% nRows = 2;
-% coneParamNames = {'L Photopigment Density','M Photopigment Density',...
-%     'L Lambda Max','M Lambda Max'};
-% paramIndsToPlot = [3 4 6 7];
-% colorString = 'bgrymcbgrymc';
-% legendCell = cellstr(num2str(testWls'))';
-% legendCell(length(testWls)+1) = {'Combined'}; 
-% 
-% % Set up figure
-% paramsPlot = figure(); clf;
-% set(paramsPlot,'Color',[1 1 1],'Position',[10 10 800 800]);
-% hold on;
-% subplotPosVectors = NicePlot.getSubPlotPosVectors(...
-%     'rowsNum', nRows, ...
-%     'colsNum', nCols, ...
-%     'heightMargin',  0.1, ...
-%     'widthMargin',    0.07, ...
-%     'leftMargin',     0.04, ...
-%     'rightMargin',    0.04, ...
-%     'bottomMargin',   0.07, ...
-%     'topMargin',      0.1);
-% 
-% % Plot results
-% for i = 1:nRows*nCols
-%     % Make a subplot in the correct position
-%     row = ceil(i/nCols);
-%     col = mod(i,nCols);
-%     if col == 0
-%         col = nCols;
-%     end
-%     subplot('Position', subplotPosVectors(row,col).v);
-%     hold on;
-%     
-%     % Define axis limits
-%     if (i==3) || (i==4)  % Lambda max shifts, in nm
-%         limits = [-5 5];
-%     else                   % Density shifts, in percent
-%         limits = [-40 40];
-%     end
-%     xlim(limits);
-%     ylim(limits);
-%     axis('square');
-%     
-%     % Plot data
-%     xVals = sampledConeParams(:,paramIndsToPlot(i));  % Predicted parameters
-%     for j = 1:length(testWls)
-%         yVals = recoveredParamsInd{j}(:,paramIndsToPlot(i));
-%         plot(xVals,yVals,'o ','MarkerSize',5,'MarkerFaceColor',...
-%             colorString(j),'MarkerEdgeColor',colorString(j));
-%     end 
-%     combVals = recoveredParamsComb(:,paramIndsToPlot(i)); % Recovered params
-%     plot(xVals,combVals,'k* ','MarkerSize',7);
-%     refline(1,0);
-%     
-%     % Titles and labels
-%     theTitle = sprintf('%s Recovered vs Simulated',cell2mat(coneParamNames(i)));
-%     title(theTitle);
-%     xlabel('Simulated Parameters');
-%     ylabel('Recovered Parameters');
-%     legend(legendCell);
-% end
-% sgtitle('Simulated vs Recovered Parameters');
-% NicePlot.exportFigToPDF(fullfile(outputDir,[subjID '_'....
-%      '_paramRecoveryComparison.pdf']),paramsPlot,300);
-% end
+nCols = 2;
+nRows = 2;
+coneParamNames = {'L Photopigment Density','M Photopigment Density',...
+    'L Lambda Max','M Lambda Max'};
+paramIndsToPlot = [3 4 6 7];
+colorString = 'bgrymcbgrymc';
+legendCell = cellstr(num2str(testWls'))';
+legendCell(length(testWls)+1) = {'Combined'}; 
+
+% Set up figure
+paramsPlot = figure(); clf;
+set(paramsPlot,'Color',[1 1 1],'Position',[10 10 800 800]);
+hold on;
+subplotPosVectors = NicePlot.getSubPlotPosVectors(...
+    'rowsNum', nRows, ...
+    'colsNum', nCols, ...
+    'heightMargin',  0.1, ...
+    'widthMargin',    0.07, ...
+    'leftMargin',     0.04, ...
+    'rightMargin',    0.04, ...
+    'bottomMargin',   0.07, ...
+    'topMargin',      0.1);
+
+% Plot results
+for i = 1:nRows*nCols
+    % Make a subplot in the correct position
+    row = ceil(i/nCols);
+    col = mod(i,nCols);
+    if col == 0
+        col = nCols;
+    end
+    subplot('Position', subplotPosVectors(row,col).v);
+    hold on;
+    
+    % Define axis limits and which arrays we are searching in
+    if (i==3) || (i==4)  % Lambda max shifts, in nm
+        limits = [-5 5];
+    else                   % Density shifts, in percent
+        limits = [-40 40];
+    end
+    if (i==1) || (i==3)    % L cone
+        sampledConeParams = sampledConeParamsL;
+        recoveredParamsComb = recoveredParamsCombL;
+        recoveredParamsInd = recoveredParamsIndL;
+    else                    % M cone
+        sampledConeParams = sampledConeParamsM;
+        recoveredParamsComb = recoveredParamsCombM;
+        recoveredParamsInd = recoveredParamsIndM;
+    end 
+    xlim(limits);
+    ylim(limits);
+    axis('square');
+    
+    % Plot data
+    xVals = sampledConeParams(:,paramIndsToPlot(i));  % Predicted parameters
+    for j = 1:length(testWls)
+        yVals = recoveredParamsInd{j}(:,paramIndsToPlot(i));
+        plot(xVals,yVals,'o ','MarkerSize',5,'MarkerFaceColor',...
+            colorString(j),'MarkerEdgeColor',colorString(j));
+    end 
+    combVals = recoveredParamsComb(:,paramIndsToPlot(i)); % Recovered params
+    plot(xVals,combVals,'k* ','MarkerSize',7);
+    refline(1,0); 
+    
+    % Titles and labels
+    theTitle = sprintf('%s Recovered vs Simulated',cell2mat(coneParamNames(i)));
+    title(theTitle);
+    xlabel('Simulated Parameters');
+    ylabel('Recovered Parameters');
+    legend(legendCell);
+end
+sgtitle('Simulated vs Recovered Parameters');
+NicePlot.exportFigToPDF(fullfile(outputDir,[subjID '_'....
+     '_paramRecoveryComparison.pdf']),paramsPlot,300);
+ 
+% 2 - parameter recovery (best wavelengths) 
+% Initial setup 
+nCols = 2;
+nRows = 2;
+coneParamNames = {'L Photopigment Density','M Photopigment Density',...
+    'L Lambda Max','M Lambda Max'};
+paramIndsToPlot = [3 4 6 7];
+
+% Set up figure
+paramsPlotBest = figure(); clf;
+set(paramsPlotBest,'Color',[1 1 1],'Position',[10 10 800 800]);
+hold on;
+subplotPosVectors = NicePlot.getSubPlotPosVectors(...
+    'rowsNum', nRows, ...
+    'colsNum', nCols, ...
+    'heightMargin',  0.1, ...
+    'widthMargin',    0.07, ...
+    'leftMargin',     0.04, ...
+    'rightMargin',    0.04, ...
+    'bottomMargin',   0.07, ...
+    'topMargin',      0.1);
+
+% Plot results
+for i = 1:nRows*nCols
+    % Make a subplot in the correct position
+    row = ceil(i/nCols);
+    col = mod(i,nCols);
+    if col == 0
+        col = nCols;
+    end
+    subplot('Position', subplotPosVectors(row,col).v);
+    hold on;
+    
+    % Define axis limits and which arrays we are searching in
+    if (i==3) || (i==4)  % Lambda max shifts, in nm
+        limits = [-5 5];
+    else                   % Density shifts, in percent
+        limits = [-40 40];
+    end
+    if (i==1) || (i==3)    % L cone
+        sampledConeParams = sampledConeParamsL;
+        recoveredParamsComb = recoveredParamsCombL;
+        recoveredParamsInd = recoveredParamsIndL;
+        bestWl = bestConeWlL;
+    else                    % M cone
+        sampledConeParams = sampledConeParamsM;
+        recoveredParamsComb = recoveredParamsCombM;
+        recoveredParamsInd = recoveredParamsIndM;
+        bestWl = bestConeWlM; 
+    end 
+    xlim(limits);
+    ylim(limits);
+    axis('square');
+    
+    % Plot data
+    xVals = sampledConeParams(:,paramIndsToPlot(i));  % Predicted parameters
+    for j = 1:length(testWls)
+        if testWls(j)==bestWl
+            yVals = recoveredParamsInd{j}(:,paramIndsToPlot(i));
+            plot(xVals,yVals,'o ','MarkerSize',5,'MarkerFaceColor',...
+                'Blue','MarkerEdgeColor','Blue');
+        end
+    end
+    combVals = recoveredParamsComb(:,paramIndsToPlot(i)); % Recovered params
+    plot(xVals,combVals,'k* ','MarkerSize',7);
+    refline(1,0); 
+    
+    % Titles and labels
+    theTitle = sprintf('%s Recovered vs Simulated',cell2mat(coneParamNames(i)));
+    title(theTitle);
+    xlabel('Simulated Parameters');
+    ylabel('Recovered Parameters');
+    legend(num2str(bestWl),'Combined');
+end
+sgtitle('Simulated vs Recovered Parameters - Best Individual Test Wavelengths');
+NicePlot.exportFigToPDF(fullfile(outputDir,[subjID '_'....
+     '_paramRecoveryBest.pdf']),paramsPlotBest,300); 
+
+ 
+%% 3 - error plot
+coneErrPlot = figure(); clf;
+subplot(2,1,1);
+dataArr = [avgConeCombErrL minConeIndErrL avgConeStdErrL];
+bar(dataArr);
+name = {'Combined','Best Individual','Standard'};
+set(gca,'xticklabel',name)
+title('Average L Cone Recovery Error');
+ylabel('RMS Error');
+ylim([0 0.02]);
+for i=1:length(dataArr)
+    text(i,dataArr(i),num2str(dataArr(i),'%0.4f'),...
+        'HorizontalAlignment','center',...
+        'VerticalAlignment','bottom');
+end 
+
+subplot(2,1,2);
+dataArr = [avgConeCombErrM minConeIndErrM avgConeStdErrM];
+bar(dataArr);
+name = {'Combined','Best Individual','Standard'};
+set(gca,'xticklabel',name)
+title('Average M Cone Recovery Error');
+ylabel('RMS Error');
+ylim([0 0.02]);
+for i=1:length(dataArr)
+    text(i,dataArr(i),num2str(dataArr(i),'%0.4f'),...
+        'HorizontalAlignment','center',...
+        'VerticalAlignment','bottom');
+end 
+
+NicePlot.exportFigToPDF(fullfile(outputDir,[subjID '_'....
+     '_coneErrPlot.pdf']),coneErrPlot,300); 
+end
