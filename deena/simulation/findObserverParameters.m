@@ -68,6 +68,7 @@ function [params,error,observer] = findObserverParameters(testSpds,primarySpds,v
 %   07/24/20  dce       Added option to set dmac to 0.
 %   08/05/20  dce       Added opponent contrast params 
 %   11/01/20  dce       Restricted to within 2 standard deviations
+%   01/01/21  dce       Restricted to within 3 standard deviations
 
 %% Initial Setup
 % Parse input
