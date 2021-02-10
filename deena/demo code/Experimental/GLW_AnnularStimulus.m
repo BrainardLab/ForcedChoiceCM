@@ -17,7 +17,7 @@ annulusRGB = [0 0 0]; % Full-on
 
 % The 'inner circle', i.e. the hole
 innerCircleDiameter = 78;%100; % px
-innerCircleRGB = [0 0 0]%1 1 1]; % Assume that it's the same as background, but it can be changed.
+innerCircleRGB = [0 0 0]; %1 1 1]; % Assume that it's the same as background, but it can be changed.
 
 % The 'outer circle'
 outerCircleDiameter = 303;%200; % px
@@ -43,7 +43,7 @@ screenSizeInPixels = displayInfo(lastDisplay).screenSizePixel;
 win = [];
 try
     % Create a full-screen GLWindow object
-    win = GLWindow( 'SceneDimensions', screenSizeInPixels, ...
+    win = GLWindow( 'SceneDimensions', screenSizeInPixels,  
         'BackgroundColor', backgroundRGB,...
         'windowID',        lastDisplay);
     

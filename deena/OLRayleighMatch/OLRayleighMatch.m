@@ -157,6 +157,7 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %   08/09/20  dce       Changed ideal match to best available, not nominal 
 %   10/28/20  dce       Added monochromatic simulation matching
 %   11/15/20  dce       Added optional stimulus limits, reference light
+%   02/05/20  dce       Fixed charcode system for using real OneLight
 
 %% Close any stray figures
 close all;
@@ -523,7 +524,7 @@ while(stillLooping)
             % Plot with primary and test settings separately
             figure(nPlots);
             title1 = sprintf('Subject Settings Over Time, Match %g',nPlots/2);
-            sgtitle(title1);
+%             sgtitle(title1);
             subplot(2,1,1);
             hold on;
             title('Primary Ratio');
@@ -672,11 +673,11 @@ while(stillLooping)
             end
             
         else                 % Live experiment
-            key.charCode = gamePad.getKeyEvent();
+            key = gamePad.getKeyEvent();
         end
         
         % Modify program settings based on key input
-        if (~isempty(key))
+        if (~isempty(key)) 
             switch(key.charCode)
                 case keyCodes.switchStepSize    % Switch step size mode
                     stepModePos = stepModePos+1;
@@ -914,10 +915,10 @@ while(stillLooping)
                     firstAdjustment = false;
             end
             % Edit plots if the lights were adjusted
-            if plotResponses && (key.charCode == keyCodes.decreaseP1...
-                    || key.charCode == keyCodes.increaseP1...
-                    || key.charCode == keyCodes.decreaseIntensity...
-                    || key.charCode == keyCodes.increaseIntensity)
+            if plotResponses && (strcmp(key.charCode,keyCodes.decreaseP1)...
+                    || strcmp(key.charCode,keyCodes.increaseP1)...
+                    || strcmp(key.charCode,keyCodes.decreaseIntensity)...
+                    || strcmp(key.charCode,keyCodes.increaseIntensity))
                 figure(nPlots);
                 subplot(2,1,1);
                 plot(subjectSettings(matchSettingInd:end,2),'bo-','LineWidth',2);

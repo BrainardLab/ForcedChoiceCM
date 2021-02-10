@@ -78,7 +78,12 @@ for primaryTrialInd = 1:size(primarySpds,2)
             ref_LMS,testConeEffects);
         opponentDiffs = tOpponentContrast - pOpponentContrast;
     end
-    diffVec = vecnorm(opponentDiffs(1:2,:));
+    [~,c] = size(opponentDiffs);
+    diffVec = zeros(1,c);
+    for i = 1:c
+        diffVec(i) = norm(opponentDiffs(1:2,i));
+    end 
+%     diffVec = vecnorm(opponentDiffs(1:2,:));
     [diff,testTrialInd] = min(diffVec);
     if (diff < minDiff)
         minDiff = diff;
