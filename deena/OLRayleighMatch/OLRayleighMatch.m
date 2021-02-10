@@ -54,7 +54,7 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %    'p1Scale'        - Numerical scale factor for the first primary light,
 %                       between 0 and 1. Default is 1.
 %    'p2Scale'        - Numerical scale factor for the second primary
-%                       light, between 0 and 1. Default is 0.01.
+%                       light, between 0 and 1. Default is 0.02.
 %    'testScale'      - Numerical scale factor for the test light, between
 %                       0 and 1. Default is 0.5.
 %    'sInterval'      - length of time in s that the short stimulus is
@@ -167,7 +167,7 @@ p.addParameter('p1',670,@(x)(isnumeric(x)));
 p.addParameter('p2',560,@(x)(isnumeric(x)));
 p.addParameter('test',600,@(x)(isnumeric(x)));
 p.addParameter('p1Scale',1,@(x)(isnumeric(x)));
-p.addParameter('p2Scale',0.01,@(x)(isnumeric(x)));
+p.addParameter('p2Scale',0.02,@(x)(isnumeric(x)));
 p.addParameter('testScale',0.5,@(x)(isnumeric(x)));
 p.addParameter('adjustmentLength',3201,@(x)(isnumeric(x)));
 p.addParameter('sInterval',0.25,@(x)(isnumeric(x)));
@@ -401,8 +401,7 @@ if simKeypad
     ListenChar(2);
     FlushEvents;
 elseif ~simObserver && ~simKeypad
-    ol = OneLight('simulate',(simObserver || simKeypad),...
-        'plotWhenSimulating',false);
+    ol = OneLight();
     gamePad = GamePad();
 end
 
@@ -533,7 +532,7 @@ while(stillLooping)
             ylabel('Proportion Red (p1)');
             subplot(2,1,2);
             hold on;
-            title('Test Intensity');
+            title('Reference Intensity');
             ylim([0 1.3]);
             xlabel('Number Adjustment');
             ylabel('Proportion of Maximal Intensity');
@@ -543,7 +542,7 @@ while(stillLooping)
             hold on;
             xlim([0 1]);
             ylim([0 1]);
-            ylabel('Proportional Test Intensity');
+            ylabel('Proportional Reference Intensity');
             xlabel('Primary Ratio (Proportion Red)');
             title2 = sprintf('Subject Settings Over Time, Match %g',nPlots/2);
             title(title2);
@@ -647,7 +646,7 @@ while(stillLooping)
                     if t_up ~= t_up_prev && ~firstAdjustment
                         nReversalsT = nReversalsT+1;
                         if plotResponses
-                            fprintf('Test reversal %g, step size %g\n',...
+                            fprintf('Reference reversal %g, step size %g\n',...
                                 nReversalsT,(stepModes(stepModePos)/...
                                 (adjustmentLength-1)));
                         end

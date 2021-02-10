@@ -77,10 +77,10 @@ ylabel('Shifted Cone - Standard Cone');
 ylim([-0.06 0.06]);
 
 %% Pitt diagrams
-% Produces three figures. The first is a two panel figure where the first
+% Produces two figures. The first is a two panel figure where the first
 % panel show how match patterns change with lambda max, and the second
 % shows how this is obscured by optical density shifts. The second figure
-% shows how the patches can be separated by using different test wavelengths
+% shows how the patches can be separated by using different reference wavelengths
 
 % Initialize figure
 % Set up figure and subplots
@@ -91,6 +91,14 @@ theAxesGrid = plotlab.axesGrid(pittPlot, ...
     'spacing', 'normal', ...
     'padding', 'normal', ...
     'method', 'tile');
+
+% Fix axis limits
+for i = 1:2
+    theAxesGrid{1,i}.XTick = [0 0.2 0.4 0.6 0.8 1];
+    theAxesGrid{1,i}.YTick = [0 0.2 0.4 0.6 0.8 1];
+    theAxesGrid{1,i}.XTickLabel = {'0','0.2','0.4','0.6','0.8','1'};
+    theAxesGrid{1,i}.YTickLabel = {'0','0.2','0.4','0.6','0.8','1'};
+end 
 
 % Define observers
 lambdaMaxParams1 = [0 0 0 0 0 2 0 0].*coneParamSds;
@@ -139,6 +147,7 @@ plotRayleighMatchesObserver(lambdaMaxObs1,p1Spd,p2Spd,testSpds(:,testWls==testWl
 plotRayleighMatchesObserver(lambdaMaxObs2,p1Spd,p2Spd,testSpds(:,testWls==testWlInitial),...
     noiseScalar,colors{2},theTitle,'figHandle',pittPlot)
 legend('$\lambda_{max}$ +2 Sd','Standard Observer','interpreter','latex')
+ylabel('Reference Intensity');
 
 set(gcf,'CurrentAxes',theAxesGrid{1,2});
 theTitle = 'Vary L $\lambda_{max}$ and Optical Density';
@@ -147,6 +156,7 @@ plotRayleighMatchesObserver(lambdaMaxODObs1,p1Spd,p2Spd,testSpds(:,testWls==test
 plotRayleighMatchesObserver(lambdaMaxODObs2,p1Spd,p2Spd,testSpds(:,testWls==testWlInitial),...
     noiseScalar,colors{2},theTitle,'figHandle',pittPlot)
 legend('$\lambda_{max}$ +2 Sd, OD -2 Sd','OD +2 Sd','interpreter','latex')
+ylabel('Reference Intensity');
 
 gPittPlot = figure(3);
 theTitle = 'Generalized Pitt Diagram: Vary L $\lambda_{max}$ and Optical Density';
@@ -157,6 +167,7 @@ for i = 1:length(testWls)
         noiseScalar,colors{2},theTitle,'figHandle',gPittPlot)
 end
 legend('$\lambda_{max}$ +2 Sd, OD -2 Sd','OD +2 Sd','interpreter','latex')
+ylabel('Reference Intensity');
 
 %% Opponent contrast sphere figure
 noiseSD = 1;
@@ -199,8 +210,8 @@ ylabel('Radiance (W/[sr-m^2-nm])');
 set(gcf,'CurrentAxes',theAxesGrid{1,2});
 testSpd = SplineSpd(S,lightData.testIncrSpd,SNew,0);
 plot(wls,testSpd*lightData.testScaleFactor,'y');
-legend('Test','Location', 'NorthWest');
-title('Test Spd (600 nm)');
+legend('Reference','Location', 'NorthWest');
+title('Reference Spd (600 nm)');
 xlabel('Wavelength (nm)');
 ylabel('Radiance (W/[sr-m^2-nm])');
 
@@ -566,13 +577,13 @@ theAxesGridLambda = plotlab.axesGrid(lambdaMaxRecoveryPlot, ...
 
 nRow = 2;
 nCol = 2;
-for i = 1:5
+for i = 1:4
     row = ceil(i/nCol); 
     col = mod(i,nCol);
     if col == 0
         col = nCol;
     end
-    theTitle = sprintf('%s Matches per Test Wavelength',num2str(i));
+    theTitle = sprintf('%s Matches per Reference Wavelength',num2str(i));
     
     figure(11)
     set(gcf,'CurrentAxes',theAxesGridOD{row,col});
