@@ -1,4 +1,4 @@
-function [testSpds,primarySpds,testIntensities,primaryRatios] = ...
+function [estObserverParams, testSpds,primarySpds,testIntensities,primaryRatios] = ...
     getMatchSeriesLive(subjID,p1Wls,p2Wls,testWls,varargin)
 % Runs a psychophysical experiment with a series of Rayleigh matches. 
 % Syntax:
@@ -24,7 +24,6 @@ function [testSpds,primarySpds,testIntensities,primaryRatios] = ...
 %
 % Outputs:
 %
-
 %
 % Optional key-value pairs:
 %    'fieldSize'         -Integer for observer field size. Default is 2.
@@ -39,7 +38,7 @@ function [testSpds,primarySpds,testIntensities,primaryRatios] = ...
 %    'testScale'         -Numerical scale factor for the test light,
 %                         between 0 and 1. Default is 0.2.
 %    'adjustmentLength'  -Integer defining the size of the lights array
-%                         available for OLRayleighMatch. Default is 3201.
+%                         available for OLRayleighMatch. Default is 201.
 %    'nObserverMatches'  -Number of matches to simulate for each set of
 %                         lights. Default is 1.
 %    'averageSpds'       -Logical indicating to return the average of all
@@ -75,6 +74,9 @@ function [testSpds,primarySpds,testIntensities,primaryRatios] = ...
 %                         their means. Default is true.
 %    'matchErrScalar'    -Numeric scale factor to improve parameter search.
 %                         Default is 100.
+%    'resetAnnulus'      -logical indicating to run a script that lets the
+%                         experimenter reset the annulus before the first 
+%                         trial. Default is false.
 % History:
 %   02/10/20   dce   - Wrote it, adapted from getMatchSeries and
 %                      sampleRayleighMatchSeries
@@ -87,7 +89,7 @@ p.addParameter('opponentParams',[40.3908 205.7353 62.9590 1.0000],@(x)(isvector(
 p.addParameter('p1Scale',1,@(x)(isnumeric(x)));
 p.addParameter('p2Scale',0.2,@(x)(isnumeric(x)));
 p.addParameter('testScale',0.2,@(x)(isnumeric(x)));
-p.addParameter('adjustmentLength',3201,@(x)(isnumeric(x)));
+p.addParameter('adjustmentLength',201,@(x)(isnumeric(x)));
 p.addParameter('nObserverMatches',1,@(x)(isnumeric(x)));
 p.addParameter('nReversals',[1 4],@(x)(isnumeric(x)));
 p.addParameter('rayleighPlots',true,@(x)(islogical(x)));
@@ -98,7 +100,8 @@ p.addParameter('LMEqualOD',false,@(x)(islogical(x)));
 p.addParameter('dlens0',true,@(x)(islogical(x)));
 p.addParameter('dmac0',true,@(x)(islogical(x)));
 p.addParameter('restrictBySd',true,@(x)(islogical(x)));
-p.addParameter('matchErrScalar',100,@(x)(isnumeric(x)));    
+p.addParameter('matchErrScalar',100,@(x)(isnumeric(x)));  
+p.addParameter('resetAnnulus',false,@(x)(islogical(x)));
 p.parse(varargin{:});
 
 % Check that appropriate parameter limits have been entered
@@ -115,7 +118,7 @@ if (~exist(outputDir,'dir'))
     mkdir(outputDir);
 end
 if p.Results.saveResults
-    fName = [subjID, '_', method, '_allSpds.mat'];
+    fName = [subjID, '_allSpds.mat'];
     file = fullfile(outputDir,fName);
     if exist(file,'file')
         error('Specified file already exists');
@@ -125,7 +128,7 @@ end
 % Generate an array of wavelength combinations - first column is p1,
 % second is p2, third is test
 nCombos = length(p1Wls)*length(p2Wls)*length(testWls)*p.Results.nObserverMatches;
-lightCombos = combvec(p1Wls,p2Wls,testWls)';
+lightCombos = CombVec(p1Wls,p2Wls,testWls)';
 lightCombosFull = repmat(lightCombos,p.Results.nObserverMatches,1);
 randIndices = randperm(nCombos);
 lightCombosFull = lightCombosFull(randIndices,:);
@@ -144,6 +147,14 @@ for i = 1:nCombos
             ==lightCombosFull(i,3),2:5);
     end
     
+    % Setup for resetting the annulus on the first trial if desired, but
+    % not other trials. 
+    if i==1
+        resetAnnulus = p.Results.resetAnnulus;
+    else
+        resetAnnulus = false;
+    end 
+    
     % Run test 
     OLRayleighMatch(subjID,i,'simObserver',false,'foveal',...
         (p.Results.fieldSize<=2),'p1',lightCombosFull(i,1),'p2',...
@@ -152,7 +163,8 @@ for i = 1:nCombos
         p.Results.p2Scale,'testScale',p.Results.testScale,'p1Scale',...
         p.Results.p1Scale,'plotResponses',p.Results.rayleighPlots,...
         'adjustmentLength',p.Results.adjustmentLength,'opponentParams',...
-        p.Results.opponentParams,'stimLimits',trialStimLimits);
+        p.Results.opponentParams,'stimLimits',trialStimLimits',...
+        'resetAnnulus',resetAnnulus);
   
         % Extract spds from the data file
         dataFile = [subjID,'_',num2str(i),'.mat'];
@@ -173,7 +185,7 @@ for i = 1:nCombos
 end
 % Estimate cone parameters based on data. If we want maximum likelihood
 % estimation or averaging, these would be added here. 
-estObserverParamsParams = findObserverParameters(testSpds,primarySpds,...
+estObserverParams = findObserverParameters(testSpds,primarySpds,...
     'age',p.Results.age,'fieldSize',p.Results.fieldSize,...
     'restrictBySd',p.Results.restrictBySd,'dlens0',p.Results.dlens0,...
     'LMEqualOD',p.Results.LMEqualOD,'dmac0',p.Results.dmac0,....
