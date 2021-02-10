@@ -28,8 +28,8 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %    available. The first option lets the experimenter use keypresses to
 %    recreate subjects' button presses. The second option creates a
 %    simulated observer based on the Asano model and searches for the
-%    best match for this observer. When this option is used, subjects can
-%    choose between two decision rules - a "forced choice" procedure that
+%    best match for this observer. When this option is used, the experimenter 
+%    can choose between two decision rules - a "forced choice" procedure that
 %    records a match based on the number of reversals, and an "adjustment"
 %    procedure that records a match if the two lights meet a similarity
 %    threshold.
