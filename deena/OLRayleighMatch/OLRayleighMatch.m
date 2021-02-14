@@ -102,8 +102,8 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %     'noiseScaleFactor'     -Number >=0 which determines which scalar 
 %                             multiple of the opponent noise SD should be 
 %                             used as the observer noise SD. Default is 0.
-%    'nObserverMatches'     - When using a simulated observer, number of
-%                             matches to simulate. Default is 1.
+%    'nObserverMatches'     - Number of matches to simulate/run. Default is
+%                             1.
 %    'adjustmentLength'     - Number of possible steps available for
 %                             adjusting the primary and test lights.
 %                             Default is 3201.
@@ -482,7 +482,7 @@ end
 
 % Optional plotting setup
 if plotResponses
-    nPlots = 2;           % Counter for current figure index
+    nPlots = 1;           % Counter for current figure index
     matchSettingInd = 1;  % SubjectSettings position for current match start
 end
 
@@ -547,13 +547,18 @@ while(stillLooping)
             xlabel('Primary Ratio (Proportion Red)');
             title2 = sprintf('Subject Settings Over Time, Match %g',nPlots/2);
             title(title2);
-            plot(idealTestIntensity,idealPRatio,'gs',...
+            plot(idealPRatio,idealTestIntensity,'gs',...
                 'MarkerFaceColor','g');
         end
         
+        % Quit if all matches have been made 
+        [row,~] = size(matches);
+        if row == nObserverMatches
+            key.charCode = 'q';
+        end
+        
         % If using a simulated observer, calculate which adjustment to make
-        if simObserver
-            [row,~] = size(matches);
+        if simObserver            
             % Prompt the observer for a decision
             [p1_up,t_up,isBelowThreshold] = ...
                 observerRayleighDecision(observer,primarySpds(:,primaryPos),...
@@ -566,12 +571,8 @@ while(stillLooping)
                 if plotResponses
                     fprintf('Below threshold: %g\n',countBelowThreshold);
                 end
-            end
-            if row == nObserverMatches
-                % Quit if all matches have been made
-                key.charCode = 'q';
-                
-            elseif thresholdMatching && (nReversalsP >=...
+            end    
+            if thresholdMatching && (nReversalsP >=...
                     10*nReversals(2)) &&(nReversalsT >= 10*nReversals(2))
                 % Quit if we're stuck in an infinite loop
                 key.charCode = 'q';
@@ -750,9 +751,9 @@ while(stillLooping)
                         % Joint trajectory figure
                         figure(nPlots+1);
                         hold on;
-                        p3 = plot(matches(end,1),matches(end,2),'r* ',...
+                        p3 = plot(matches(end,2),matches(end,1),'r* ',...
                             'MarkerSize',10,'LineWidth',1.5);
-                        p4 = plot(idealTestIntensity,idealPRatio,'gs',...
+                        p4 = plot(idealPRatio,idealTestIntensity,'gs',...
                             'MarkerFaceColor','g');
                         legend([p3 p4],'Subject Match','Nominal Match');
                         
@@ -785,6 +786,7 @@ while(stillLooping)
                         'subjectSettings','p1','p2','test','calName',...
                         'primarySpdsNominal','primarySpdsPredicted',...
                         'testSpdsNominal','testSpdsPredicted',...
+                        'primaryStartStops','testStartStops',...
                         'subjectID','allowedLambdaInds','allowedTIInds',...
                         'sessionNum','annulusData','sInterval','lInterval',...
                         'adjustmentLength','foveal','simNominalLights',...
@@ -925,8 +927,8 @@ while(stillLooping)
                 subplot(2,1,2);
                 plot(subjectSettings(matchSettingInd:end,1),'bo-','LineWidth',2);
                 figure(nPlots+1);
-                plot(subjectSettings(matchSettingInd:end,1),...
-                    subjectSettings(matchSettingInd:end,2), 'bo-','LineWidth',2);
+                plot(subjectSettings(matchSettingInd:end,2),...
+                    subjectSettings(matchSettingInd:end,1), 'bo-','LineWidth',2);
             end
         end
     end
