@@ -116,7 +116,7 @@ primaryRatios = zeros(1,nCombos);
 % Calculate Rayleigh matches for each of the light combinations
 for i = 1:nCombos
     % Store OneLight data filename
-    fNames(i) = fullfile(outputDir,[subjID,'_',num2str(sessionNum),...
+    fNames{i} = fullfile(outputDir,[subjID,'_',num2str(sessionNum),...
         '_',num2str(i),'.mat']);
     
     % Find parameter limits
@@ -143,15 +143,18 @@ for i = 1:nCombos
         p.Results.p1Scale,'plotResponses',p.Results.rayleighPlots,...
         'adjustmentLength',p.Results.adjustmentLength,'opponentParams',...
         p.Results.opponentParams,'stimLimits',trialStimLimits',...
-        'resetAnnulus',resetAnnulus);
+        'resetAnnulus',resetAnnulus,'silent',false);
     
     % Extract match position data
     [~,~,testIntensities(i),primaryRatios(i)] =...
-        getMatchData(fNames(i),'nominal',false,...
+        getMatchData(fNames{i},'nominal',false,...
         'averageSpds',false);
     
     % Save data
-    save(outputFile,fNames,testIntensities,primaryRatios,lightCombosFull);
-    
+    save([outputFile '_summary.mat'],'fNames','testIntensities','primaryRatios','lightCombosFull');
 end
+
+% Close up 
+ol = OneLight();
+ol.shutdown();
 end

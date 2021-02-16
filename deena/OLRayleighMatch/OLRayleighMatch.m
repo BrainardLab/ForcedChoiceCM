@@ -523,7 +523,7 @@ while(stillLooping)
         if plotResponses && firstAdjustment
             % Plot with primary and test settings separately
             figure(nPlots);
-            title1 = sprintf('Subject Settings Over Time, Match %g',nPlots/2);
+            title1 = sprintf('Subject Settings Over Time, Match %g',ceil(nPlots/2));
 %             sgtitle(title1);
             subplot(2,1,1);
             hold on;
@@ -545,16 +545,10 @@ while(stillLooping)
             ylim([0 1]);
             ylabel('Proportional Reference Intensity');
             xlabel('Primary Ratio (Proportion Red)');
-            title2 = sprintf('Subject Settings Over Time, Match %g',nPlots/2);
+            title2 = sprintf('Subject Settings Over Time, Match %g',ceil(nPlots/2));
             title(title2);
             plot(idealPRatio,idealTestIntensity,'gs',...
                 'MarkerFaceColor','g');
-        end
-        
-        % Quit if all matches have been made 
-        [row,~] = size(matches);
-        if row == nObserverMatches
-            key.charCode = 'q';
         end
         
         % If using a simulated observer, calculate which adjustment to make
@@ -674,7 +668,13 @@ while(stillLooping)
             end
             
         else                 % Live experiment
-            key = gamePad.getKeyEvent();
+            key = gamePad.getKeyEvent();          
+        end
+        
+        % Force quit if all matches have been made
+        [row,~] = size(matches);
+        if row == nObserverMatches
+            key.charCode = keyCodes.quit;
         end
         
         % Modify program settings based on key input
