@@ -546,6 +546,8 @@ while(stillLooping)
                         case 'GP:West'
                             p1_down = true;
                             waitingForResponse = false;
+                        case 'GP:A' % Force quit
+                            quit = true;
                         otherwise
                             Speak('Invalid key');
                     end
@@ -566,6 +568,8 @@ while(stillLooping)
                         case 'GP:South'
                             t_down = true;
                             waitingForResponse = false;
+                        case 'GP:A'  % Force quit 
+                            quit = true;
                         otherwise
                             Speak('Invalid key');
                     end
@@ -658,10 +662,9 @@ while(stillLooping)
         
         % Check if primary step size needs to be adjusted
         if ((p1_up && ~p1_up_prev) || (p1_down && p1_up_prev)) && ~firstAdjustment % Reversal 
-            if nReversalsP == nReversals(1) && pStepModePos ~= stepModes(end) % Lower step size
+            nReversalsP = nReversalsP+1;  % Count the reversal 
+            if nReversalsP == nReversals(1) && pStepModePos ~= length(stepModes) % Lower step size
                 switchPStepSize = true;
-            else % Count the reversal
-                nReversalsP = nReversalsP+1;
                 if plotResponses
                     fprintf('Primary reversal %g, step size %g\n',...
                         nReversalsP,(stepModes(pStepModePos)/...
@@ -673,10 +676,9 @@ while(stillLooping)
         
         % Check if reference step size needs to be adjusted
         if ((t_up && ~t_up_prev) || (t_down && t_up_prev)) && ~firstAdjustment% Reversal 
-            if nReversalsT == nReversals(1) && tStepModePos ~= stepModes(end) % Lower step size
+            nReversalsT = nReversalsT+1; % Count the reversal
+            if nReversalsT == nReversals(1) && tStepModePos ~= length(stepModes) % Lower step size
                 switchTStepSize = true;
-            else % Count the reversal
-                nReversalsT = nReversalsT+1;
                 if plotResponses
                     fprintf('Reference reversal %g, step size %g\n',...
                         nReversalsT,(stepModes(tStepModePos)/...
@@ -709,8 +711,8 @@ while(stillLooping)
             pPos = zeros(1,nSettingsToAvg);
             tPos = zeros(1,nSettingsToAvg);
             for i = 0:(nSettingsToAvg-1)
-                pPos(i) = find(p1Scales==subjectSettings(end-i,2));
-                tPos(i) = find(testScales==subjectSettings(end-i,1));
+                pPos(i+1) = find(p1Scales==subjectSettings(end-i,2));
+                tPos(i+1) = find(testScales==subjectSettings(end-i,1));
             end 
             primaryPos = mean(pPos);
             testPos = mean(tPos);
