@@ -89,12 +89,21 @@ function [coneAvgErr,matchAvgErr,coneAvgStdErr,matchAvgStdErr,...
 %    'fieldSize'         -Integer field size, in degrees. Default is 2.
 %    'age'               -Integer age for simulated observer. Default is
 %                         32.
-%    'p1Scale'           -Numerical scale factor for the first primary
-%                         light, between 0 and 1. Default is 1.
-%    'p2Scale'           -Numerical scale factor for the second primary
-%                         light, between 0 and 1. Default is 0.02.
-%    'testScale'         -Numerical scale factor for the test light,
-%                         between 0 and 1. Default is 0.5.
+%    'p1Scale'           -Array of numerical scale factors for the first 
+%                         primary light, between 0 and 1. A different scale 
+%                         factor is entered for each test wavelength. 
+%                         Default is 1. Length must equal the number of
+%                         test wavelengths.
+%    'p2Scale'           -Array of numerical scale factors for the second 
+%                         primary light, between 0 and 1. A different scale 
+%                         factor is entered for each test wavelength. 
+%                         Default is 0.02. Length must equal the number of
+%                         test wavelengths.
+%    'testScale'         -Array of numerical scale factors for the test 
+%                         light, between 0 and 1. A different scale 
+%                         factor is entered for each test wavelength. 
+%                         Default is 0.1. Length must equal the number of
+%                         test wavelengths.
 %    'adjustmentLength'  -Integer defining the size of the lights array
 %                         available for OLRayleighMatch. Default is 3201.
 %    'monochromatic'     -Logical indicating to use monochromatic spds
@@ -174,6 +183,8 @@ function [coneAvgErr,matchAvgErr,coneAvgStdErr,matchAvgStdErr,...
 %   10/28/20  dce       Added sampled and recovered parameters as outputs
 %   11/01/20  dce       Added wavelength sampling as key-value pair
 %   11/15/20  dce       Added option to restrict stimuli
+%   02/25/21  dce       Added option to give different scale factors for
+%                       different test wavelengths
 
 % Close stray figures
 close all;
@@ -187,7 +198,7 @@ p.addParameter('fieldSize',2,@(x)(isnumeric(x)));
 p.addParameter('age',32,@(x)(isnumeric(x)));
 p.addParameter('p1Scale',1,@(x)(isnumeric(x)));
 p.addParameter('p2Scale',0.02,@(x)(isnumeric(x)));
-p.addParameter('testScale',0.5,@(x)(isnumeric(x)));
+p.addParameter('testScale',0.1,@(x)(isnumeric(x)));
 p.addParameter('adjustmentLength',3201,@(x)(isnumeric(x)));
 p.addParameter('monochromatic',false,@(x)(islogical(x)));
 p.addParameter('nominal',false,@(x)(islogical(x)));
@@ -206,6 +217,13 @@ p.addParameter('S',[380 2 201],@(x)(isnumeric(x)));
 p.addParameter('stimLimits',[],@(x)(isnumeric(x)));
 p.addParameter('lambdaRef',[],@(x)(isnumeric(x)));
 p.parse(varargin{:});
+
+% Check that scale factors have been entered correctly
+if length(p.Results.p1Scale)~=length(test) ||...
+        length(p.Results.p2Scale)~=length(test) ||...
+        length(p.Results.testScale)~=length(test)
+    error('Scale factor vectors must include the same number of elements as the number of reference wavelengths');
+end 
 
 % Base observer, used for comparison
 stdObs = genRayleighObserver('age',p.Results.age,'fieldSize',...

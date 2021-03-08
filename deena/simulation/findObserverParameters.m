@@ -49,8 +49,10 @@ function [params,error,observer] = findObserverParameters(testSpds,primarySpds,v
 %                     (params(1)) to be 0. Default is false.
 %    'dmac0'         -Logical. If true, constrains the macular pigment 
 %                     density(params(2)) to be 0. Default is false.
+%    'dLM0'          -Logical. If true, constrains the L and M optical
+%                     density(params(3:4)) to be 0. Default is false.
 %    'restrictBySD'  -Logical. If true, adds lower and upper bounds on all
-%                     paramters to keep them within two standard
+%                     paramters to keep them within three standard
 %                     deviations of their means. Default is true. 
 %    'S'             -Wavelength sampling for cone calculations, in the
 %                     form [start delta nTerms]. Default is [380 2 201];
@@ -69,6 +71,8 @@ function [params,error,observer] = findObserverParameters(testSpds,primarySpds,v
 %   08/05/20  dce       Added opponent contrast params 
 %   11/01/20  dce       Restricted to within 2 standard deviations
 %   01/01/21  dce       Restricted to within 3 standard deviations
+%   03/01/21  dce       Added option to lock L and M optical densities at
+%                       0.
 
 %% Initial Setup
 % Parse input
@@ -78,6 +82,7 @@ p.addParameter('fieldSize',2,@(x)(isnumeric(x)));
 p.addParameter('LMEqualOD',false,@(x)(islogical(x)));
 p.addParameter('dlens0',false,@(x)(islogical(x)));
 p.addParameter('dmac0',false,@(x)(islogical(x)));
+p.addParameter('dLM0',false,@(x)(islogical(x)));
 p.addParameter('restrictBySd',true,@(x)(islogical(x)));
 p.addParameter('initialConeParams',zeros(1,8),@(x)(isnumeric(x)));
 p.addParameter('opponentParams',[40.3908 205.7353 62.9590 1.0000],@(x)(isvector(x)));
@@ -123,10 +128,18 @@ if p.Results.dlens0
     ub(1) = p.Results.initialConeParams(1);
 end
 
-% Constrain lens density variation to 0 
+% Constrain macular pigment density variation to 0 
 if p.Results.dmac0
     lb(2) = p.Results.initialConeParams(2);
     ub(2) = p.Results.initialConeParams(2);
+end
+
+% Constrain L and M optical density variation to 0 
+if p.Results.dmac0
+    lb(3) = p.Results.initialConeParams(3);
+    ub(3) = p.Results.initialConeParams(3);
+    lb(4) = p.Results.initialConeParams(4);
+    ub(4) = p.Results.initialConeParams(4);
 end
 
 % Constrain L and M OD to be equal

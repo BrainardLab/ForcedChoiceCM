@@ -40,12 +40,21 @@ function [fNames,testIntensities,primaryRatios] = ...
 %                         32.
 %    'opponentParams'    -1x4 vector of opponent contrast parameters.
 %                         Default is [40.3908  205.7353   62.9590  1.0000].
-%    'p1Scale'           -Numerical scale factor for the first primary
-%                         light, between 0 and 1. Default is 1.
-%    'p2Scale'           -Numerical scale factor for the second primary
-%                         light, between 0 and 1. Default is 0.2.
-%    'testScale'         -Numerical scale factor for the test light,
-%                         between 0 and 1. Default is 0.2.
+%    'p1Scale'           -Array of numerical scale factors for the first 
+%                         primary light, between 0 and 1. A different scale 
+%                         factor is entered for each test wavelength. 
+%                         Default is 1. Length must equal the number of
+%                         test wavelengths.
+%    'p2Scale'           -Array of numerical scale factors for the second 
+%                         primary light, between 0 and 1. A different scale 
+%                         factor is entered for each test wavelength. 
+%                         Default is 0.02. Length must equal the number of
+%                         test wavelengths.
+%    'testScale'         -Array of numerical scale factors for the test 
+%                         light, between 0 and 1. A different scale 
+%                         factor is entered for each test wavelength. 
+%                         Default is 0.1. Length must equal the number of
+%                         test wavelengths.
 %    'adjustmentLength'  -Integer defining the size of the lights array
 %                         available for OLRayleighMatch. Default is 201.
 %    'nObserverMatches'  -Number of matches to simulate for each set of
@@ -68,9 +77,11 @@ function [fNames,testIntensities,primaryRatios] = ...
 %                         experimenter reset the annulus before the first
 %                         trial. Default is false.
 % History:
-%   02/10/20   dce   - Wrote it, adapted from getMatchSeries and
+%   02/10/21   dce   - Wrote it, adapted from getMatchSeries and
 %                      sampleRayleighMatchSeries
-%   02/13/20   dce   - Edited output
+%   02/13/21   dce   - Edited output
+%   02/25/21   dce   - Added option to have varying scale factors for
+%                      different test wavelengths
 
 % Input parsing
 p = inputParser;
@@ -78,8 +89,8 @@ p.addParameter('fieldSize',2,@(x)(isnumeric(x)));
 p.addParameter('age',32,@(x)(isnumeric(x)));
 p.addParameter('opponentParams',[40.3908 205.7353 62.9590 1.0000],@(x)(isvector(x)));
 p.addParameter('p1Scale',1,@(x)(isnumeric(x)));
-p.addParameter('p2Scale',0.2,@(x)(isnumeric(x)));
-p.addParameter('testScale',0.2,@(x)(isnumeric(x)));
+p.addParameter('p2Scale',0.02,@(x)(isnumeric(x)));
+p.addParameter('testScale',0.1,@(x)(isnumeric(x)));
 p.addParameter('adjustmentLength',201,@(x)(isnumeric(x)));
 p.addParameter('nObserverMatches',1,@(x)(isnumeric(x)));
 p.addParameter('nReversals',[1 4],@(x)(isnumeric(x)));
@@ -88,12 +99,27 @@ p.addParameter('stimLimits',[],@(x)(isnumeric(x)));
 p.addParameter('resetAnnulus',false,@(x)(islogical(x)));
 p.parse(varargin{:});
 
+age = p.Results.age;
+fieldSize = p.Results.fieldSize;
+opponentParams = p.Results.opponentParams;
+p1Scale = p.Results.p1Scale;
+p2Scale = p.Results.p2Scale;
+testScale = p.Results.testScale;
+adjustmentLength = p.Results.adjustmentLength;
+
 % Check that appropriate parameter limits have been entered
 if ~isempty(p.Results.stimLimits)
     if any(p.Results.stimLimits(:,1) ~= testWls')
         error('Passed parameter limits do not match provided test wavelengths');
     end
 end
+
+% Check that scale factors have been entered correctly
+if length(p.Results.p1Scale)~=length(testWls) ||...
+        length(p.Results.p2Scale)~=length(testWls) ||...
+        length(p.Results.testScale)~=length(testWls)
+    error('Scale factor vectors must include the same number of elements as the number of reference wavelengths');
+end 
 
 % Generate an array of wavelength combinations - first column is p1,
 % second is p2, third is test
@@ -103,10 +129,20 @@ lightCombosFull = repmat(lightCombos,p.Results.nObserverMatches,1);
 randIndices = randperm(nCombos);
 lightCombosFull = lightCombosFull(randIndices,:);
 
+% Generate scale factors for lights, where each scale factor is paired with
+% a given test wavelength. Scale factors are entered into the matrix in the
+% format [p1 p2 test], with one row for each row in lightCombosFull.
+lightScaleFactors = zeros(nCombos,3);
+for i = 1:nCombos
+    lightScaleFactors(i,1) = p.Results.p1Scale(testWls==lightCombosFull(i,3));
+    lightScaleFactors(i,2) = p.Results.p2Scale(testWls==lightCombosFull(i,3));
+    lightScaleFactors(i,3) = p.Results.testScale(testWls==lightCombosFull(i,3));
+end 
+
 % Set up subject directory
 outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
     'matchFiles',[subjID '_' num2str(sessionNum)]);
-outputFile = fullfile(outputDir,[subjID '_' num2str(sessionNum)]);
+outputFile = fullfile(outputDir,[subjID '_' num2str(sessionNum) '_summary.mat']);
 fNames = cell(1,nCombos);
 
 % Set up data arrays
@@ -139,8 +175,8 @@ for i = 1:nCombos
         (p.Results.fieldSize<=2),'p1',lightCombosFull(i,1),'p2',...
         lightCombosFull(i,2),'test',lightCombosFull(i,3),'age',p.Results.age,...
         'nObserverMatches',1,'nReversals',p.Results.nReversals,'p2Scale',...
-        p.Results.p2Scale,'testScale',p.Results.testScale,'p1Scale',...
-        p.Results.p1Scale,'plotResponses',p.Results.rayleighPlots,...
+        lightScaleFactors(i,2),'testScale',lightScaleFactors(i,3),'p1Scale',...
+        lightScaleFactors(i,1),'plotResponses',p.Results.rayleighPlots,...
         'adjustmentLength',p.Results.adjustmentLength,'opponentParams',...
         p.Results.opponentParams,'stimLimits',trialStimLimits',...
         'resetAnnulus',resetAnnulus,'silent',false);
@@ -151,7 +187,9 @@ for i = 1:nCombos
         'averageSpds',false);
     
     % Save data
-    save([outputFile '_summary.mat'],'fNames','testIntensities','primaryRatios','lightCombosFull');
+    save(outputFile,'fNames','testIntensities','primaryRatios','lightCombosFull',...
+        'age','fieldSize','opponentParams','p1Scale','p2Scale','testScale',...
+        'adjustmentLength',p.Results.adjustmentLength);
 end
 
 % Close up 

@@ -26,6 +26,7 @@ function OLRadiometerMatchesPlayback(subjID,sessionNum,matchFiles,varargin)
 %    dce    3/29/20   - Edited for style, added ongoing saving
 %    dce    2/13/20   - Restructured to measure matches from multiple files
 %                       at once.
+%    dce    2/25/20   - Added measurement of dark spd. 
 
 %% Parse input
 p = inputParser;
@@ -114,6 +115,13 @@ for kk = 1:length(matchFiles)
     end
     fprintf('File %g of %g complete\n',kk,length(matchFiles));
 end
+
+% Measure dark spd
+ol.setAll(false);
+pause(0.1);
+measuredDarkSpd = spectroRadiometerOBJ.measure;
+save(outputFile, 'measuredTestSpds', 'measuredPrimarySpds', 'measuredWhite',...
+    'measuredDarkSpd');
 
 %% Close devices
 spectroRadiometerOBJ.shutDown;
