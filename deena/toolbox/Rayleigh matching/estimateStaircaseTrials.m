@@ -42,12 +42,18 @@ function meanTrials = estimateStaircaseTrials(subjID,varargin)
 %                         650].
 %    'method'            -Character vector for match method. Choose either
 %                         'forcedChoice' or 'threshold'.
-%    'p1Scale'           -Numerical scale factor for the first primary
-%                         light, between 0 and 1. Default is 1.
-%    'p2Scale'           -Numerical scale factor for the second primary
-%                         light, between 0 and 1. Default is 0.2.
-%    'testScale'         -Numerical scale factor for the test light,
-%                         between 0 and 1. Default is 0.2.
+%    'p1Scale'           -Array of numerical scale factors for the first 
+%                         primary light, between 0 and 1. A different scale 
+%                         factor is entered for each test wavelength. 
+%                         Default is ones(1,5).
+%    'p2Scale'           -Array of numerical scale factors for the second 
+%                         primary light, between 0 and 1. A different scale 
+%                         factor is entered for each test wavelength. 
+%                         Default is 0.02 * ones(1,5).
+%    'testScale'         -Array of numerical scale factors for the test 
+%                         light, between 0 and 1. A different scale 
+%                         factor is entered for each test wavelength. 
+%                         Default is 0.1 * ones(1,5).
 %    'S'                 -Wavelength sampling for cone calculations, in the
 %                         form [start delta nTerms]. Default is [380 2 201].
 %    'nBelowThreshold'   -When using a simulated observer with
@@ -108,9 +114,9 @@ p.addParameter('baseConeParams',zeros(1,8),@(x)(isnumeric(x)));
 p.addParameter('p1Wl',670,@(x)(isnumeric(x)));
 p.addParameter('p2Wl',560,@(x)(isnumeric(x)));
 p.addParameter('testWls',[570 590 610 630 650],@(x)(isnumeric(x)));
-p.addParameter('p1Scale',1,@(x)(isnumeric(x)));
-p.addParameter('p2Scale',0.02,@(x)(isnumeric(x)));
-p.addParameter('testScale',0.5,@(x)(isnumeric(x)));
+p.addParameter('p1Scale',ones(1,5),@(x)(isnumeric(x)));
+p.addParameter('p2Scale',0.02* ones(1,5),@(x)(isnumeric(x)));
+p.addParameter('testScale',0.1* ones(1,5),@(x)(isnumeric(x)));
 p.addParameter('nObservers',30,@(x)(isnumeric(x)));
 p.addParameter('S',[380 2 201],@(x)(isnumeric(x)));
 p.addParameter('nBelowThreshold',1,@(x)(isnumeric(x)));
@@ -130,11 +136,15 @@ p.addParameter('limMatrix',[570.0000   0    0.1264    0.0399    0.0459;...
   650.0000    0.8688    0.9938    0.5109    0.6458],@(x)(isnumeric(x)));
 p.parse(varargin{:});
 
+if length(p.Results.testWls)~=length(p.Results.p1Scale) || ...
+        length(p.Results.testWls)~=length(p.Results.p2Scale) || ...
+        length(p.Results.testWls)~=length(p.Results.testScale)
+    error('Incorrect number of scale factors entered')
+end 
+
 % Rayleigh match settings (can be modified).
 rayleighPlots = false;
 saveResults = false;
-
-       
 
 % Observer params
 sampledConeParams = sampleRayleighObservers(p.Results.nObservers,...

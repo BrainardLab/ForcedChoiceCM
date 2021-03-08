@@ -54,12 +54,21 @@ function [testSpds,primarySpds,testIntensities,primaryRatios] = ...
 %    'fieldSize'         -Integer for observer field size. Default is 2.
 %    'age'               -Integer age for simulated observer. Default is
 %                         32.
-%    'p1Scale'           -Numerical scale factor for the first primary
-%                         light, between 0 and 1. Default is 1.
-%    'p2Scale'           -Numerical scale factor for the second primary
-%                         light, between 0 and 1. Default is 0.2.
-%    'testScale'         -Numerical scale factor for the test light,
-%                         between 0 and 1. Default is 0.2.
+%    'p1Scale'           -Array of numerical scale factors for the first 
+%                         primary light, between 0 and 1. A different scale 
+%                         factor is entered for each test wavelength. 
+%                         Default is 1. Length must equal the number of
+%                         test wavelengths.
+%    'p2Scale'           -Array of numerical scale factors for the second 
+%                         primary light, between 0 and 1. A different scale 
+%                         factor is entered for each test wavelength. 
+%                         Default is 0.02. Length must equal the number of
+%                         test wavelengths.
+%    'testScale'         -Array of numerical scale factors for the test 
+%                         light, between 0 and 1. A different scale 
+%                         factor is entered for each test wavelength. 
+%                         Default is 0.1. Length must equal the number of
+%                         test wavelengths.
 %    'adjustmentLength'  -Integer defining the size of the lights array
 %                         available for OLRayleighMatch. Default is 3201.
 %    'nObserverMatches'  -Number of matches to simulate for each set of
@@ -121,14 +130,16 @@ function [testSpds,primarySpds,testIntensities,primaryRatios] = ...
 %   10/28/20  dce       Added OL matching with monochromatic lights
 %   11/15/20  dce       Added options to limit stimulus range and use
 %                       reference spectrum
+%   02/25/21  dce       Added option to vary scale factors with test
+%                       wavelength
 
 % Input parsing
 p = inputParser;
 p.addParameter('fieldSize',2,@(x)(isnumeric(x)));
 p.addParameter('age',32,@(x)(isnumeric(x)));
 p.addParameter('p1Scale',1,@(x)(isnumeric(x)));
-p.addParameter('p2Scale',0.2,@(x)(isnumeric(x)));
-p.addParameter('testScale',0.2,@(x)(isnumeric(x)));
+p.addParameter('p2Scale',0.02,@(x)(isnumeric(x)));
+p.addParameter('testScale',0.1,@(x)(isnumeric(x)));
 p.addParameter('adjustmentLength',3201,@(x)(isnumeric(x)));
 p.addParameter('nObserverMatches',1,@(x)(isnumeric(x)));
 p.addParameter('nReversals',[1 4],@(x)(isnumeric(x)));
@@ -155,6 +166,12 @@ if ~isempty(p.Results.stimLimits)
     if any(p.Results.stimLimits(:,1) ~= testWls')
         error('Passed parameter limits do not match provided test wavelengths');
     end 
+end 
+% Check that scale factors have been entered correctly
+if length(p.Results.p1Scale)~=length(testWls) ||...
+        length(p.Results.p2Scale)~=length(testWls) ||...
+        length(p.Results.testScale)~=length(testWls)
+    error('Scale factor vectors must include the same number of elements as the number of reference wavelengths');
 end 
 
 % Set up subject directory
@@ -187,6 +204,14 @@ end
 lightCombos = combvec(p1Wls,p2Wls,testWls)';
 nCombos = length(p1Wls)*length(p2Wls)*length(testWls);
 
+% Generate scale factors for each of the sets of lights
+lightScaleFactors = zeros(nCombos,3);
+for i = 1:nCombos
+    lightScaleFactors(i,1) = p.Results.p1Scale(testWls==lightCombos(i,3));
+    lightScaleFactors(i,2) = p.Results.p2Scale(testWls==lightCombos(i,3));
+    lightScaleFactors(i,3) = p.Results.testScale(testWls==lightCombos(i,3));
+end 
+
 % Calculate Rayleigh matches for each of the light combinations
 testSpds = [];
 primarySpds = [];
@@ -209,14 +234,15 @@ for i = 1:nCombos
             'nObserverMatches',p.Results.nObserverMatches,'nReversals',...
             p.Results.nReversals,'nBelowThreshold',...
             p.Results.nBelowThreshold,'thresholdScaleFactor',...
-            p.Results.thresholdScaleFactor,'p2Scale',p.Results.p2Scale,...
-            'testScale',p.Results.testScale,'p1Scale',p.Results.p1Scale,...
+            p.Results.thresholdScaleFactor,'p2Scale',lightScaleFactors(i,2),...
+            'testScale',lightScaleFactors(i,3),'p1Scale',lightScaleFactors(i,1),...
             'simNominalLights',p.Results.nominal,'plotResponses',...
             p.Results.rayleighPlots,'adjustmentLength',...
             p.Results.adjustmentLength,'opponentParams',opponentParams,...
             'noiseScaleFactor',p.Results.noiseScaleFactor,'monochromatic',...
             p.Results.monochromatic,'monochromaticS',p.Results.sPredicted,...
-            'stimLimits',trialStimLimits,'lambdaRef',p.Results.lambdaRef);
+            'stimLimits',trialStimLimits,'lambdaRef',p.Results.lambdaRef,...
+            'silent',true);
         % Extract spds from the data file
         simFile = [subjID,'_',num2str(i),'.mat'];
         simFilePath = fullfile(outputDir,simFile);
@@ -230,14 +256,14 @@ for i = 1:nCombos
             lightCombos(i,1),'p2',lightCombos(i,2),'test',lightCombos(i,3),...
             'age',p.Results.age,'nObserverMatches',...
             p.Results.nObserverMatches,'nReversals',p.Results.nReversals,...
-            'p2Scale',p.Results.p2Scale,'testScale',p.Results.testScale,...
-            'p1Scale',p.Results.p1Scale,'simNominalLights',....
+            'p2Scale',lightScaleFactors(i,2),'testScale',lightScaleFactors(i,3),...
+            'p1Scale',lightScaleFactors(i,1),'simNominalLights',....
             p.Results.nominal,'plotResponses',p.Results.rayleighPlots,...
             'adjustmentLength',p.Results.adjustmentLength,'opponentParams',...
             opponentParams,'noiseScaleFactor',p.Results.noiseScaleFactor,...
             'monochromatic',p.Results.monochromatic,'monochromaticS',...
             p.Results.sPredicted,'stimLimits',trialStimLimits,'lambdaRef',...
-            p.Results.lambdaRef);
+            p.Results.lambdaRef,'silent',true);
         % Extract spds from the data file
         simFile = [subjID,'_',num2str(i),'.mat'];
         simFilePath = fullfile(outputDir,simFile);
@@ -254,23 +280,23 @@ for i = 1:nCombos
             
             wls = SToWls(p.Results.sPredicted);
             pSpds = zeros(length(wls),length(p1Scales));
-            pSpds(wls==lightCombos(i,1),:) = p.Results.p1Scale*p1Scales;
-            pSpds(wls==lightCombos(i,2),:) = p.Results.p2Scale*p2Scales;
+            pSpds(wls==lightCombos(i,1),:) = lightScaleFactors(i,1)*p1Scales;
+            pSpds(wls==lightCombos(i,2),:) = lightScaleFactors(i,2)*p2Scales;
             tSpds = zeros(length(wls),length(testScales));
-            tSpds(wls==lightCombos(i,3),:) = p.Results.testScale*testScales;
+            tSpds(wls==lightCombos(i,3),:) = lightScaleFactors(i,3)*testScales;
             
         else         % Use OL spectra
             lightFile = sprintf('OLRayleighMatch%gSpectralSettings_%g_%g_%g_%g_%g_%g.mat',...
                 p.Results.adjustmentLength,lightCombos(i,1),lightCombos(i,2),...
-                lightCombos(i,3),p.Results.p1Scale,p.Results.p2Scale,...
-                p.Results.testScale);
+                lightCombos(i,3),lightScaleFactors(i,1),...
+                lightScaleFactors(i,2),lightScaleFactors(i,3));
             lightFileName = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
                 'precomputedStartStops',lightFile);
             if ~exist(lightFileName,'file')
                 OLRayleighMatchLightSettings(lightCombos(i,1),lightCombos(i,2),...
-                    lightCombos(i,3),'p1ScaleFactor',p.Results.p1Scale,...
-                    'p2ScaleFactor',p.Results.p2Scale,'testScaleFactor',...
-                    p.Results.testScale,'adjustmentLength',p.Results.adjustmentLength);
+                    lightCombos(i,3),'p1ScaleFactor',lightScaleFactors(i,1),...
+                    'p2ScaleFactor',lightScaleFactors(i,2),'testScaleFactor',...
+                    lightScaleFactors(i,3),'adjustmentLength',p.Results.adjustmentLength);
             end
             lightSettings = load(lightFileName);
             testScales = lightSettings.testScales;
@@ -303,11 +329,11 @@ for i = 1:nCombos
     else        % Use computePredictedRayleighMatch
         if p.Results.monochromatic
             p1Spd = makeMonochromaticSpd(lightCombos(i,1),...
-                p.Results.p1Scale,p.Results.sPredicted);
+                lightScaleFactors(i,1),p.Results.sPredicted);
             p2Spd = makeMonochromaticSpd(lightCombos(i,2),...
-                p.Results.p2Scale,p.Results.sPredicted);
+                lightScaleFactors(i,2),p.Results.sPredicted);
             tSpd = makeMonochromaticSpd(lightCombos(i,3),...
-                p.Results.testScale,p.Results.sPredicted);
+                lightScaleFactors(i,3),p.Results.sPredicted);
             
             [testSpd,primarySpd,testIntensity,primaryRatio] =...
                 computePredictedRayleighMatch(p1Spd,p2Spd,tSpd,...
@@ -318,19 +344,19 @@ for i = 1:nCombos
             % Names of precomputed spd files
             if p.Results.nominal
                 p1File = [baseFile num2str(lightCombos(i,1)) '_'...
-                    num2str(p.Results.p1Scale) '_nominal.mat'];
+                    num2str(lightScaleFactors(i,1)) '_nominal.mat'];
                 p2File = [baseFile num2str(lightCombos(i,2)) '_'...
-                    num2str(p.Results.p2Scale) '_nominal.mat'];
+                    num2str(lightScaleFactors(i,2)) '_nominal.mat'];
                 testFile = [baseFile num2str(lightCombos(i,3)) '_'...
-                    num2str(p.Results.testScale) '_nominal.mat'];
+                    num2str(lightScaleFactors(i,3)) '_nominal.mat'];
             else
                 p1File = [baseFile num2str(lightCombos(i,1)) '_'...
-                    num2str(p.Results.p1Scale) '_predicted_subtractDark_subtract'...
+                    num2str(lightScaleFactors(i,1)) '_predicted_subtractDark_subtract'...
                     num2str(lightCombos(i,2)),'.mat'];
                 p2File = [baseFile num2str(lightCombos(i,2)) '_'...
-                    num2str(p.Results.p2Scale) '_predicted_subtractDark.mat'];
+                    num2str(lightScaleFactors(i,2)) '_predicted_subtractDark.mat'];
                 testFile = [baseFile num2str(lightCombos(i,3)) '_'...
-                    num2str(p.Results.testScale) '_predicted_subtractDark.mat'];
+                    num2str(lightScaleFactors(i,3)) '_predicted_subtractDark.mat'];
             end
             darkFile = [baseFile '0.mat'];
             % Load spds from the precomputed files if they exist, otherwise
@@ -340,7 +366,7 @@ for i = 1:nCombos
                 p1Spd = p1f.spd;
             else
                 p1Spd = makeOLRayleighPrimary(lightCombos(i,1),'scaleFactor',...
-                    p.Results.p1Scale,'nominal',p.Results.nominal,...
+                    lightScaleFactors(i,1),'nominal',p.Results.nominal,...
                     'subtractDark',true,'subtractAroundWl',lightCombos(i,2));
             end
             if exist(p2File,'file')
@@ -348,7 +374,7 @@ for i = 1:nCombos
                 p2Spd = p2f.spd;
             else
                 p2Spd = makeOLRayleighPrimary(lightCombos(i,2),'scaleFactor',...
-                    p.Results.p2Scale,'nominal',p.Results.nominal,...
+                    lightScaleFactors(i,2),'nominal',p.Results.nominal,...
                     'subtractDark',true);
             end
             if exist(testFile,'file')
@@ -356,7 +382,7 @@ for i = 1:nCombos
                 tSpd = testf.spd;
             else
                 tSpd = makeOLRayleighPrimary(lightCombos(i,3),'scaleFactor',...
-                    p.Results.testScale,'nominal',p.Results.nominal,...
+                    lightScaleFactors(i,3),'nominal',p.Results.nominal,...
                     'subtractDark',true);
             end
             if exist(darkFile,'file')

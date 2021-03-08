@@ -61,12 +61,21 @@ function sampleRayleighMatchSeries(subjID,nObservers,p1,p2,test,...
 %                         Default is zeros(1,8)
 %    'opponentParams'    -4-element vector with opponent contrast  
 %                         parameters. Default is [40.3908 205.7353 62.9590 1.0000].
-%    'p1Scale'           -Numerical scale factor for the first primary
-%                         light, between 0 and 1. Default is 1.
-%    'p2Scale'           -Numerical scale factor for the second primary
-%                         light, between 0 and 1. Default is 0.02.
-%    'testScale'         -Numerical scale factor for the test light,
-%                         between 0 and 1. Default is 0.5.
+%    'p1Scale'           -Array of numerical scale factors for the first 
+%                         primary light, between 0 and 1. A different scale 
+%                         factor is entered for each test wavelength. 
+%                         Default is 1.Length must equal the number of
+%                         test wavelengths.
+%    'p2Scale'           -Array of numerical scale factors for the second 
+%                         primary light, between 0 and 1. A different scale 
+%                         factor is entered for each test wavelength. 
+%                         Default is 0.02. Length must equal the number of
+%                         test wavelengths.
+%    'testScale'         -Array of numerical scale factors for the test 
+%                         light, between 0 and 1. A different scale 
+%                         factor is entered for each test wavelength. 
+%                         Default is 0.1. Length must equal the number of
+%                         test wavelengths.
 %    'adjustmentLength'  -Integer defining the size of the lights array
 %                         available for OLRayleighMatch. Default is 3201.
 %    'nReversals'        -Number of reversals the simulated observer must
@@ -138,14 +147,13 @@ function sampleRayleighMatchSeries(subjID,nObservers,p1,p2,test,...
 %   08/05/20  dce       Modified to calculate opponent contrast params
 %   11/15/20  dce       Added option to restrict parameters and use ref 
 %                       spectrum.
+%   02/25/21  dce       Added option to give different scale factors for
+%                       different test wavelengths
 
 % Example:
 %   sampleRayleighMatchSeries('test100',20,670,560,570:5:640,...
 %   [0 0 1 1 0 1 1], 0.02,'noise', [0 0.01 0.02 0.04])
  
-% Pause if there are any errors - helps with debugging
-dbstop if error;
-
 % Input parsing
 p = inputParser;
 p.addParameter('fieldSize',2,@(x)(isnumeric(x)));
@@ -154,7 +162,7 @@ p.addParameter('baseConeParams',zeros(1,8),@(x)(isnumeric(x)));
 p.addParameter('opponentParams',[40.3908 205.7353 62.9590 1.0000],@(x)(isvector(x)));
 p.addParameter('p1Scale',1,@(x)(isnumeric(x)));
 p.addParameter('p2Scale',0.02,@(x)(isnumeric(x)));
-p.addParameter('testScale',0.5,@(x)(isnumeric(x)));
+p.addParameter('testScale',0.1,@(x)(isnumeric(x)));
 p.addParameter('adjustmentLength',3201,@(x)(isnumeric(x)));
 p.addParameter('nObserverMatches',1,@(x)(isnumeric(x)));
 p.addParameter('nReversals',[1 4],@(x)(isnumeric(x)));
@@ -178,6 +186,13 @@ p.parse(varargin{:});
 if isempty(p.Results.testingParamToVary2) ~= isempty(p.Results.testingValsToVary2)
     error('If a second variable parameter is specified, its values must also be specified');
 end
+
+% Check that scale factors have been entered correctly
+if length(p.Results.p1Scale)~=length(test) ||...
+        length(p.Results.p2Scale)~=length(test) ||...
+        length(p.Results.testScale)~=length(test)
+    error('Scale factor vectors must include the same number of elements as the number of reference wavelengths');
+end 
 
 % Set up directory for saving results
 outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
