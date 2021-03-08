@@ -94,13 +94,14 @@ for kk = 1:length(matchFiles)
     end
     
     % Loop through matches within the file; display and measure each one
-    for i = 1:numMatches
+    [nMatches, ~] = size(theData.matchPositions);
+    for i = 1:nMatches
         % Display primary on OL, measure with radiometer
         ol.setMirrors(squeeze(theData.primaryStartStops(theData.matchPositions(i,2),1,:))',...
             squeeze(theData.primaryStartStops(theData.matchPositions(i,2),2,:))');
         pause(0.1);
         primaryMeas = spectroRadiometerOBJ.measure;
-        measuredPrimarySpds = [measuredPrimarySpds, primaryMeas];
+        measuredPrimarySpds = [measuredPrimarySpds; primaryMeas];
         save(outputFile, 'measuredTestSpds', 'measuredPrimarySpds', 'measuredWhite');
         
         % Display test on OL, measure with radiometer
@@ -108,7 +109,7 @@ for kk = 1:length(matchFiles)
             squeeze(theData.testStartStops(theData.matchPositions(i,1),2,:))');
         pause(0.1);
         testMeas = spectroRadiometerOBJ.measure;
-        measuredTestSpds = [measuredTestSpds, testMeas];
+        measuredTestSpds = [measuredTestSpds; testMeas];
         save(outputFile, 'measuredTestSpds', 'measuredPrimarySpds', 'measuredWhite');
         fprintf('File %g, match %g complete\n', kk,i);
     end
