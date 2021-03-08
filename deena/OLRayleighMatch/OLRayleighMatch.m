@@ -535,7 +535,11 @@ while(stillLooping)
             
         else   % Forced choice case
             % Prompt for R/G decision
-            Speak('Redder or Greener?');
+            if rev
+                Speak('Second Redness?');
+            else
+                Speak('First Redness?');
+            end
             while(waitingForResponse)
                 key = gamePad.getKeyEvent();
                 if (~isempty(key))
@@ -548,6 +552,7 @@ while(stillLooping)
                             waitingForResponse = false;
                         case 'GP:A' % Force quit
                             quit = true;
+                            waitingForResponse = false;
                         otherwise
                             Speak('Invalid key');
                     end
@@ -555,8 +560,29 @@ while(stillLooping)
             end
             pause(lInterval);
             
+            % Show lights again
+            if rev
+                ol.setMirrors(squeeze(testStartStops(tI,1,:))',...
+                    squeeze(testStartStops(tI,2,:))');
+                pause(sInterval);
+                ol.setMirrors(squeeze(primaryStartStops(pI,1,:))',...
+                    squeeze(primaryStartStops(pI,2,:))');
+            else
+                ol.setMirrors(squeeze(primaryStartStops(pI,1,:))',...
+                    squeeze(primaryStartStops(pI,2,:))');
+                pause(sInterval);
+                ol.setMirrors(squeeze(testStartStops(tI,1,:))',...
+                    squeeze(testStartStops(tI,2,:))');
+            end
+            pause(sInterval);
+            ol.setAll(false);
+            
             % Prompt for ref decision
-            Speak('Brighter or Darker?');
+            if rev
+                Speak('First Brightness?');
+            else
+                Speak('Second Brightness?');
+            end
             waitingForResponse = true;
             while(waitingForResponse)
                 key = gamePad.getKeyEvent();
@@ -570,6 +596,7 @@ while(stillLooping)
                             waitingForResponse = false;
                         case 'GP:A'  % Force quit 
                             quit = true;
+                            waitingForResponse = false;
                         otherwise
                             Speak('Invalid key');
                     end
