@@ -717,6 +717,7 @@ while(stillLooping)
         % Calculate match. If this is an adjustment match, simply provide
         % the subject setting. For a forced-choice match, average the last
         % nReversals(2) light settings.
+        nMatchesMade = nMatchesMade + 1;
         if ~adjustment
             % Number of settings values to adjust
             [nSettings,~] = size(subjectSettings);

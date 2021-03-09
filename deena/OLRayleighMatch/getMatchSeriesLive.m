@@ -97,6 +97,7 @@ p.addParameter('nReversals',[1 4],@(x)(isnumeric(x)));
 p.addParameter('rayleighPlots',true,@(x)(islogical(x)));
 p.addParameter('stimLimits',[],@(x)(isnumeric(x)));
 p.addParameter('resetAnnulus',false,@(x)(islogical(x)));
+p.addParameter('adjustment',false,@(x)(islogical(x)));
 p.parse(varargin{:});
 
 age = p.Results.age;
@@ -106,6 +107,7 @@ p1Scale = p.Results.p1Scale;
 p2Scale = p.Results.p2Scale;
 testScale = p.Results.testScale;
 adjustmentLength = p.Results.adjustmentLength;
+adjustment = p.Results.adjustment;
 
 % Check that appropriate parameter limits have been entered
 if ~isempty(p.Results.stimLimits)
@@ -171,15 +173,15 @@ for i = 1:nCombos
     end
     
     % Run test
-    OLRayleighMatch([subjID '_' num2str(sessionNum)],i,'simObserver',false,'foveal',...
-        (p.Results.fieldSize<=2),'p1',lightCombosFull(i,1),'p2',...
+    OLRayleighMatch([subjID '_' num2str(sessionNum)],i,'simObserver',false,'fieldSize',...
+        p.Results.fieldSize,'p1',lightCombosFull(i,1),'p2',...
         lightCombosFull(i,2),'test',lightCombosFull(i,3),'age',p.Results.age,...
         'nObserverMatches',1,'nReversals',p.Results.nReversals,'p2Scale',...
         lightScaleFactors(i,2),'testScale',lightScaleFactors(i,3),'p1Scale',...
         lightScaleFactors(i,1),'plotResponses',p.Results.rayleighPlots,...
         'adjustmentLength',p.Results.adjustmentLength,'opponentParams',...
         p.Results.opponentParams,'stimLimits',trialStimLimits',...
-        'resetAnnulus',resetAnnulus,'silent',false);
+        'resetAnnulus',resetAnnulus,'silent',false,'adjustment',p.Results.adjustment);
     
     % Extract match position data
     [~,~,testIntensities(i),primaryRatios(i)] =...
@@ -189,7 +191,7 @@ for i = 1:nCombos
     % Save data
     save(outputFile,'fNames','testIntensities','primaryRatios','lightCombosFull',...
         'age','fieldSize','opponentParams','p1Scale','p2Scale','testScale',...
-        'adjustmentLength',p.Results.adjustmentLength);
+        'adjustmentLength');
 end
 
 % Close up 
