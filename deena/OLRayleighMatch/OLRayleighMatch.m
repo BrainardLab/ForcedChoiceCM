@@ -12,24 +12,25 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %    Default wavelengths are 600 for test, 670 for p1, and 560 for
 %    p2, but these can also be entered by the user as key/value pairs.
 %
-%    Subjects can use the game pad's directional pad to adjust the
-%    intensity of the test light and the ratio of the two primaries to try
-%    and get the two fields to match:
-%       right moves the primary ratio towards p1 and left towards p2
-%       up increases the test intensity and down decreases the test intensity.
+%    The live experiment can be ran in two ways: "adjustment" or "forced
+%    choice." Under the forced choice approach, subjects are prompted to
+%    adjust the primary ratio and the test light intensity using the game
+%    pad's directional pad (right moves the primary ratio towards p1 and 
+%    left towards p2, up increases the test intensity and down decreases 
+%    the test intensity.) However, the program determines when to change
+%    the step size and when to declare a match. The forced-choice matches
+%    are an average of the last six settings. 
 %
-%    The subject can also use the top 'Y' button to toggle step size, the
-%    right 'B' button to record a match, the left 'X' button to change the
-%    order that primary and test lights are displayed, the bottom 'A'
-%    button to quit, and the 'Back' button to display an ideal match
-%    (based on measured data).
+%    In the "adjustment" procedure, the subject can use the top 'Y' button 
+%    to toggle primary step size, the left 'X' button to toggle test step 
+%    size, the right 'B' button to record a match, the 'Back' button to
+%    show the ideal match, and tktk for switching light order. In both
+%    procedures, the bottom 'A' button can be used to force quit. 
 %
-%    In addition to the experimental program, two simulation options are
-%    available. The first option lets the experimenter use keypresses to
-%    recreate subjects' button presses. The second option creates a
-%    simulated observer based on the Asano model and searches for the
-%    best match for this observer. When this option is used, the experimenter
-%    can choose between two decision rules - a "forced choice" procedure that
+%    In addition to the live experiment, the program can run a simulation 
+%    by creating a simulated observer based on the Asano model and searing 
+%    for the best match for this observer. The experimenter can choose 
+%    between two decision rules - a "forced choice" procedure that
 %    records a match based on the number of reversals, and an "adjustment"
 %    procedure that records a match if the two lights meet a similarity
 %    threshold.
@@ -40,9 +41,8 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %
 % Outputs:
 %    Saves a .mat file titled by subject and session number, which includes
-%    a record of subjects' matches and various experimental parameters. The
-%    file is saved after each match and is only saved if the subject makes
-%    at least one match.
+%    a record of subjects' matches and various experimental parameters. 
+%    There is also a setting to save figures as well.
 %
 % Optional key-value pairs:
 %    'p1'             - integer wavelength of the first primary light in
@@ -57,10 +57,9 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %                       light, between 0 and 1. Default is 0.02.
 %    'testScale'      - Numerical scale factor for the test light, between
 %                       0 and 1. Default is 0.1.
-%    'sInterval'      - length of time in s that the short stimulus is
+%    'sInterval'      - length of time in s that each light is
 %                       displayed for. Default is 0.5.
-%    'lInterval'      - length of time in s that the long stimulus is
-%                       displayed for. Default is 1.
+%    'lInterval'      - length of time in s between lights. Default is 1.
 %    'foveal'         - logical indicating whether we are making foveal
 %                       matches, in which case the annulus is not turned
 %                       on. Default is true.
@@ -70,6 +69,8 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %    'plotResponses'  - Logical indicating to make plots of the
 %                       experimental timecourse and print output. Default
 %                       is true.
+%    'savePlots'      - Logical indicating to save figures. Default is
+%                       true.
 %    'silent'         - logical. Set to true to turn off feedback beeps.
 %                       Default is true.
 %    'simObserver'    - logical. Set to true to run with a simulated
@@ -105,7 +106,7 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %                             1.
 %    'adjustmentLength'     - Number of possible steps available for
 %                             adjusting the primary and test lights.
-%                             Default is 3201.
+%                             Default is 201.
 %    'simNominalLights'     - Logical indicating to run the simulation with
 %                             nominal, rather than predicted, spds. Default
 %                             is false.
@@ -157,6 +158,12 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %   10/28/20  dce       Added monochromatic simulation matching
 %   11/15/20  dce       Added optional stimulus limits, reference light
 %   02/05/20  dce       Fixed charcode system for using real OneLight
+%   03/07/20  dce       Restructured to incorporate a forced-choice
+%                       procedure and make judgements for both lights on
+%                       each trial
+%   03/08/20  dce       Added flicker back in while waiting for subject
+%                       decisions
+
 
 %% Close any stray figures
 close all;
@@ -169,13 +176,14 @@ p.addParameter('test',600,@(x)(isnumeric(x)));
 p.addParameter('p1Scale',1,@(x)(isnumeric(x)));
 p.addParameter('p2Scale',0.02,@(x)(isnumeric(x)));
 p.addParameter('testScale',0.1,@(x)(isnumeric(x)));
-p.addParameter('adjustmentLength',3201,@(x)(isnumeric(x)));
+p.addParameter('adjustmentLength',201,@(x)(isnumeric(x)));
 p.addParameter('sInterval',0.5,@(x)(isnumeric(x)));
 p.addParameter('lInterval',1,@(x)(isnumeric(x)));
 p.addParameter('foveal',true,@(x)(islogical(x)));
 p.addParameter('age',32,@(x)(isnumeric(x)));
 p.addParameter('resetAnnulus',false,@(x)(islogical(x)));
 p.addParameter('plotResponses',true,@(x) (islogical(x)));
+p.addParameter('savePlots',true,@(x) (islogical(x)));
 p.addParameter('silent',true,@(x)(islogical(x)));
 p.addParameter('simObserver',true,@(x)(islogical(x)));
 p.addParameter('observerParams',zeros(1,8),@(x)(isnumeric(x)));
@@ -216,6 +224,7 @@ nBelowThreshold = p.Results.nBelowThreshold;
 thresholdScaleFactor = p.Results.thresholdScaleFactor;
 noiseScaleFactor = p.Results.noiseScaleFactor;
 plotResponses = p.Results.plotResponses;
+savePlots = p.Results.savePlots;
 simNominalLights = p.Results.simNominalLights;
 monochromatic = p.Results.monochromatic;
 monochromaticS = p.Results.monochromaticS;
@@ -318,9 +327,9 @@ if ~isempty(stimLimits)
         [~,maxInd] = min(abs(p1Scales - stimLimits(2)));
         allowedLambdaInds = unique([minInd-1,minInd,maxInd,maxInd+1]);
     end
-    if isempty(allowedTIInds) || length(allowedTIInds) <3
+    if isempty(allowedTIInds) || length(allowedTIInds) <4
         [~,minInd] = min(abs(testScales - stimLimits(3)));
-        [~,maxInd] = min(abs(p1Scales - stimLimits(4)));
+        [~,maxInd] = min(abs(testScales - stimLimits(4)));
         allowedTIInds = unique([minInd-1,minInd,maxInd,maxInd+1]);
     end
 end
@@ -355,19 +364,12 @@ if ~isempty(lambdaRef)
 end
 
 %% Find nominal match
-% Compute the nominal match
-idealForStandardObs = false;
-if idealForStandardObs
-    [idealTestSpd,idealPrimarySpd,tIdealIndex,pIdealIndex] =...
-        searchPredictedRayleighmatch(testSpds,primarySpds,stdObs,'refSpd',refSpd);
-else
-    [idealTestSpd,idealPrimarySpd,tIdealIndex,pIdealIndex] =...
-        searchPredictedRayleighMatch(testSpds,primarySpds,observer,'refSpd',refSpd);
-end
+[idealTestSpd,idealPrimarySpd,tIdealIndex,pIdealIndex] =...
+    searchPredictedRayleighMatch(testSpds,primarySpds,observer,'refSpd',refSpd);
 idealTestIntensity = testScales(tIdealIndex);
 idealPRatio = p1Scales(pIdealIndex);
 
-%% Intialize OneLight and button box/keypresses
+%% Intialize OneLight and button box
 if ~simObserver
     ol = OneLight();
     gamePad = GamePad();
@@ -401,27 +403,26 @@ stepModes = stepModes(stepModes ~= 0);
 
 % Initial display settings
 primaryPos = allowedLambdaInds(1); % Start with first allowed position in primary array
-if monochromatic && primaryPos==1
-    primaryPos = 2;
+testPos = allowedTIInds(1);
+if monochromatic 
+    primaryPos = max(primaryPos,2);
+    testPos = max(testPos,2);
 end
-testPos = allowedTIInds(1);        % Start with first allowed position in test array
-if monochromatic && testPos==1
-    testPos = 2;
-end
+
 p1_up_prev = true;    % Indicate that the program directed p1 and t to
 t_up_prev = true;     % increase on prior trials.
 
 nReversalsP = 0;      % Initially, have made 0 reversals for each
 nReversalsT = 0;      % adjustment
 
-pStepModePos = 1;            % Start with the largest step sizes
+pStepModePos = 1;     % Start with the largest step sizes
 tStepModePos = 1;
 
 countBelowThreshold = 0;    % Count pairs below match threshold
 rev = false;                % Start with forward, not reverse order
 ideal = false;              % Do not start with the ideal match
-stillLooping = true;        % Start looping
 firstAdjustment = true;     % This is the first adjustment of the match
+stillLooping = true;        % Start looping
 
 % Data-storing arrays
 matches = [];               % Output array with subject matches
@@ -435,8 +436,6 @@ if plotResponses
 end
 
 %% Display loop
-% Loop through primary and test light until the user presses a key or the
-% simulated observer decides to simulate a keypress
 while(stillLooping)
     % Reset loop control parameters
     match = false;
@@ -456,79 +455,74 @@ while(stillLooping)
         pI = primaryPos;
         tI = testPos;
     end
+    starts = {squeeze(primaryStartStops(pI,1,:))', squeeze(testStartStops(tI,1,:))'};
+    stops = {{squeeze(primaryStartStops(pI,2,:))', squeeze(testStartStops(tI,2,:))'};
     
     % In a forced-choice live experiment, we show the specified lights then
     % pause for a decision period. In a simulated experiment, we prompt the
     % simulated observer for a decision.
     if ~simObserver
-        % Display the two lights, then go to a dark screen
-        if rev
-            ol.setMirrors(squeeze(testStartStops(tI,1,:))',...
-                squeeze(testStartStops(tI,2,:))');
-            pause(sInterval);
-            ol.setMirrors(squeeze(primaryStartStops(pI,1,:))',...
-                squeeze(primaryStartStops(pI,2,:))');
-        else
-            ol.setMirrors(squeeze(primaryStartStops(pI,1,:))',...
-                squeeze(primaryStartStops(pI,2,:))');
-            pause(sInterval);
-            ol.setMirrors(squeeze(testStartStops(tI,1,:))',...
-                squeeze(testStartStops(tI,2,:))');
-        end
-        pause(sInterval);
-        ol.setAll(false);
+        showLightPair(ol, testStartStops,primaryStartStops,pI,tI,...
+            sInterval,rev);
         
         % Get the observer decision. If using the forced-choice method, we
         % get one R/G and one brightness decision. If using the adjustment
         % method, we wait for the first keypress.
         waitingForResponse = true;
+        loopCounter = 1;
         if adjustment
             while(waitingForResponse)
-                key = gamePad.getKeyEvent();
-                if (~isempty(key))
-                    switch(key.charCode)
-                        case 'GP:Y'
-                            switchPStepSize = true;
-                        case 'GP:X'
-                            switchTStepSize = true;
-                        case 'GP:B'
-                            match = true;
-                        case 'GP:A'
-                            quit = true;
-                        case 'GP:Back'
-                            ideal = ~ideal;
-                            if ~silent
-                                Snd('Play',sin(0:5000));
-                            end
-                            if plotResponses
-                                if ideal
-                                    fprintf('User switched to ideal match\n');
-                                else
-                                    fprintf('User switched off ideal match\n');
+                nowTime = mglGetSecs;
+                loopCounter = loopCounter+1;
+                while(nowTime < nowTime+sInterval)  % Flicker while waiting for response 
+                    ol.setMirrors(starts{mod(loopCounter,2)+1},stops{mod(loopCounter,2)+1});
+                    key = gamePad.getKeyEvent();
+                    if (~isempty(key))
+                        switch(key.charCode)
+                            case 'GP:Y'
+                                switchPStepSize = true;
+                            case 'GP:X'
+                                switchTStepSize = true;
+                            case 'GP:B'
+                                match = true;
+                            case 'GP:A'
+                                quit = true;
+                            case 'GP:Back'
+                                ideal = ~ideal;
+                                if ~silent
+                                    Snd('Play',sin(0:5000));
                                 end
-                            end
-                        case 'GP:Back'  % Change to another key
-                            rev = ~rev;
-                            if ~silent
-                                % One beep = primary first, two beeps = test first
-                                Snd('Play',sin(0:5000)/ 20);
-                                if rev
+                                if plotResponses
+                                    if ideal
+                                        fprintf('User switched to ideal match\n');
+                                    else
+                                        fprintf('User switched off ideal match\n');
+                                    end
+                                end
+                            case 'GP:Back'  % Change to another key
+                                rev = ~rev;
+                                if ~silent
+                                    % One beep = primary first, two beeps = test first
                                     Snd('Play',sin(0:5000)/ 20);
+                                    if rev
+                                        Snd('Play',sin(0:5000)/ 20);
+                                    end
                                 end
-                            end
-                            if plotResponses
-                                fprintf('User switched order of primary and test lights\n');
-                            end
-                        case 'GP:North'
-                            t_up = true;
-                        case 'GP:South'
-                            t_down = true;
-                        case 'GP:East'
-                            p1_up = true;
-                        case 'GP:West'
-                            p1_down = true;
+                                if plotResponses
+                                    fprintf('User switched order of primary and test lights\n');
+                                end
+                            case 'GP:North'
+                                t_up = true;
+                            case 'GP:South'
+                                t_down = true;
+                            case 'GP:East'
+                                p1_up = true;
+                            case 'GP:West'
+                                p1_down = true;
+                        end
+                        waitingForResponse = false;
+                        break;
                     end
-                    waitingForResponse = false;
                 end
             end
             pause(lInterval);
@@ -541,41 +535,36 @@ while(stillLooping)
                 Speak('First Redness?');
             end
             while(waitingForResponse)
-                key = gamePad.getKeyEvent();
-                if (~isempty(key))
-                    switch(key.charCode)
-                        case 'GP:East'
-                            p1_up = true;
-                            waitingForResponse = false;
-                        case 'GP:West'
-                            p1_down = true;
-                            waitingForResponse = false;
-                        case 'GP:A' % Force quit
-                            quit = true;
-                            waitingForResponse = false;
-                        otherwise
-                            Speak('Invalid key');
+                nowTime = mglGetSecs;
+                loopCounter = loopCounter+1;
+                while(nowTime < nowTime+sInterval)  % Flicker while waiting for response
+                    ol.setMirrors(starts{mod(loopCounter,2)+1},stops{mod(loopCounter,2)+1});
+                    key = gamePad.getKeyEvent();
+                    if (~isempty(key))
+                        switch(key.charCode)
+                            case 'GP:East'
+                                p1_up = true;
+                                waitingForResponse = false;
+                                break;
+                            case 'GP:West'
+                                p1_down = true;
+                                waitingForResponse = false;
+                                break;
+                            case 'GP:A' % Force quit
+                                quit = true;
+                                waitingForResponse = false;
+                                break;
+                            otherwise
+                                Speak('Invalid key');
+                        end
                     end
                 end
             end
             pause(lInterval);
             
             % Show lights again
-            if rev
-                ol.setMirrors(squeeze(testStartStops(tI,1,:))',...
-                    squeeze(testStartStops(tI,2,:))');
-                pause(sInterval);
-                ol.setMirrors(squeeze(primaryStartStops(pI,1,:))',...
-                    squeeze(primaryStartStops(pI,2,:))');
-            else
-                ol.setMirrors(squeeze(primaryStartStops(pI,1,:))',...
-                    squeeze(primaryStartStops(pI,2,:))');
-                pause(sInterval);
-                ol.setMirrors(squeeze(testStartStops(tI,1,:))',...
-                    squeeze(testStartStops(tI,2,:))');
-            end
-            pause(sInterval);
-            ol.setAll(false);
+            showLightPair(ol, testStartStops,primaryStartStops,pI,tI,...
+                sInterval,rev)
             
             % Prompt for ref decision
             if rev
@@ -584,26 +573,36 @@ while(stillLooping)
                 Speak('Second Brightness?');
             end
             waitingForResponse = true;
+            loopCounter = 1;
             while(waitingForResponse)
-                key = gamePad.getKeyEvent();
-                if (~isempty(key))
-                    switch(key.charCode)
-                        case 'GP:North'
-                            t_up = true;
-                            waitingForResponse = false;
-                        case 'GP:South'
-                            t_down = true;
-                            waitingForResponse = false;
-                        case 'GP:A'  % Force quit 
-                            quit = true;
-                            waitingForResponse = false;
-                        otherwise
-                            Speak('Invalid key');
+                nowTime = mglGetSecs;
+                loopCounter = loopCounter+1;
+                while(nowTime < nowTime+sInterval)  % Flicker while waiting for response
+                    ol.setMirrors(starts{mod(loopCounter,2)+1},stops{mod(loopCounter,2)+1});
+                    key = gamePad.getKeyEvent();
+                    if (~isempty(key))
+                        switch(key.charCode)
+                            case 'GP:North'
+                                t_up = true;
+                                waitingForResponse = false;
+                                break;
+                            case 'GP:South'
+                                t_down = true;
+                                waitingForResponse = false;
+                                break;
+                            case 'GP:A'  % Force quit
+                                quit = true;
+                                waitingForResponse = false;
+                                break;
+                            otherwise
+                                Speak('Invalid key');
+                        end
                     end
                 end
             end
             pause(lInterval);
         end
+        
     else  % Prompt simulated observer for decisions
         [pJudge,tJudge,isBelowThreshold] = ...
             observerRayleighDecision(observer,primarySpds(:,primaryPos),...
@@ -620,9 +619,7 @@ while(stillLooping)
             t_down = true;
         end
         
-        %  A couple simulation - specific methods
-        % If we are making threshold matches, record whether this
-        % combination of lights is below the threshold
+        %  A couple methods specific for simulation with adjustment method.
         if adjustment && isBelowThreshold
             countBelowThreshold = countBelowThreshold+1;
             if plotResponses
@@ -640,7 +637,7 @@ while(stillLooping)
     % Make new plots if it's the start of a match
     if plotResponses && firstAdjustment
         % Plot with primary and test settings separately
-        figure(nPlots);
+        plot1 = figure(nPlots);
         title1 = sprintf('Subject Settings Over Time, Match %g',ceil(nPlots/2));
         %             sgtitle(title1);
         subplot(2,1,1);
@@ -657,7 +654,7 @@ while(stillLooping)
         ylabel('Proportion of Maximal Intensity');
         
         % Plot with both trajectories in tandem
-        figure(nPlots+1);
+        plot2 = figure(nPlots+1);
         hold on;
         xlim([0 1]);
         ylim([0 1]);
@@ -680,8 +677,6 @@ while(stillLooping)
                 && (nReversalsP >= nReversals(2))...
                 && (nReversalsT >= nReversals(2)))
             match = true;
-            p1_up_prev = logical(round(rand()));
-            t_up_prev = logical(round(rand()));
             nReversalsP = 0;
             nReversalsT = 0;
             countBelowThreshold = 0;
@@ -701,7 +696,7 @@ while(stillLooping)
         end
         p1_up_prev = p1_up;
         
-        % Check if reference step size needs to be adjusted
+        % Check if test step size needs to be adjusted
         if ((t_up && ~t_up_prev) || (t_down && t_up_prev)) && ~firstAdjustment% Reversal 
             nReversalsT = nReversalsT+1; % Count the reversal
             if nReversalsT == nReversals(1) && tStepModePos ~= length(stepModes) % Lower step size
@@ -717,6 +712,7 @@ while(stillLooping)
     end 
           
     % ******** Process the keypresses *************
+    [nMatchesMade,~] = size(matches);
     % Match
     if match
         if ~silent
@@ -777,6 +773,12 @@ while(stillLooping)
             legend([p3 p4],'Subject Match','Nominal Match');
             
             % Prepare for next match
+            if savePlots
+                NicePlot.exportFigToPDF(fullfile(outputDir,...
+                    [subjID '_' num2str(nMatchesMade) '_plot']),plot1,300);
+                NicePlot.exportFigToPDF(fullfile(outputDir,....
+                    [subjID '_' num2str(nMatchesMade) '_jointPlot']),plot2,300);
+            end 
             nPlots = nPlots+2;
             matchSettingInd = length(subjectSettings(:,1))+1;
         end
@@ -788,20 +790,15 @@ while(stillLooping)
         primaryPos = randsample(allowedLambdaInds,1);
         testPos = randsample(allowedTIInds,1);
         if monochromatic 
-            if primaryPos==1
-                primaryPos = 2;
-            end
-            if testPos==1
-                testPos = 2;
-            end
+            primaryPos = max(primaryPos,2);
+            testPos = max(testPos,2);
         end
         subjectSettings = [subjectSettings;...
             [testScales(testPos),p1Scales(primaryPos)]];
     end
     
     % Quit
-    [row,~] = size(matches);
-    if row == nObserverMatches    % Check if all matches have been made
+    if nMatchesMade == nObserverMatches    % Check if all matches have been made
         quit = true;
     end
     if quit
@@ -825,9 +822,8 @@ while(stillLooping)
             'nBelowThreshold','simObserver',...
             'p1Scales','testScales','observerParams',...
             'opponentParams','nObserverMatches','pIdealIndex',...
-            'tIdealIndex','idealForStandardObs','idealTestSpd',...
-            'idealPrimarySpd','idealTestIntensity','idealPRatio',...
-            'monochromatic','S');
+            'tIdealIndex','idealTestSpd','idealPrimarySpd',....
+            'idealTestIntensity','idealPRatio','monochromatic','S');
         stillLooping = false;
     end
     
@@ -879,7 +875,7 @@ while(stillLooping)
         firstAdjustment = false;
     end
     
-    % Ref up
+    % test up
     if t_up
         testPos = testPos+stepModes(tStepModePos);
         if testPos > allowedTIInds(end)
@@ -903,7 +899,7 @@ while(stillLooping)
         firstAdjustment = false;
     end
     
-    % Ref down
+    % test down
     if t_down
         testPos = testPos-stepModes(tStepModePos);
         if testPos < allowedTIInds(1)
@@ -946,7 +942,7 @@ while(stillLooping)
         end
     end
     
-    % Switch ref step size
+    % Switch test step size
     if switchTStepSize
         tStepModePos = tStepModePos+1;
         nReversalsT = 0;
@@ -990,3 +986,23 @@ if plotResponses && simObserver
     close(figure(nPlots),figure(nPlots+1));
 end
 end
+
+% Helper function for displaying a pair of lights
+function showLightPair(ol, testStartStops,primaryStartStops,pI,tI,...
+    sInterval,rev)
+if rev
+    ol.setMirrors(squeeze(testStartStops(tI,1,:))',...
+        squeeze(testStartStops(tI,2,:))');
+    pause(sInterval);
+    ol.setMirrors(squeeze(primaryStartStops(pI,1,:))',...
+        squeeze(primaryStartStops(pI,2,:))');
+else
+    ol.setMirrors(squeeze(primaryStartStops(pI,1,:))',...
+        squeeze(primaryStartStops(pI,2,:))');
+    pause(sInterval);
+    ol.setMirrors(squeeze(testStartStops(tI,1,:))',...
+        squeeze(testStartStops(tI,2,:))');
+end
+pause(sInterval);
+ol.setAll(false);
+end 
