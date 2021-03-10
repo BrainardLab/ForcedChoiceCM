@@ -65,8 +65,8 @@ function [fNames,testIntensities,primaryRatios] = ...
 %                         intermediate step sizes, the second is the number
 %                         needed for the smallest step size. Default is
 %                         [1 4].
-%    'rayleighPlots'     -Logical indicating to make OLRayleighMatch plots.
-%                         Default is true.
+%    'rayleighPlots'     -Logical indicating to make (and save) 
+%                         OLRayleighMatch plots.Default is true.
 %    'stimLimits'        -length(testWls) x 5 matrix for storing limits on
 %                         observer parameters. Each row represents a given
 %                         test wavelength and the limits which are associated
@@ -76,12 +76,15 @@ function [fNames,testIntensities,primaryRatios] = ...
 %    'resetAnnulus'      -logical indicating to run a script that lets the
 %                         experimenter reset the annulus before the first
 %                         trial. Default is false.
+%    'resetAnnulus'      -Logical. When true, uses the adjustment method
+%                         rather than forced choice. Default is false.
 % History:
 %   02/10/21   dce   - Wrote it, adapted from getMatchSeries and
 %                      sampleRayleighMatchSeries
 %   02/13/21   dce   - Edited output
 %   02/25/21   dce   - Added option to have varying scale factors for
 %                      different test wavelengths
+%   03/09/21   dce   - Edited input to reflect changes in OLRayleighMatch
 
 % Input parsing
 p = inputParser;
@@ -179,7 +182,8 @@ for i = 1:nCombos
         'nObserverMatches',1,'nReversals',p.Results.nReversals,'p2Scale',...
         lightScaleFactors(i,2),'testScale',lightScaleFactors(i,3),'p1Scale',...
         lightScaleFactors(i,1),'plotResponses',p.Results.rayleighPlots,...
-        'adjustmentLength',p.Results.adjustmentLength,'opponentParams',...
+        'savePlots',p.Results.rayleighPlots,'adjustmentLength',...
+        p.Results.adjustmentLength,'opponentParams',...
         p.Results.opponentParams,'stimLimits',trialStimLimits',...
         'resetAnnulus',resetAnnulus,'silent',false,'adjustment',p.Results.adjustment);
     
@@ -191,7 +195,7 @@ for i = 1:nCombos
     % Save data
     save(outputFile,'fNames','testIntensities','primaryRatios','lightCombosFull',...
         'age','fieldSize','opponentParams','p1Scale','p2Scale','testScale',...
-        'adjustmentLength');
+        'adjustmentLength','adjustment','nObserverMatches');
 end
 
 % Close up 

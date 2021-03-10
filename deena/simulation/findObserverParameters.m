@@ -135,7 +135,7 @@ if p.Results.dmac0
 end
 
 % Constrain L and M optical density variation to 0 
-if p.Results.dmac0
+if p.Results.dLM0
     lb(3) = p.Results.initialConeParams(3);
     ub(3) = p.Results.initialConeParams(3);
     lb(4) = p.Results.initialConeParams(4);

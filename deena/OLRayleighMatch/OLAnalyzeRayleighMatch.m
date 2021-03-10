@@ -199,6 +199,38 @@ stdObs = genRayleighObserver('age',sessionData.age,'fieldSize',...
     sessionData.fieldSize,'opponentParams',sessionData.opponentParams,...
     'coneVec',zeros(1,8));
 
+%% Make a cone excitations bar graph
+for i = 1:nMatchWls
+    primaryRes = estObs.T_cones*meanPrimarySpds(:,i);
+    refRes = estObs.T_cones*meanRefSpds(:,i);
+    primaryResStd = stdObs.T_cones*meanPrimarySpds(:,i);
+    refResStd = stdObs.T_cones*meanRefSpds(:,i);
+    
+    figure();
+    hold on;
+    subplot(2,1,1);   % L cone excitations
+    bar([primaryRes(1),refRes(1); primaryResStd(1),refResStd(1)]);
+    title('L Cone Excitations');
+    legend('Primary Light','Reference Light');
+    ylim([0 0.03]);
+    names ={'Fitted Observer','Standard Observer'};
+    set(gca,'xticklabel', names)
+    ylabel('Relative Response Intensity');
+  
+    subplot(2,1,2);   % M cone excitations  
+    bar([primaryRes(2),refRes(2);primaryResStd(2),refResStd(2)]);
+    title('M Cone Excitations');
+    legend('Primary Light','Reference Light');
+    ylim([0 0.03]);
+    
+    names ={'Fitted Observer','Standard Observer'};
+    set(gca,'xticklabel', names)
+    ylabel('Relative Response Intensity');
+    
+    theTitle = sprintf('Cone Excitations for Fitted Observers, ref = %g',matchWls(i,3));
+    sgtitle(theTitle);
+end 
+
 %% Make summary Pitt diagram
 % Bring points to a common scaling
 commonP1ScaleFactors = p1Scales/max(p1Scales);
@@ -245,7 +277,7 @@ for i = 1:length(primaryRatios)
     nominalRefIntensitiesStd = [nominalRefIntensitiesStd,lightSettings.testScales(rIndexStd)];
 end
 
-pittPlot = figure(1);
+pittPlot = figure();
 hold on;
 xlabel('Primary Ratio');
 ylabel('Test Intensity');
@@ -339,7 +371,7 @@ if p.Results.estNoise
     
     % Make a Pitt plot at an intermediate noise level 
     plotNoiseSd = 3;
-    simPittPlot = figure(2);
+    simPittPlot = figure();
     hold on;
     xlabel('Primary Ratio');
     ylabel('Test Intensity');
