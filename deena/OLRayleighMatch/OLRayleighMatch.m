@@ -772,9 +772,11 @@ while(stillLooping)
             % Prepare for next match
             if savePlots
                 NicePlot.exportFigToPDF(fullfile(outputDir,...
-                    [subjectID '_' num2str(nMatchesMade) '_plot']),plot1,300);
+                    [subjectID  '_' num2str(sessionNum) '_'...
+                    num2str(nMatchesMade) '_plot']),plot1,300);
                 NicePlot.exportFigToPDF(fullfile(outputDir,....
-                    [subjectID '_' num2str(nMatchesMade) '_jointPlot']),plot2,300);
+                    [subjectID '_' num2str(sessionNum)...
+                    '_' num2str(nMatchesMade) '_jointPlot']),plot2,300);
             end
             nPlots = nPlots+2;
             matchSettingInd = length(subjectSettings(:,1))+1;

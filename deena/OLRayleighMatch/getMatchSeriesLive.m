@@ -111,6 +111,7 @@ p2Scale = p.Results.p2Scale;
 testScale = p.Results.testScale;
 adjustmentLength = p.Results.adjustmentLength;
 adjustment = p.Results.adjustment;
+nObserverMatches = p.Results.nObserverMatches;
 
 % Check that appropriate parameter limits have been entered
 if ~isempty(p.Results.stimLimits)
@@ -197,8 +198,4 @@ for i = 1:nCombos
         'age','fieldSize','opponentParams','p1Scale','p2Scale','testScale',...
         'adjustmentLength','adjustment','nObserverMatches');
 end
-
-% Close up 
-ol = OneLight();
-ol.shutdown();
 end

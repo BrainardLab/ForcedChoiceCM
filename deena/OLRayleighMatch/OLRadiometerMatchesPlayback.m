@@ -98,19 +98,32 @@ for kk = 1:length(matchFiles)
     [nMatches, ~] = size(theData.matchPositions);
     for i = 1:nMatches
         % Display primary on OL, measure with radiometer
-        ol.setMirrors(squeeze(theData.primaryStartStops(theData.matchPositions(i,2),1,:))',...
-            squeeze(theData.primaryStartStops(theData.matchPositions(i,2),2,:))');
+        
+        ol.setMirrors(squeeze(theData.primaryStartStops(ceil(theData.matchPositions(i,2)),1,:))',...
+            squeeze(theData.primaryStartStops(ceil(theData.matchPositions(i,2)),2,:))');
         pause(0.1);
-        primaryMeas = spectroRadiometerOBJ.measure;
-        measuredPrimarySpds = [measuredPrimarySpds; primaryMeas];
+        primaryMeas1 = spectroRadiometerOBJ.measure;
+        
+        ol.setMirrors(squeeze(theData.primaryStartStops(floor(theData.matchPositions(i,2)),1,:))',...
+            squeeze(theData.primaryStartStops(floor(theData.matchPositions(i,2)),2,:))');
+        pause(0.1);
+        primaryMeas2 = spectroRadiometerOBJ.measure;
+        
+        measuredPrimarySpds = [measuredPrimarySpds; mean([primaryMeas1;primaryMeas2],1)];
         save(outputFile, 'measuredTestSpds', 'measuredPrimarySpds', 'measuredWhite');
         
         % Display test on OL, measure with radiometer
-        ol.setMirrors(squeeze(theData.testStartStops(theData.matchPositions(i,1),1,:))',...
-            squeeze(theData.testStartStops(theData.matchPositions(i,1),2,:))');
+        ol.setMirrors(squeeze(theData.testStartStops(ceil(theData.matchPositions(i,1)),1,:))',...
+            squeeze(theData.testStartStops(ceil(theData.matchPositions(i,1)),2,:))');
         pause(0.1);
-        testMeas = spectroRadiometerOBJ.measure;
-        measuredTestSpds = [measuredTestSpds; testMeas];
+        testMeas1 = spectroRadiometerOBJ.measure;
+        
+        ol.setMirrors(squeeze(theData.testStartStops(floor(theData.matchPositions(i,1)),1,:))',...
+            squeeze(theData.testStartStops(floor(theData.matchPositions(i,1)),2,:))');
+        pause(0.1);
+        testMeas2 = spectroRadiometerOBJ.measure;
+        
+        measuredTestSpds = [measuredTestSpds; mean([testMeas1; testMeas2],1)];
         save(outputFile, 'measuredTestSpds', 'measuredPrimarySpds', 'measuredWhite');
         fprintf('File %g, match %g complete\n', kk,i);
     end
