@@ -76,7 +76,7 @@ function [fNames,testIntensities,primaryRatios] = ...
 %    'resetAnnulus'      -logical indicating to run a script that lets the
 %                         experimenter reset the annulus before the first
 %                         trial. Default is false.
-%    'resetAnnulus'      -Logical. When true, uses the adjustment method
+%    'adjustment'        -Logical. When true, uses the adjustment method
 %                         rather than forced choice. Default is false.
 % History:
 %   02/10/21   dce   - Wrote it, adapted from getMatchSeries and

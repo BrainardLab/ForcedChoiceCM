@@ -202,7 +202,7 @@ p.addParameter('lambdaRef',[],@(x)(isnumeric(x)));
 p.addParameter('stimLimits',[],@(x)(isnumeric(x)));
 p.parse(varargin{:});
 
-p1 = p.Results.p1;
+line5p = p.Results.p1;
 p2 = p.Results.p2;
 test = p.Results.test;
 p1Scale = p.Results.p1Scale;
@@ -269,11 +269,11 @@ calName = [];
 lightFileName = [];
 if ~monochromatic  % Matching using OL primaries
     lightFile = sprintf('OLRayleighMatch%gSpectralSettings_%g_%g_%g_%g_%g_%g.mat',...
-        adjustmentLength,p1,p2,test,p1Scale,p2Scale,testScale);
+        adjustmentLength,line5p,p2,test,p1Scale,p2Scale,testScale);
     lightFileName = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
         'precomputedStartStops',lightFile);
     if ~exist(lightFileName,'file')
-        OLRayleighMatchLightSettings(p1,p2,test,'p1ScaleFactor',p1Scale,...
+        OLRayleighMatchLightSettings(line5p,p2,test,'p1ScaleFactor',p1Scale,...
             'p2ScaleFactor',p2Scale,'testScaleFactor',testScale,...
             'adjustmentLength',adjustmentLength);
     end
@@ -298,7 +298,7 @@ else  % Monochromatic matching
     S = monochromaticS;
     wls = SToWls(S);
     primarySpdsNominal = zeros(length(wls),length(p1Scales));
-    primarySpdsNominal(wls==p1,:) = 1*p1Scale*p1Scales;
+    primarySpdsNominal(wls==line5p,:) = 1*p1Scale*p1Scales;
     primarySpdsNominal(wls==p2,:) = 1*p2Scale*p2Scales;
     primarySpdsPredicted = primarySpdsNominal;
     
@@ -375,7 +375,7 @@ end
 foveal = false;
 if fieldSize <=2
     foveal = true;
-end 
+end
 annulusData = []; % Empty placeholder variable
 % Check if an annulus file exists. If it does, can choose whether to use
 % the existing file or reset the annulus.
@@ -423,11 +423,18 @@ rev = false;                % Start with forward, not reverse order
 ideal = false;              % Do not start with the ideal match
 firstAdjustment = true;     % This is the first adjustment of the match
 stillLooping = true;        % Start looping
+displayLoopCounter = 0;     % Count number of iterations
 
 % Data-storing arrays
 matches = [];               % Output array with subject matches
 matchPositions = [];        % Positions of matches in the adjustment array
 subjectSettings = [testScales(testPos) p1Scales(primaryPos)];
+primaryRes = [];            % Fill with 1's for every "up" trial, 0's for every "down" trial
+testRes = [];               % Fill with 1's for every "up" trial, 0's for every "down" trial
+pRevIndices = [];           % Indices where a reversal occurred
+tRevIndices = [];           % Indices where a reversal occurred
+pStepSwitchInds = [];       % Indices where step size was changed
+tStepSwitchInds = [];       % Indices where step size was changed
 
 % Optional plotting setup
 if plotResponses
@@ -446,6 +453,7 @@ while(stillLooping)
     p1_down = false;
     t_up = false;
     t_down = false;
+    displayLoopCounter = displayLoopCounter + 1;
     
     % Define light indices
     if ideal
@@ -467,13 +475,13 @@ while(stillLooping)
         % get one R/G and one brightness decision. If using the adjustment
         % method, we wait for the first keypress.
         waitingForResponse = true;
-        loopCounter = 1;
+        innerLoopCounter = 1;
         if adjustment
             while(waitingForResponse)
                 nowTime = mglGetSecs;
-                loopCounter = loopCounter+1;
-                while(mglGetSecs < nowTime+intervals(mod(loopCounter,2)+1))  % Flicker while waiting for response
-                    ol.setMirrors(starts{mod(loopCounter,2)+1},stops{mod(loopCounter,2)+1});
+                innerLoopCounter = innerLoopCounter+1;
+                while(mglGetSecs < nowTime+intervals(mod(innerLoopCounter,2)+1))  % Flicker while waiting for response
+                    ol.setMirrors(starts{mod(innerLoopCounter,2)+1},stops{mod(innerLoopCounter,2)+1});
                     key = gamePad.getKeyEvent();
                     if (~isempty(key))
                         switch(key.charCode)
@@ -533,9 +541,9 @@ while(stillLooping)
             end
             while(waitingForResponse)
                 nowTime = mglGetSecs;
-                loopCounter = loopCounter+1;
-                while(mglGetSecs < nowTime+intervals(mod(loopCounter,2)+1))  % Flicker while waiting for response
-                    ol.setMirrors(starts{mod(loopCounter,2)+1},stops{mod(loopCounter,2)+1});
+                innerLoopCounter = innerLoopCounter+1;
+                while(mglGetSecs < nowTime+intervals(mod(innerLoopCounter,2)+1))  % Flicker while waiting for response
+                    ol.setMirrors(starts{mod(innerLoopCounter,2)+1},stops{mod(innerLoopCounter,2)+1});
                     key = gamePad.getKeyEvent();
                     if (~isempty(key))
                         switch(key.charCode)
@@ -568,12 +576,12 @@ while(stillLooping)
                 Speak('Second Brightness?');
             end
             waitingForResponse = true;
-            loopCounter = 1;
+            innerLoopCounter = 1;
             while(waitingForResponse)
                 nowTime = mglGetSecs;
-                loopCounter = loopCounter+1;
-                while(mglGetSecs < nowTime+intervals(mod(loopCounter,2)+1))  % Flicker while waiting for response
-                    ol.setMirrors(starts{mod(loopCounter,2)+1},stops{mod(loopCounter,2)+1});
+                innerLoopCounter = innerLoopCounter+1;
+                while(mglGetSecs < nowTime+intervals(mod(innerLoopCounter,2)+1))  % Flicker while waiting for response
+                    ol.setMirrors(starts{mod(innerLoopCounter,2)+1},stops{mod(innerLoopCounter,2)+1});
                     key = gamePad.getKeyEvent();
                     if (~isempty(key))
                         switch(key.charCode)
@@ -662,6 +670,28 @@ while(stillLooping)
             'MarkerFaceColor','g');
     end
     
+    % Check for a primary reversal
+    if ((p1_up && ~p1_up_prev) || (p1_down && p1_up_prev)) && ~firstAdjustment % Reversal
+        nReversalsP = nReversalsP+1;  % Count the reversal
+        pRevIndices = [pRevIndices,displayLoopCounter];
+        if plotResponses
+            fprintf('Primary reversal %g, step size %g\n',...
+                nReversalsP,(stepModes(pStepModePos)/...
+                (adjustmentLength-1)));
+        end
+    end
+    
+    % Check for a ref reversal
+    if ((t_up && ~t_up_prev) || (t_down && t_up_prev)) && ~firstAdjustment % Reversal
+        nReversalsT = nReversalsT+1;  % Count the reversal
+        tRevIndices = [tRevIndices,displayLoopCounter];
+        if plotResponses
+            fprintf('Test reversal %g, step size %g\n',...
+                nReversalsP,(stepModes(tStepModePos)/...
+                (adjustmentLength-1)));
+        end
+    end
+    
     % Process the observer responses, if not using the live adjustment
     % experiment
     if ~(adjustment && ~simObserver)
@@ -680,35 +710,20 @@ while(stillLooping)
         
         % Check if primary step size needs to be adjusted
         if ((p1_up && ~p1_up_prev) || (p1_down && p1_up_prev)) && ~firstAdjustment % Reversal
-            nReversalsP = nReversalsP+1;  % Count the reversal
             if nReversalsP == nReversals(1) && pStepModePos ~= length(stepModes) % Lower step size
                 switchPStepSize = true;
-                if plotResponses
-                    fprintf('Primary reversal %g, step size %g\n',...
-                        nReversalsP,(stepModes(pStepModePos)/...
-                        (adjustmentLength-1)));
-                end
             end
         end
-        p1_up_prev = p1_up;
         
         % Check if test step size needs to be adjusted
         if ((t_up && ~t_up_prev) || (t_down && t_up_prev)) && ~firstAdjustment% Reversal
-            nReversalsT = nReversalsT+1; % Count the reversal
             if nReversalsT == nReversals(1) && tStepModePos ~= length(stepModes) % Lower step size
                 switchTStepSize = true;
-                if plotResponses
-                    fprintf('Reference reversal %g, step size %g\n',...
-                        nReversalsT,(stepModes(tStepModePos)/...
-                        (adjustmentLength-1)));
-                end
             end
         end
-        t_up_prev = t_up;
     end
     
     % ******** Process the keypresses *************
-    [nMatchesMade,~] = size(matches);
     % Match
     if match
         if ~silent
@@ -717,7 +732,6 @@ while(stillLooping)
         % Calculate match. If this is an adjustment match, simply provide
         % the subject setting. For a forced-choice match, average the last
         % nReversals(2) light settings.
-        nMatchesMade = nMatchesMade + 1;
         if ~adjustment
             % Number of settings values to adjust
             [nSettings,~] = size(subjectSettings);
@@ -750,15 +764,22 @@ while(stillLooping)
             % Individual trajectory figure
             figure(nPlots);
             subplot(2,1,1)
-            p1 = plot(nAdjustments+1,matches(end,2),'r* ',...
+            line4p = xline(pStepSwitchInds);
+            line5p = plot(nAdjustments+1,matches(end,2),'r* ',...
                 nAdjustments+1,idealPRatio,'gs',...
-                'MarkerSize',6,'LineWidth',1);
-            legend(p1,'Subject Match','Nominal Match');
+                'MarkerSize',6,'LineWidth',1);         
+            legend([line1p, line2p, line3p, line4p, line5p(1:2)],...
+                'Subject Settings', 'Subject Responses', 'Subject Reversals',...
+                'Step Size Changes', 'Subject Match','Nominal Match');
+          
             subplot(2,1,2);
-            p2 = plot(nAdjustments+1,matches(end,1),'r*',...
+            line4t = xline(tStepSwitchInds);
+            line5t = plot(nAdjustments+1,matches(end,1),'r*',...
                 nAdjustments+1,idealTestIntensity,'gs',...
                 'MarkerSize',6,'LineWidth',1);
-            legend(p2,'Subject Match','Nominal Match');
+            legend([line1t, line2t, line3t, line4t, line5t(1:2)],...
+                'Subject Settings', 'Subject Responses', 'Subject Reversals',...
+                'Step Size Changes', 'Subject Match','Nominal Match');
             
             % Joint trajectory figure
             figure(nPlots+1);
@@ -797,6 +818,7 @@ while(stillLooping)
     end
     
     % Quit
+    [nMatchesMade,~] = size(matches);
     if nMatchesMade == nObserverMatches    % Check if all matches have been made
         quit = true;
     end
@@ -845,13 +867,8 @@ while(stillLooping)
             fprintf('User pressed key. Test intensity = %g, red primary = %g \n',...
                 testScales(testPos),p1Scales(primaryPos));
         end
-        subjectSettings = [subjectSettings;...
-            [testScales(testPos),p1Scales(primaryPos)]];
-        firstAdjustment = false;
-    end
-    
-    % P1 down
-    if p1_down
+        % P1 down
+    elseif p1_down
         primaryPos = primaryPos-stepModes(pStepModePos);
         if primaryPos < allowedLambdaInds(1)
             primaryPos = allowedLambdaInds(1);
@@ -865,14 +882,12 @@ while(stillLooping)
         if ~silent
             Snd('Play',sin(0:5000)/100);
         end
-        subjectSettings = [subjectSettings;...
-            [testScales(testPos),p1Scales(primaryPos)]];
         if plotResponses
             fprintf('User pressed key. Test intensity = %g, red primary = %g\n',...
                 testScales(testPos),p1Scales(primaryPos));
         end
-        firstAdjustment = false;
     end
+    primaryRes = [primaryRes, double(p1_up)];
     
     % test up
     if t_up
@@ -893,13 +908,8 @@ while(stillLooping)
             fprintf('User pressed key. Test intensity = %g, red primary = %g\n',...
                 testScales(testPos),p1Scales(primaryPos));
         end
-        subjectSettings = [subjectSettings;...
-            [testScales(testPos),p1Scales(primaryPos)]];
-        firstAdjustment = false;
-    end
-    
-    % test down
-    if t_down
+        % test down
+    elseif t_down
         testPos = testPos-stepModes(tStepModePos);
         if testPos < allowedTIInds(1)
             testPos = allowedTIInds(1);
@@ -917,15 +927,14 @@ while(stillLooping)
             fprintf('User pressed key. Test intensity = %g, red primary = %g\n',...
                 testScales(testPos),p1Scales(primaryPos));
         end
-        subjectSettings = [subjectSettings;...
-            [testScales(testPos),p1Scales(primaryPos)]];
-        firstAdjustment = false;
     end
+    testRes = [testRes, double(t_up)];
     
     % Switch p1 step size
     if switchPStepSize
         pStepModePos = pStepModePos+1;
         nReversalsP = 0;
+        pStepSwitchInds = [pStepSwitchInds, displayLoopCounter];
         if pStepModePos > length(stepModes)
             pStepModePos = 1;
         end
@@ -945,6 +954,7 @@ while(stillLooping)
     if switchTStepSize
         tStepModePos = tStepModePos+1;
         nReversalsT = 0;
+        tStepSwitchInds = [tStepSwitchInds, displayLoopCounter];
         if tStepModePos > length(stepModes)
             tStepModePos = 1;
         end
@@ -960,13 +970,34 @@ while(stillLooping)
         end
     end
     
-    % Edit plots if an adjustment was made
-    if plotResponses && (p1_up || p1_down || t_up || t_down)
+    % Store data and set up for the next iteration
+    p1_up_prev = p1_up;
+    t_up_prev = t_up;
+    subjectSettings = [subjectSettings;...
+        [testScales(testPos),p1Scales(primaryPos)]];
+    if (p1_up || p1_down || t_up || t_down)
+        firstAdjustment = false;
+    end
+    
+    % Edit plots
+    if plotResponses
         figure(nPlots);
         subplot(2,1,1);
-        plot(subjectSettings(matchSettingInd:end,2),'bo-','LineWidth',1);
+        line1p = plot(subjectSettings(matchSettingInd:end,2),'bo-','LineWidth',1);
+        line2p = plot(primaryRes(matchSettingInd:end),...
+            'r* ','MarkerSize',1);
+        line3p = plot(pRevIndices(pRevIndices >= matchSettingInd)-matchSettingInd,...
+            subjectSettings(pRevIndices(pRevIndices >= matchSettingInd),2),...
+            'bo ', 'MarkerFaceColor','Blue');
+        
         subplot(2,1,2);
-        plot(subjectSettings(matchSettingInd:end,1),'bo-','LineWidth',1);
+        line1t = plot(subjectSettings(matchSettingInd:end,1),'bo-','LineWidth',1);
+        line2t = plot(testRes(matchSettingInd:end),...
+            'r* ','MarkerSize',1);
+        line3t = plot(tRevIndices(tRevIndices >= matchSettingInd)-matchSettingInd,...
+            subjectSettings(tRevIndices(tRevIndices >= matchSettingInd),1),...
+            'bo ', 'MarkerFaceColor','Blue');
+        
         figure(nPlots+1);
         plot(subjectSettings(matchSettingInd:end,2),...
             subjectSettings(matchSettingInd:end,1), 'bo-','LineWidth',1);

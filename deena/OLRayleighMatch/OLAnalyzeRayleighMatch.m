@@ -115,12 +115,12 @@ for i = 1:length(sessionNums)
     
     % Manually-entered parameters (which are now saved by program)
     sessionData.age = 22;
-    sessionData.fieldSize = 2;
-    sessionData.adjustmentLength = 201;
-    sessionData.opponentParams = [40.3908  205.7353   62.9590    1.0000];
-    sessionData.p1Scale = [1 1 1 1];
-    sessionData.p2Scale = 0.2*[1 1 1 1];
-    sessionData.testScale = 0.2*[1 1 1 1];
+%     sessionData.fieldSize = 2;
+%     sessionData.adjustmentLength = 201;
+%     sessionData.opponentParams = [40.3908  205.7353   62.9590    1.0000];
+%     sessionData.p1Scale = [1 1 1 1];
+%     sessionData.p2Scale = 0.2*[1 1 1 1];
+%     sessionData.testScale = 0.2*[1 1 1 1];
     
     lightCombos = [lightCombos;sessionData.lightCombosFull];
     primaryRatios = [primaryRatios;sessionData.primaryRatios'];
@@ -141,15 +141,16 @@ for i = 1:length(sessionNums)
     
     % Add radiometer data to collected data
     radiometerData = load(measFile);
+    
     % Manually-entered parameters which are now saved by my match sequence
     % programs
-    cal = OLGetCalibrationStructure('CalibrationType',getpref('ForcedChoiceCM','currentCal'));
-    [~,c] = size(cal.computed.pr650M);
-    radiometerData.darkSpd = OLPrimaryToSpd(cal,zeros(c,1));
+%     cal = OLGetCalibrationStructure('CalibrationType',getpref('ForcedChoiceCM','currentCal'));
+%     [~,c] = size(cal.computed.pr650M);
+%     radiometerData.darkSpd = OLPrimaryToSpd(cal,zeros(c,1));
     
     measPrimarySpds = [measPrimarySpds,radiometerData.measuredPrimarySpds'];
     measRefSpds = [measRefSpds,radiometerData.measuredTestSpds'];
-    darkSpds = [darkSpds,repmat(radiometerData.darkSpd,1,length(sessionData.p1Scale))];
+    darkSpds = [darkSpds, repmat(radiometerData.measuredDarkSpd',1,length(sessionData.testIntensities))];
 end
 
 %% Sort collected data by unique wavelength combo, and compute summary
