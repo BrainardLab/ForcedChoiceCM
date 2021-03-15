@@ -131,9 +131,6 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %                            before the primary mixture (and for a longer
 %                            period of time, instead of the other way
 %                            around. Default is false. 
-%    'pairStepSizes'        -Logical. If true, adjusts primary and test
-%                            step sizes together instead of separately. 
-%                            Default is false.
 
 % History:
 %   xx/xx/19  dce       Wrote it.
@@ -171,7 +168,6 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %                       each trial
 %   03/08/20  dce       Added flicker back in while waiting for subject
 %                       decisions
-%   03/15/20  dce       Edited for style, added two new key-value pairs
 
 
 %% Close any stray figures
@@ -209,7 +205,6 @@ p.addParameter('monochromaticS',[380 2 201],@(x)(isnumeric(x)));
 p.addParameter('lambdaRef',[],@(x)(isnumeric(x)));
 p.addParameter('stimLimits',[],@(x)(isnumeric(x)));
 p.addParameter('testFirst',false,@(x)(islogical(x)));
-p.addParameter('pairStepSizes',false,@(x)(islogical(x)));
 p.parse(varargin{:});
 
 p1 = p.Results.p1;
@@ -242,7 +237,6 @@ monochromaticS = p.Results.monochromaticS;
 stimLimits = p.Results.stimLimits;
 lambdaRef = p.Results.lambdaRef;
 testFirst = p.Results.testFirst;
-pairStepSizes = p.Results.pairStepSizes;
 
 % Input error checking
 if (length(nReversals)~=2)
@@ -413,8 +407,6 @@ ideal = false;              % Do not start with the ideal match
 firstAdjustment = true;     % This is the first adjustment of the match
 stillLooping = true;        % Start looping
 displayLoopCounter = 0;     % Count number of iterations
-p1_up_prev = true;
-t_up_prev = true;
 
 % Data-storing arrays
 matches = [];               % Output array with subject matches
@@ -429,7 +421,7 @@ tStepSwitchInds = [];       % Indices where step size was changed
 
 % Optional plotting setup
 if plotResponses
-    nPlots = -1;           % Counter for current figure index
+    nPlots = 1;           % Counter for current figure index
     matchSettingInd = 1;  % SubjectSettings position for current match start
 end
 
@@ -739,13 +731,6 @@ while(stillLooping)
                 && tStepModePos ~= length(stepModes) 
                 switchTStepSize = true;
         end
-        
-        % If step sizes are locked to only be adjusted together, modify 
-        % accordingly
-        if pairStepSizes
-            switchPStepSize = (switchPStepSize && switchTStepSize);
-            switchTStepSize = switchPStepSize;
-        end 
     end
     
     % ******** Process the keypresses *************
@@ -838,7 +823,8 @@ while(stillLooping)
     end
     
     % Quit
-    if size(matches,1) == nObserverMatches    % Check if all matches have been made
+    [nMatchesMade,~] = size(matches);
+    if nMatchesMade == nObserverMatches    % Check if all matches have been made
         quit = true;
     end
     if quit

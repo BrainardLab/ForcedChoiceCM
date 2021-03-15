@@ -115,6 +115,7 @@ for i = 1:length(sessionNums)
     
     % Manually-entered parameters (which are now saved by program)
     sessionData.age = 22;
+    sessionData.testWls = [590 620];
 %     sessionData.fieldSize = 2;
 %     sessionData.adjustmentLength = 201;
 %     sessionData.opponentParams = [40.3908  205.7353   62.9590    1.0000];
@@ -124,13 +125,16 @@ for i = 1:length(sessionNums)
     
     lightCombos = [lightCombos;sessionData.lightCombosFull];
     primaryRatios = [primaryRatios;sessionData.primaryRatios'];
-    refIntensities = [refIntensities;sessionData.testIntensities'];
-    p1Scales = [p1Scales;sessionData.p1Scale'];
-    p2Scales = [p2Scales;sessionData.p2Scale'];
-    refScales = [refScales;sessionData.testScale'];
+    refIntensities = [refIntensities;sessionData.testIntensities'];   
     
-    % Find individual match spds as predicted from observer settings
+    % Go through each match 
     for j = 1:length(sessionData.testIntensities)
+        % Fill in settings 
+        p1Scales = [p1Scales;sessionData.p1Scale(find(sessionData.testWls==lightCombos(i,3)))];
+        p2Scales = [p2Scales;sessionData.p2Scale(find(sessionData.testWls==lightCombos(i,3)))];
+        refScales = [refScales;sessionData.testScale(find(sessionData.testWls==lightCombos(i,3)))];
+        
+        % Find match spds (as measured by radiometer)
         fName = fullfile(outputDir,[subjID '_' num2str(sessionNums(i))...
             '_' num2str(j) '.mat']);
         [rSpds,pSpds,~,~] = getMatchData(fName,'averageSpds',false,'nominal',false);
@@ -292,7 +296,7 @@ plot(nominalPrimaryRatiosStd,nominalRefIntensitiesStd,...
     'mo ','MarkerSize',5,'MarkerFaceColor','m');
 legend('Settings','Radiometer Spd Fits','Nominal Settings (Estimated Observer)',...
     'Nominal Settings (Standard Observer)');
-title([subjID ' Rayleigh Matches']);
+title([subjID ' Rayleigh Matches'],'interpreter','none');
 xlim([0 1]);
 ylim([0 1]);
 

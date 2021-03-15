@@ -78,6 +78,10 @@ function [fNames,testIntensities,primaryRatios] = ...
 %                         trial. Default is false.
 %    'adjustment'        -Logical. When true, uses the adjustment method
 %                         rather than forced choice. Default is false.
+%    'pairStepSizes'        -Logical. If true, adjusts primary and test
+%                            step sizes together instead of separately. 
+%                            Default is false.
+
 % History:
 %   02/10/21   dce   - Wrote it, adapted from getMatchSeries and
 %                      sampleRayleighMatchSeries
@@ -85,6 +89,8 @@ function [fNames,testIntensities,primaryRatios] = ...
 %   02/25/21   dce   - Added option to have varying scale factors for
 %                      different test wavelengths
 %   03/09/21   dce   - Edited input to reflect changes in OLRayleighMatch
+%   03/15/21   dce   - Began counterbalancing light order, added option to
+%                      pair step size adjustments
 
 % Input parsing
 p = inputParser;
@@ -101,6 +107,7 @@ p.addParameter('rayleighPlots',true,@(x)(islogical(x)));
 p.addParameter('stimLimits',[],@(x)(isnumeric(x)));
 p.addParameter('resetAnnulus',false,@(x)(islogical(x)));
 p.addParameter('adjustment',false,@(x)(islogical(x)));
+p.addParameter('pairStepSizes',false,@(x)(islogical(x)));
 p.parse(varargin{:});
 
 age = p.Results.age;
@@ -156,7 +163,9 @@ testIntensities = zeros(1,nCombos);
 primaryRatios = zeros(1,nCombos);
 
 % Calculate Rayleigh matches for each of the light combinations
+refFirst = round(rand(1)); % Choose randomly which light we present first on the first match 
 for i = 1:nCombos
+    refFirst = ~refFirst   % Light order alternates on each tria
     % Store OneLight data filename
     fNames{i} = fullfile(outputDir,[subjID,'_',num2str(sessionNum),...
         '_',num2str(i),'.mat']);
@@ -186,7 +195,9 @@ for i = 1:nCombos
         'savePlots',p.Results.rayleighPlots,'adjustmentLength',...
         p.Results.adjustmentLength,'opponentParams',...
         p.Results.opponentParams,'stimLimits',trialStimLimits',...
-        'resetAnnulus',resetAnnulus,'silent',false,'adjustment',p.Results.adjustment);
+        'resetAnnulus',resetAnnulus,'silent',false,...
+        'adjustment',p.Results.adjustment,'testFirst',refFirst,...
+        'pairStepSizes',p.Results.pairStepSizes);
     
     % Extract match position data
     [~,~,testIntensities(i),primaryRatios(i)] =...
@@ -196,6 +207,6 @@ for i = 1:nCombos
     % Save data
     save(outputFile,'fNames','testIntensities','primaryRatios','lightCombosFull',...
         'age','fieldSize','opponentParams','p1Scale','p2Scale','testScale',...
-        'adjustmentLength','adjustment','nObserverMatches');
+        'adjustmentLength','adjustment','nObserverMatches','testWls');
 end
 end
