@@ -446,24 +446,7 @@ while(stillLooping)
     t_down = false;
     displayLoopCounter = displayLoopCounter + 1;
     
-    % Define light indices
-    if ideal
-        pI = pIdealIndex;
-        tI = tIdealIndex;
-    else
-        pI = primaryPos;
-        tI = testPos;
-    end
-    
-    if testFirst
-        starts = {squeeze(testStartStops(tI,1,:))',squeeze(primaryStartStops(pI,1,:))'};
-        stops = {squeeze(testStartStops(tI,2,:))',squeeze(primaryStartStops(pI,2,:))'};
-    else
-        starts = {squeeze(primaryStartStops(pI,1,:))', squeeze(testStartStops(tI,1,:))'};
-        stops = {squeeze(primaryStartStops(pI,2,:))', squeeze(testStartStops(tI,2,:))'};
-    end
-    intervals = [lInterval sInterval];
-    
+     
     % Setup if it's a new match
     if firstAdjustment
         pStepModePos = 1;     % Start with the largest step sizes
@@ -512,6 +495,24 @@ while(stillLooping)
                 'MarkerFaceColor','g');
         end
     end
+    
+    % Define light indices
+    if ideal
+        pI = pIdealIndex;
+        tI = tIdealIndex;
+    else
+        pI = primaryPos;
+        tI = testPos;
+    end
+    
+    if testFirst
+        starts = {squeeze(testStartStops(tI,1,:))',squeeze(primaryStartStops(pI,1,:))'};
+        stops = {squeeze(testStartStops(tI,2,:))',squeeze(primaryStartStops(pI,2,:))'};
+    else
+        starts = {squeeze(primaryStartStops(pI,1,:))', squeeze(testStartStops(tI,1,:))'};
+        stops = {squeeze(primaryStartStops(pI,2,:))', squeeze(testStartStops(tI,2,:))'};
+    end
+    intervals = [lInterval sInterval];
     
     % In a forced-choice live experiment, we show the specified lights then
     % pause for a decision period. In a simulated experiment, we prompt the
@@ -591,9 +592,9 @@ while(stillLooping)
             
             % Prompt for R/G decision
             if testFirst
-                Speak('Short Light Redness?');
+                Speak('Short Redness?');
             else
-                Speak('Long Light Redness?');
+                Speak('Long Redness?');
             end
             while(waitingForResponse)
                 nowTime = mglGetSecs;
@@ -638,9 +639,9 @@ while(stillLooping)
             
             % Prompt for ref decision
             if testFirst
-                Speak('Long Light Brightness?');
+                Speak('Long Brightness?');
             else
-                Speak('Short Light Brightness?');
+                Speak('Short Brightness?');
             end
             waitingForResponse = true;
             while(waitingForResponse)
@@ -728,14 +729,14 @@ while(stillLooping)
         
         % Check if primary step size needs to be adjusted
         if ((p1_up && ~p1_up_prev) || (p1_down && p1_up_prev))...
-                && ~firstAdjustment && nReversalsP == nReversals(1)...
+                && ~firstAdjustment && nReversalsP >= nReversals(1)...
                 && pStepModePos ~= length(stepModes) 
                 switchPStepSize = true;
         end
         
         % Check if test step size needs to be adjusted
         if ((t_up && ~t_up_prev) || (t_down && t_up_prev))...
-                && ~firstAdjustment && nReversalsT == nReversals(1)...
+                && ~firstAdjustment && nReversalsT >= nReversals(1)...
                 && tStepModePos ~= length(stepModes) 
                 switchTStepSize = true;
         end
@@ -825,10 +826,10 @@ while(stillLooping)
             if savePlots
                 NicePlot.exportFigToPDF(fullfile(outputDir,...
                     [subjectID  '_' num2str(sessionNum) '_'...
-                    num2str(nMatchesMade) '_plot']),plot1,300);
+                    num2str(size(matches,1)) '_plot']),plot1,300);
                 NicePlot.exportFigToPDF(fullfile(outputDir,....
                     [subjectID '_' num2str(sessionNum)...
-                    '_' num2str(nMatchesMade) '_jointPlot']),plot2,300);
+                    '_' num2str(size(matches,1)) '_jointPlot']),plot2,300);
             end
             matchSettingInd = length(subjectSettings(:,1))+1;
         end
@@ -865,6 +866,47 @@ while(stillLooping)
             'tIdealIndex','idealTestSpd','idealPrimarySpd',....
             'idealTestIntensity','idealPRatio','monochromatic','S');
         stillLooping = false;
+        break;
+    end
+    
+        % Switch p1 step size
+    if switchPStepSize
+        pStepModePos = pStepModePos+1;
+        nReversalsP = 0;
+        pStepSwitchInds = [pStepSwitchInds, displayLoopCounter];
+        if pStepModePos > length(stepModes)
+            pStepModePos = 1;
+        end
+        % Number of beeps indicates new step size position
+        if ~silent
+            for i = 1:pStepModePos
+                Snd('Play',sin(0:5000));
+            end
+        end
+        if plotResponses
+            fprintf('User switched primary step size to %g\n',...
+                (stepModes(pStepModePos)/(adjustmentLength-1)));
+        end
+    end
+    
+    % Switch test step size
+    if switchTStepSize
+        tStepModePos = tStepModePos+1;
+        nReversalsT = 0;
+        tStepSwitchInds = [tStepSwitchInds, displayLoopCounter];
+        if tStepModePos > length(stepModes)
+            tStepModePos = 1;
+        end
+        % Number of beeps indicates new step size position
+        if ~silent
+            for i = 1:tStepModePos
+                Snd('Play',sin(0:5000));
+            end
+        end
+        if plotResponses
+            fprintf('User switched reference step size to %g\n',...
+                (stepModes(tStepModePos)/(adjustmentLength-1)));
+        end
     end
     
     % P1 up
@@ -936,46 +978,6 @@ while(stillLooping)
         end
     end
     testRes = [testRes, double(t_up)];
-    
-    % Switch p1 step size
-    if switchPStepSize
-        pStepModePos = pStepModePos+1;
-        nReversalsP = 0;
-        pStepSwitchInds = [pStepSwitchInds, displayLoopCounter];
-        if pStepModePos > length(stepModes)
-            pStepModePos = 1;
-        end
-        % Number of beeps indicates new step size position
-        if ~silent
-            for i = 1:pStepModePos
-                Snd('Play',sin(0:5000));
-            end
-        end
-        if plotResponses
-            fprintf('User switched primary step size to %g\n',...
-                (stepModes(pStepModePos)/(adjustmentLength-1)));
-        end
-    end
-    
-    % Switch test step size
-    if switchTStepSize
-        tStepModePos = tStepModePos+1;
-        nReversalsT = 0;
-        tStepSwitchInds = [tStepSwitchInds, displayLoopCounter];
-        if tStepModePos > length(stepModes)
-            tStepModePos = 1;
-        end
-        % Number of beeps indicates new step size position
-        if ~silent
-            for i = 1:tStepModePos
-                Snd('Play',sin(0:5000));
-            end
-        end
-        if plotResponses
-            fprintf('User switched reference step size to %g\n',...
-                (stepModes(tStepModePos)/(adjustmentLength-1)));
-        end
-    end
     
     % Store data and set up for the next iteration
     p1_up_prev = p1_up;
