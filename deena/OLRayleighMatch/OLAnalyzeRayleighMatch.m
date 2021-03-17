@@ -65,6 +65,7 @@ function [estConeParams,meanPrimarySettings,meanRefSettings,...
 
 % History:
 %   2/19/21  dce       Wrote it.
+%   3/16/21  dce       Added plot saving
 
 % Parse input
 p = inputParser;
@@ -97,6 +98,10 @@ p1Scales = [];         % Scale factors for first primary spd
 p2Scales = [];         % Scale factors for second primary spd
 refScales = [];        % Scale factors for reference light
 
+% Cell arrays for storing plot filenames (for combined saving)
+combPlotFNames = {};
+trajectoryPlotFNames = {};
+
 % Collect match positions and radiometer data from each file
 for i = 1:length(sessionNums)
     % Names of results files
@@ -114,8 +119,8 @@ for i = 1:length(sessionNums)
     sessionData = load(outputFile);
     
     % Manually-entered parameters (which are now saved by program)
-    sessionData.age = 22;
-    sessionData.testWls = [590 620];
+%     sessionData.age = 22;
+%     sessionData.testWls = [590 620];
 %     sessionData.fieldSize = 2;
 %     sessionData.adjustmentLength = 201;
 %     sessionData.opponentParams = [40.3908  205.7353   62.9590    1.0000];
@@ -140,6 +145,12 @@ for i = 1:length(sessionNums)
         [rSpds,pSpds,~,~] = getMatchData(fName,'averageSpds',false,'nominal',false);
         predRefSpds = [predRefSpds,rSpds];
         predPrimarySpds = [predPrimarySpds,pSpds];
+        
+        % Find plot filenames 
+        combPlotFNames{end+1} = fullfile(outputDir,[subjID '_' num2str(sessionNums(i))...
+            '_' num2str(j) '_jointPlot.pdf']);
+        trajectoryPlotFNames{end+1} = fullfile(outputDir,[subjID '_' num2str(sessionNums(i))...
+            '_' num2str(j) '_plot.pdf']);
     end
     
     
@@ -441,4 +452,8 @@ save([resFile '_analysis.mat'],'p','lightCombos','primaryRatios',...
     'commonP2ScaleFactors','commonRefScaleFactors','estConeParams',...
     'refIntensitiesSim','primaryRatiosSim','refIntensitiesSimStd',...
     'primaryRatiosSimStd');
+
+% Append trajectory plots into a single file 
+NicePlot.combinePDFfilesInSinglePDF(trajectoryPlotFNames, [resFile '_allTrajectoryPlots.pdf']);
+NicePlot.combinePDFfilesInSinglePDF(combPlotFNames, [resFile '_allCombinedPlots.pdf']);
 end

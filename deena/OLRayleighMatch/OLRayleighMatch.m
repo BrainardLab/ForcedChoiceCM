@@ -580,8 +580,8 @@ while(stillLooping)
             end
             
         else   % Forced choice case
-            % Show the two lights 
-            for i = 1:4
+            % Show the two lights, pausing on the long one 
+            for i = 1:3
                 nowTime = mglGetSecs;
                 innerLoopCounter = innerLoopCounter+1;
                 while(mglGetSecs < nowTime+intervals(mod(innerLoopCounter,2)+1))  % Flicker while waiting for response
@@ -624,16 +624,6 @@ while(stillLooping)
             end
             if ~silent
                 Snd('Play',sin(0:5000)/100);
-            end
-            innerLoopCounter = 1;
-            
-            % Show lights again
-            for i = 1:4
-                nowTime = mglGetSecs;
-                innerLoopCounter = innerLoopCounter+1;
-                while(mglGetSecs < nowTime+intervals(mod(innerLoopCounter,2)+1))  % Flicker while waiting for response
-                    ol.setMirrors(starts{mod(innerLoopCounter,2)+1},stops{mod(innerLoopCounter,2)+1});
-                end
             end
             innerLoopCounter = 1;
             
