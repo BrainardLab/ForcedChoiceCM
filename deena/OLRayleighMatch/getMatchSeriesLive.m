@@ -92,6 +92,11 @@ function [fNames,testIntensities,primaryRatios] = ...
 %   03/15/21   dce   - Began counterbalancing light order, added option to
 %                      pair step size adjustments
 
+%{
+Examples:
+getMatchSeriesLive('DHB_Match_Spot1',1,670,560,[590],'nObserverMatches',1,'fieldSize',10,'adjustment',true,'nReversals',[1 2],'p1Scale',[1],'p2Scale',[0.02],'testScale',[0.1],'rayleighPlots',true,'pairStepSizes',true,'age',60)
+%}
+
 % Input parsing
 p = inputParser;
 p.addParameter('fieldSize',2,@(x)(isnumeric(x)));
@@ -197,7 +202,8 @@ for i = 1:nCombos
         p.Results.opponentParams,'stimLimits',trialStimLimits',...
         'resetAnnulus',resetAnnulus,'silent',false,...
         'adjustment',p.Results.adjustment,'testFirst',refFirst,...
-        'pairStepSizes',p.Results.pairStepSizes);
+        'pairStepSizes',p.Results.pairStepSizes, ...
+        'sInterval',0.25);
     
     % Extract match position data
     [~,~,testIntensities(i),primaryRatios(i)] =...
