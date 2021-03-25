@@ -331,10 +331,9 @@ else  % Monochromatic matching
 end
 
 %% Define neutral light 
-spdLength = size(primarySpdsPredicted,1);
-whiteScaleFactor = 0.05;
-whitePrimary = whiteScaleFactor * ones(spdLength,1);
-[whiteStarts, whiteStops] = OLSettingsToStartsStops(cal,OLPrimaryToSettings(cal,whitePrimary));
+whiteScaleFactor = 0.001;
+whitePrimary = whiteScaleFactor * ones(size(lightSettings.cal.computed.pr650M,2),1);
+[whiteStarts, whiteStops] = OLSettingsToStartsStops(lightSettings.cal,OLPrimaryToSettings(lightSettings.cal,whitePrimary));
 
 %% Set up limits on stimulus parameters. By default, all available indices
 % are allowed
@@ -450,7 +449,7 @@ if plotResponses
     nPlots = -1;           % Counter for current figure index
     matchSettingInd = 1;  % SubjectSettings position for current match start
 end
-waitTimes = [isInterval itInterval];
+waitTimes = [stimInterval isInterval stimInterval itInterval];
 
 %% Display loop
 while(stillLooping)
@@ -525,11 +524,15 @@ while(stillLooping)
     end
     
     if testFirst
-        starts = {squeeze(testStartStops(tI,1,:))',squeeze(primaryStartStops(pI,1,:))'};
-        stops = {squeeze(testStartStops(tI,2,:))',squeeze(primaryStartStops(pI,2,:))'};
+        starts = {squeeze(testStartStops(tI,1,:))',whiteStarts,...
+            squeeze(primaryStartStops(pI,1,:))',whiteStarts};
+        stops = {squeeze(testStartStops(tI,2,:))',whiteStops, ...
+            squeeze(primaryStartStops(pI,2,:))', whiteStops};
     else
-        starts = {squeeze(primaryStartStops(pI,1,:))', squeeze(testStartStops(tI,1,:))'};
-        stops = {squeeze(primaryStartStops(pI,2,:))', squeeze(testStartStops(tI,2,:))'};
+        starts = {squeeze(primaryStartStops(pI,1,:))',whiteStarts,...
+            squeeze(testStartStops(tI,1,:))',whiteStarts};
+        stops = {squeeze(primaryStartStops(pI,2,:))',whiteStops,...
+            squeeze(testStartStops(tI,2,:))',whiteStops};
     end
     
     % In a forced-choice live experiment, we show the specified lights then
@@ -540,13 +543,17 @@ while(stillLooping)
         % get one R/G and one brightness decision. If using the adjustment
         % method, we wait for the first keypress.
         waitingForResponse = true;
-        innerLoopCounter = 1;
+        innerLoopCounter = 0;
         if adjustment
             while(waitingForResponse)
                 nowTime = mglGetSecs;
                 innerLoopCounter = innerLoopCounter+1;
-                while(mglGetSecs < nowTime+stimInterval)  % Flicker while waiting for response
-                    ol.setMirrors(starts{mod(innerLoopCounter,2)+1},stops{mod(innerLoopCounter,2)+1});
+                lightInd = mod(innerLoopCounter,4);
+                if lightInd == 0
+                    lightInd = 4;
+                end 
+                while(mglGetSecs < nowTime+waitTimes(lightInd))  % Flicker while waiting for response
+                    ol.setMirrors(starts{lightInd},stops{lightInd});
                     key = gamePad.getKeyEvent();
                     if (~isempty(key))
                         switch(key.charCode)
@@ -611,38 +618,35 @@ while(stillLooping)
                         break;
                     end
                 end
-                
-                % Display neutral light (either isi or iti, depending on
-                % where we are)
-                nowTime = mglGetSecs;
-                while(mglGetSecs < nowTime+waitTimes(mod(innerLoopCounter,2)+1))
-                    ol.setMirrors(whiteStarts,whiteStops);
-                end 
             end
             
         else   % Forced choice case
             % Show the two lights
-            for i = 1:2
+            for i = 1:4
                 nowTime = mglGetSecs;
                 innerLoopCounter = innerLoopCounter+1;
-                while(mglGetSecs < nowTime+stimInterval)  % Flicker while waiting for response
-                    ol.setMirrors(starts{mod(innerLoopCounter,2)+1},stops{mod(innerLoopCounter,2)+1});
+                lightInd = mod(innerLoopCounter,4);
+                if lightInd == 0
+                    lightInd = 4;
                 end
-                % Display neutral light for short interval 
-                nowTime = mglGetSecs;
-                while(mglGetSecs < nowTime+isInterval)
-                    ol.setMirrors(whiteStarts,whiteStops);
+                
+                while(mglGetSecs < nowTime+waitTimes(lightInd))  % Flicker while waiting for response
+                    ol.setMirrors(starts{lightInd},stops{lightInd});
                 end
             end
-            innerLoopCounter = 1;
+            innerLoopCounter = 0;
             
             % Prompt for R/G decision
             Speak('Second Redness?')
             while(waitingForResponse)
                 nowTime = mglGetSecs;
                 innerLoopCounter = innerLoopCounter+1;
-                while(mglGetSecs < nowTime+stimInterval)  % Flicker while waiting for response
-                    ol.setMirrors(starts{mod(innerLoopCounter,2)+1},stops{mod(innerLoopCounter,2)+1});
+                 lightInd = mod(innerLoopCounter,4);
+                if lightInd == 0
+                    lightInd = 4;
+                end 
+                while(mglGetSecs < nowTime+waitTimes(lightInd))  % Flicker while waiting for response
+                    ol.setMirrors(starts{lightInd},stops{lightInd});
                     key = gamePad.getKeyEvent();
                     if (~isempty(key))
                         switch(key.charCode)
@@ -671,16 +675,11 @@ while(stillLooping)
                         end
                     end
                 end
-                % Show neutral light
-                nowTime = mglGetSecs;
-                while(mglGetSecs < nowTime+waitTimes(mod(innerLoopCounter,2)+1))
-                    ol.setMirrors(whiteStarts,whiteStops);
-                end
             end
             if ~silent
                 Snd('Play',sin(0:5000)/100);
             end
-            innerLoopCounter = 1;
+            innerLoopCounter = 0;
             
             % Prompt for ref decision
             Speak('Second Brightness?');
@@ -688,8 +687,12 @@ while(stillLooping)
             while(waitingForResponse)
                 nowTime = mglGetSecs;
                 innerLoopCounter = innerLoopCounter+1;
-                while(mglGetSecs < nowTime+stimInterval)  % Flicker while waiting for response
-                    ol.setMirrors(starts{mod(innerLoopCounter,2)+1},stops{mod(innerLoopCounter,2)+1});
+                 lightInd = mod(innerLoopCounter,4);
+                if lightInd == 0
+                    lightInd = 4;
+                end 
+                while(mglGetSecs < nowTime+waitTimes(lightInd))  % Flicker while waiting for response
+                    ol.setMirrors(starts{lightInd},stops{lightInd});
                     key = gamePad.getKeyEvent();
                     if (~isempty(key))
                         switch(key.charCode)
@@ -717,10 +720,6 @@ while(stillLooping)
                                 Speak('Invalid key');
                         end
                     end
-                end
-                nowTime = mglGetSecs;
-                while(mglGetSecs < nowTime+waitTimes(mod(innerLoopCounter,2)+1))
-                    ol.setMirrors(whiteStarts,whiteStops);
                 end
             end
         end
