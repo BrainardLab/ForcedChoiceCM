@@ -14,19 +14,27 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %
 %    The live experiment can be ran in two ways: "adjustment" or "forced
 %    choice." Under the forced choice approach, subjects are prompted to
-%    adjust the primary ratio and the test light intensity using the game
-%    pad's directional pad (right moves the primary ratio towards p1 and
-%    left towards p2, up increases the test intensity and down decreases
-%    the test intensity.) However, the program determines when to change
+%    judge the primary ratio and the test light intensity using the game
+%    pad's directional pad. Judgements are made relative to the appearance
+%    of the second light - right means the second light is comparatively 
+%    redder, left means the second light is comparatively greener, up means 
+%    the second light is comparatively brighter, and down means the second 
+%    light is comparatively dimmer. However, the program determines when to change
 %    the step size and when to declare a match. The forced-choice matches
-%    are an average of the last four settings.
+%    are an average of the last few settings, with the precise number
+%    specified by nReversals(2). 
 %
 %    In the "adjustment" procedure, the subject can use the top 'Y' button
 %    to toggle primary step size, the left 'X' button to toggle test step
 %    size, the right 'B' button to record a match, the 'Back' button to
 %    show the ideal match, and the 'Start' button for switching light
-%    order, in addition to the controls described above. In both
-%    procedures, the bottom 'A' button can be used to force quit.
+%    order, in addition to the controls described above. Here, the 
+%    directional pad refers to desired adjustments, not appearance 
+%    judgements. Right makes the second light comparatively 
+%    redder, left makes the second light comparatively greener, up makes 
+%    the second light comparatively brighter, and down makes the second 
+%    light comparatively dimmer. In both procedures, the bottom 'A' button 
+%    can be used to force quit.
 %
 %    In addition to the live experiment, the program can run a simulation
 %    by creating a simulated observer based on the Asano model and searing
@@ -56,12 +64,13 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %                       between 0 and 1. Default is 1.
 %    'p2Scale'        - Numerical scale factor for the second primary
 %                       light, between 0 and 1. Default is 0.02.
-%    'testScale'      - Numerical scale factor for the test light, between
+%    'testScale'       - Numerical scale factor for the test light, between
 %                       0 and 1. Default is 0.1.
-%    'sInterval'      - length of time in s that each light is
-%                       displayed for. Default is 0.5.
-%    'lInterval'      - length of time in s between lights. Default is 1.
-%    'fieldSize'         - logical indicating whether we are making foveal
+%    'isInterval'      - Interstimulus interval in s. Default is 0.1.
+%    'itInterval'      - Intertrial interval in s. Default is 1.
+%    'stimInterval'    - length of time that each stimulus is shown for, in 
+%                        s. Default is 0.5. 
+%    'fieldSize'       - logical indicating whether we are making foveal
 %                       matches, in which case the annulus is not turned
 %                       on. Default is true.
 %    'age'            - Integer age for observer. Default is 32.
@@ -172,6 +181,7 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %   03/08/20  dce       Added flicker back in while waiting for subject
 %                       decisions
 %   03/15/20  dce       Edited for style, added two new key-value pairs
+%   03/25/20  dce       Changed keypress meanings, added white light
 
 
 %% Close any stray figures
@@ -186,8 +196,9 @@ p.addParameter('p1Scale',1,@(x)(isnumeric(x)));
 p.addParameter('p2Scale',0.02,@(x)(isnumeric(x)));
 p.addParameter('testScale',0.1,@(x)(isnumeric(x)));
 p.addParameter('adjustmentLength',201,@(x)(isnumeric(x)));
-p.addParameter('sInterval',0.5,@(x)(isnumeric(x)));
-p.addParameter('lInterval',1,@(x)(isnumeric(x)));
+p.addParameter('isInterval',0.1,@(x)(isnumeric(x)));
+p.addParameter('itInterval',1,@(x)(isnumeric(x)));
+p.addParameter('stimInterval',0.5,@(x)(isnumeric(x)));
 p.addParameter('fieldSize',2,@(x)(isnumeric(x)));
 p.addParameter('age',32,@(x)(isnumeric(x)));
 p.addParameter('resetAnnulus',false,@(x)(islogical(x)));
@@ -219,8 +230,9 @@ p1Scale = p.Results.p1Scale;
 p2Scale = p.Results.p2Scale;
 testScale = p.Results.testScale;
 adjustmentLength = p.Results.adjustmentLength;
-sInterval = p.Results.sInterval;
-lInterval = p.Results.lInterval;
+isInterval = p.Results.isInterval;
+itInterval = p.Results.itInterval;
+stimInterval = p.Results.stimInterval;
 fieldSize = p.Results.fieldSize;
 age = p.Results.age;
 resetAnnulus = p.Results.resetAnnulus;
@@ -317,6 +329,12 @@ else  % Monochromatic matching
     testSpdsNominal(wls==test,:) = 1*testScale*testScales;
     testSpdsPredicted = testSpdsNominal;
 end
+
+%% Define neutral light 
+spdLength = size(primarySpdsPredicted,1);
+whiteScaleFactor = 0.05;
+whitePrimary = whiteScaleFactor * ones(spdLength,1);
+[whiteStarts, whiteStops] = OLSettingsToStartsStops(cal,OLPrimaryToSettings(cal,whitePrimary));
 
 %% Set up limits on stimulus parameters. By default, all available indices
 % are allowed
@@ -432,6 +450,7 @@ if plotResponses
     nPlots = -1;           % Counter for current figure index
     matchSettingInd = 1;  % SubjectSettings position for current match start
 end
+waitTimes = [isInterval itInterval];
 
 %% Display loop
 while(stillLooping)
@@ -512,7 +531,6 @@ while(stillLooping)
         starts = {squeeze(primaryStartStops(pI,1,:))', squeeze(testStartStops(tI,1,:))'};
         stops = {squeeze(primaryStartStops(pI,2,:))', squeeze(testStartStops(tI,2,:))'};
     end
-    intervals = [lInterval sInterval];
     
     % In a forced-choice live experiment, we show the specified lights then
     % pause for a decision period. In a simulated experiment, we prompt the
@@ -527,7 +545,7 @@ while(stillLooping)
             while(waitingForResponse)
                 nowTime = mglGetSecs;
                 innerLoopCounter = innerLoopCounter+1;
-                while(mglGetSecs < nowTime+intervals(mod(innerLoopCounter,2)+1))  % Flicker while waiting for response
+                while(mglGetSecs < nowTime+stimInterval)  % Flicker while waiting for response
                     ol.setMirrors(starts{mod(innerLoopCounter,2)+1},stops{mod(innerLoopCounter,2)+1});
                     key = gamePad.getKeyEvent();
                     if (~isempty(key))
@@ -565,51 +583,83 @@ while(stillLooping)
                                     fprintf('User switched order of primary and test lights\n');
                                 end
                             case 'GP:North'
-                                t_up = true;
+                                if testFirst
+                                    t_down = true;
+                                else 
+                                    t_up = true;
+                                end 
                             case 'GP:South'
-                                t_down = true;
+                                if testFirst
+                                    t_up = true;
+                                else 
+                                    t_down = true;
+                                end 
                             case 'GP:East'
-                                p1_up = true;
+                                if testFirst
+                                    p1_up = true;
+                                else
+                                    p1_down = true;
+                                end                               
                             case 'GP:West'
-                                p1_down = true;
+                                if testFirst
+                                    p1_down = true;
+                                else
+                                    p1_up = true;
+                                end  
                         end
                         waitingForResponse = false;
                         break;
                     end
                 end
+                
+                % Display neutral light (either isi or iti, depending on
+                % where we are)
+                nowTime = mglGetSecs;
+                while(mglGetSecs < nowTime+waitTimes(mod(innerLoopCounter,2)+1))
+                    ol.setMirrors(whiteStarts,whiteStops);
+                end 
             end
             
         else   % Forced choice case
-            % Show the two lights, pausing on the long one 
-            for i = 1:3
+            % Show the two lights
+            for i = 1:2
                 nowTime = mglGetSecs;
                 innerLoopCounter = innerLoopCounter+1;
-                while(mglGetSecs < nowTime+intervals(mod(innerLoopCounter,2)+1))  % Flicker while waiting for response
+                while(mglGetSecs < nowTime+stimInterval)  % Flicker while waiting for response
                     ol.setMirrors(starts{mod(innerLoopCounter,2)+1},stops{mod(innerLoopCounter,2)+1});
-                end 
+                end
+                % Display neutral light for short interval 
+                nowTime = mglGetSecs;
+                while(mglGetSecs < nowTime+isInterval)
+                    ol.setMirrors(whiteStarts,whiteStops);
+                end
             end
             innerLoopCounter = 1;
             
             % Prompt for R/G decision
-            if testFirst
-                Speak('Short Redness?');
-            else
-                Speak('Long Redness?');
-            end
+            Speak('Second Redness?')
             while(waitingForResponse)
                 nowTime = mglGetSecs;
                 innerLoopCounter = innerLoopCounter+1;
-                while(mglGetSecs < nowTime+intervals(mod(innerLoopCounter,2)+1))  % Flicker while waiting for response
+                while(mglGetSecs < nowTime+stimInterval)  % Flicker while waiting for response
                     ol.setMirrors(starts{mod(innerLoopCounter,2)+1},stops{mod(innerLoopCounter,2)+1});
                     key = gamePad.getKeyEvent();
                     if (~isempty(key))
                         switch(key.charCode)
                             case 'GP:East'
-                                p1_up = true;
+                                if testFirst
+                                    p1_down = true;
+                                else
+                                    p1_up = true;
+                                end
                                 waitingForResponse = false;
                                 break;
                             case 'GP:West'
-                                p1_down = true;
+                                if testFirst
+                                    p1_up = true;
+                                else
+                                    p1_down = true;
+                                end
                                 waitingForResponse = false;
                                 break;
                             case 'GP:A' % Force quit
@@ -621,6 +671,11 @@ while(stillLooping)
                         end
                     end
                 end
+                % Show neutral light
+                nowTime = mglGetSecs;
+                while(mglGetSecs < nowTime+waitTimes(mod(innerLoopCounter,2)+1))
+                    ol.setMirrors(whiteStarts,whiteStops);
+                end
             end
             if ~silent
                 Snd('Play',sin(0:5000)/100);
@@ -628,26 +683,30 @@ while(stillLooping)
             innerLoopCounter = 1;
             
             % Prompt for ref decision
-            if testFirst
-                Speak('Long Brightness?');
-            else
-                Speak('Short Brightness?');
-            end
+            Speak('Second Brightness?');
             waitingForResponse = true;
             while(waitingForResponse)
                 nowTime = mglGetSecs;
                 innerLoopCounter = innerLoopCounter+1;
-                while(mglGetSecs < nowTime+intervals(mod(innerLoopCounter,2)+1))  % Flicker while waiting for response
+                while(mglGetSecs < nowTime+stimInterval)  % Flicker while waiting for response
                     ol.setMirrors(starts{mod(innerLoopCounter,2)+1},stops{mod(innerLoopCounter,2)+1});
                     key = gamePad.getKeyEvent();
                     if (~isempty(key))
                         switch(key.charCode)
                             case 'GP:North'
-                                t_up = true;
+                                if testFirst
+                                    t_up = true;
+                                else 
+                                    t_down = true;
+                                end 
                                 waitingForResponse = false;
                                 break;
                             case 'GP:South'
-                                t_down = true;
+                                if testFirst
+                                    t_down = true;
+                                else 
+                                    t_up = true;
+                                end 
                                 waitingForResponse = false;
                                 break;
                             case 'GP:A'  % Force quit
@@ -658,6 +717,10 @@ while(stillLooping)
                                 Speak('Invalid key');
                         end
                     end
+                end
+                nowTime = mglGetSecs;
+                while(mglGetSecs < nowTime+waitTimes(mod(innerLoopCounter,2)+1))
+                    ol.setMirrors(whiteStarts,whiteStops);
                 end
             end
         end
@@ -860,7 +923,7 @@ while(stillLooping)
             'testSpdsNominal','testSpdsPredicted',...
             'primaryStartStops','testStartStops',...
             'subjectID','allowedLambdaInds','allowedTIInds',...
-            'sessionNum','annulusData','sInterval','lInterval',...
+            'sessionNum','annulusData','isInterval','stimInterval',...
             'adjustmentLength','fieldSize','simNominalLights',...
             'nReversals','observer',...
             'p1Scale','p2Scale','testScale','lightFileName',...
