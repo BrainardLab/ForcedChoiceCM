@@ -143,6 +143,8 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %    'pairStepSizes'        -Logical. If true, adjusts primary and test
 %                            step sizes together instead of separately. 
 %                            Default is false.
+%    'whiteScaleFactor'     -Scale factor for the neutral (white) light,
+%                            between 0 and 1. Default is 0.001.
 
 % History:
 %   xx/xx/19  dce       Wrote it.
@@ -221,6 +223,7 @@ p.addParameter('lambdaRef',[],@(x)(isnumeric(x)));
 p.addParameter('stimLimits',[],@(x)(isnumeric(x)));
 p.addParameter('testFirst',false,@(x)(islogical(x)));
 p.addParameter('pairStepSizes',false,@(x)(islogical(x)));
+p.addParameter('whiteScaleFactor',0.001,@(x)(isnumeric(x)));
 p.parse(varargin{:});
 
 p1 = p.Results.p1;
@@ -255,6 +258,7 @@ stimLimits = p.Results.stimLimits;
 lambdaRef = p.Results.lambdaRef;
 testFirst = p.Results.testFirst;
 pairStepSizes = p.Results.pairStepSizes;
+whiteScaleFactor = p.Results.whiteScaleFactor;
 
 % Input error checking
 if (length(nReversals)~=2)
@@ -331,7 +335,6 @@ else  % Monochromatic matching
 end
 
 %% Define neutral light 
-whiteScaleFactor = 0.001;
 whitePrimary = whiteScaleFactor * ones(size(lightSettings.cal.computed.pr650M,2),1);
 [whiteStarts, whiteStops] = OLSettingsToStartsStops(lightSettings.cal,OLPrimaryToSettings(lightSettings.cal,whitePrimary));
 

@@ -57,6 +57,10 @@ function [fNames,testIntensities,primaryRatios] = ...
 %                         test wavelengths.
 %    'adjustmentLength'  -Integer defining the size of the lights array
 %                         available for OLRayleighMatch. Default is 201.
+%    'isInterval'        - Interstimulus interval in s. Default is 0.1.
+%    'itInterval'        - Intertrial interval in s. Default is 1.
+%    'stimInterval'      - length of time that each stimulus is shown for, in 
+%                          s. Default is 0.5. 
 %    'nObserverMatches'  -Number of matches to simulate for each set of
 %                         lights. Default is 1.
 %    'nReversals'        -Number of reversals the observer must make before
@@ -81,6 +85,8 @@ function [fNames,testIntensities,primaryRatios] = ...
 %    'pairStepSizes'        -Logical. If true, adjusts primary and test
 %                            step sizes together instead of separately. 
 %                            Default is false.
+%    'whiteScaleFactor'     -Scale factor for the neutral (white) light,
+%                            between 0 and 1. Default is 0.001.
 
 % History:
 %   02/10/21   dce   - Wrote it, adapted from getMatchSeries and
@@ -91,10 +97,11 @@ function [fNames,testIntensities,primaryRatios] = ...
 %   03/09/21   dce   - Edited input to reflect changes in OLRayleighMatch
 %   03/15/21   dce   - Began counterbalancing light order, added option to
 %                      pair step size adjustments
+%   03/25/21   dce   - Added interval key-value pairs
 
 %{
 Examples:
-getMatchSeriesLive('DHB_Match_Spot1',1,670,560,[590],'nObserverMatches',1,'fieldSize',10,'adjustment',true,'nReversals',[1 2],'p1Scale',[1],'p2Scale',[0.02],'testScale',[0.1],'rayleighPlots',true,'pairStepSizes',true,'age',60)
+getMatchSeriesLive('DHB_Match_Spot1',1,670,560,[590],'nObserverMatches',1,'fieldSize',10,'adjustment',true,'nReversals',[1 2],'p1Scale',[1],'p2Scale',[0.02],'testScale',[0.1],'rayleighPlots',true,'pairStepSizes',true,'age',60,'isInterval',0,'itInterval',1,'stimInterval',0.5,'whiteScaleFactor',0.001)
 %}
 
 % Input parsing
@@ -106,6 +113,9 @@ p.addParameter('p1Scale',1,@(x)(isnumeric(x)));
 p.addParameter('p2Scale',0.02,@(x)(isnumeric(x)));
 p.addParameter('testScale',0.1,@(x)(isnumeric(x)));
 p.addParameter('adjustmentLength',201,@(x)(isnumeric(x)));
+p.addParameter('isInterval',0.1,@(x)(isnumeric(x)));
+p.addParameter('itInterval',1,@(x)(isnumeric(x)));
+p.addParameter('stimInterval',0.5,@(x)(isnumeric(x)));
 p.addParameter('nObserverMatches',1,@(x)(isnumeric(x)));
 p.addParameter('nReversals',[1 4],@(x)(isnumeric(x)));
 p.addParameter('rayleighPlots',true,@(x)(islogical(x)));
@@ -113,6 +123,7 @@ p.addParameter('stimLimits',[],@(x)(isnumeric(x)));
 p.addParameter('resetAnnulus',false,@(x)(islogical(x)));
 p.addParameter('adjustment',false,@(x)(islogical(x)));
 p.addParameter('pairStepSizes',false,@(x)(islogical(x)));
+p.addParameter('whiteScaleFactor',0.001,@(x)(isnumeric(x)));
 p.parse(varargin{:});
 
 age = p.Results.age;
@@ -203,7 +214,9 @@ for i = 1:nCombos
         'resetAnnulus',resetAnnulus,'silent',false,...
         'adjustment',p.Results.adjustment,'testFirst',refFirst,...
         'pairStepSizes',p.Results.pairStepSizes, ...
-        'sInterval',0.25);
+        'isInterval',p.Results.isInterval,'itInterval',...
+        p.Results.itInterval,'stimInterval',p.Results.stimInterval,...
+        'whiteScaleFactor',p.Results.whiteScaleFactor);
     
     % Extract match position data
     [~,~,testIntensities(i),primaryRatios(i)] =...
