@@ -118,16 +118,6 @@ for i = 1:length(sessionNums)
     % Add session data to collected data
     sessionData = load(outputFile);
     
-    % Manually-entered parameters (which are now saved by program)
-%     sessionData.age = 22;
-%     sessionData.testWls = [590 620];
-%     sessionData.fieldSize = 2;
-%     sessionData.adjustmentLength = 201;
-%     sessionData.opponentParams = [40.3908  205.7353   62.9590    1.0000];
-%     sessionData.p1Scale = [1 1 1 1];
-%     sessionData.p2Scale = 0.2*[1 1 1 1];
-%     sessionData.testScale = 0.2*[1 1 1 1];
-    
     lightCombos = [lightCombos;sessionData.lightCombosFull];
     primaryRatios = [primaryRatios;sessionData.primaryRatios'];
     refIntensities = [refIntensities;sessionData.testIntensities'];   
@@ -159,9 +149,9 @@ for i = 1:length(sessionNums)
     
     % Manually-entered parameters which are now saved by my match sequence
     % programs
-%     cal = OLGetCalibrationStructure('CalibrationType',getpref('ForcedChoiceCM','currentCal'));
-%     [~,c] = size(cal.computed.pr650M);
-%     radiometerData.darkSpd = OLPrimaryToSpd(cal,zeros(c,1));
+    cal = OLGetCalibrationStructure('CalibrationType',getpref('ForcedChoiceCM','currentCal'));
+    [~,c] = size(cal.computed.pr650M);
+    radiometerData.darkSpd = OLPrimaryToSpd(cal,zeros(c,1));
     
     measPrimarySpds = [measPrimarySpds,radiometerData.measuredPrimarySpds'];
     measRefSpds = [measRefSpds,radiometerData.measuredTestSpds'];
@@ -296,7 +286,7 @@ end
 pittPlot = figure();
 hold on;
 xlabel('Primary Ratio');
-ylabel('Test Intensity');
+ylabel('Reference Intensity');
 plot(primaryRatios.*commonP1ScaleFactors,refIntensities.*commonRefScaleFactors,...
     'bs ','MarkerFaceColor','b','MarkerSize',5);
 plot(radiometerPrimaryRatios,radiometerRefIntensities,...
@@ -319,14 +309,13 @@ NicePlot.exportFigToPDF([resFile '_pittPlot.pdf'],...
 % We simulate using both recovered cone parameters and standard cone
 % parameters
 % Results are plotted in a separate Pitt diagram 
-
-% Define output arrays 
     
 % Find the number of times each match was repeated.
 % We assume an equal number of trials were done for each match, and an
 % equal number of trials were done in each session.
 nRepeats = length(sessionNums)*length(sessionData.primaryRatios)/nMatchWls;
 
+% Define output arrays 
 refIntensitiesSim = zeros(nRepeats*nMatchWls,4);
 primaryRatiosSim = zeros(nRepeats*nMatchWls,4);
 refIntensitiesSimStd = zeros(nRepeats*nMatchWls,4);
