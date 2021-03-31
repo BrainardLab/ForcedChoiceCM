@@ -640,7 +640,7 @@ while(stillLooping)
             innerLoopCounter = 0;
             
             % Prompt for R/G decision
-            Speak('Second Redness?')
+            Speak('Redness?')
             while(waitingForResponse)
                 nowTime = mglGetSecs;
                 innerLoopCounter = innerLoopCounter+1;
@@ -685,7 +685,7 @@ while(stillLooping)
             innerLoopCounter = 0;
             
             % Prompt for ref decision
-            Speak('Second Brightness?');
+            Speak('Brightness?');
             waitingForResponse = true;
             while(waitingForResponse)
                 nowTime = mglGetSecs;
