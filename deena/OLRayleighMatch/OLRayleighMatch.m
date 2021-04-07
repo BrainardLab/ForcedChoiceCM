@@ -137,9 +137,8 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %                            intensity].Each element must be between 0 and
 %                            1. Default is [].
 %    'refFirst'             -Logical. If true, displays the test light
-%                            before the primary mixture (and for a longer
-%                            period of time, instead of the other way
-%                            around. Default is false. 
+%                            before the primary mixture, instead of the 
+%                            other way around. Default is false. 
 %    'pairStepSizes'        -Logical. If true, adjusts primary and test
 %                            step sizes together instead of separately. 
 %                            Default is false.
@@ -184,7 +183,7 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %                       decisions
 %   03/15/20  dce       Edited for style, added two new key-value pairs
 %   03/25/20  dce       Changed keypress meanings, added white light
-
+%   04/07/20  dce       Changed step size reduction rule
 
 %% Close any stray figures
 close all;
@@ -466,7 +465,6 @@ while(stillLooping)
     t_up = false;
     t_down = false;
     displayLoopCounter = displayLoopCounter + 1;
-    
      
     % Setup if it's a new match
     if firstAdjustment
@@ -797,9 +795,12 @@ while(stillLooping)
         end
         
         % If step sizes are locked to only be adjusted together, modify 
-        % accordingly
+        % accordingly. The current rule changes both step sizes if both
+        % primary ratio and test intensity have undergone enough reversals
+        % to reduce the step size, and one of the two is directed to adjust
         if pairStepSizes
-            switchPStepSize = (switchPStepSize && switchTStepSize);
+            switchPStepSize = ((switchPStepSize || switchTStepSize)&&...
+                nReversalsP >= nReversals(1) && nReversalsT >= nReversals(1));
             switchTStepSize = switchPStepSize;
         end 
     end
@@ -934,7 +935,8 @@ while(stillLooping)
             'p1Scales','testScales','observerParams',...
             'opponentParams','nObserverMatches','pIdealIndex',...
             'tIdealIndex','idealTestSpd','idealPrimarySpd',....
-            'idealTestIntensity','idealPRatio','monochromatic','S');
+            'idealTestIntensity','idealPRatio','monochromatic','S',...
+            'pairStepSizes');
         stillLooping = false;
         break;
     end

@@ -2,7 +2,7 @@ function OLRadiometerMatchesPlayback(subjID,sessionNum,matchFiles,varargin)
 % Play back OneLight Rayleigh matches and measure with radiometer
 %
 % Syntax:
-%   OLRayleighMatch(matchFile)
+%   OLRadiometerMatchesPlayback(subjID,sessionNum,matchFiles)
 %
 % Description
 %    Takes in a cell array of files storing data on a user's Rayleigh 

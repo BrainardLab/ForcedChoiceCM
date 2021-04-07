@@ -181,7 +181,7 @@ primaryRatios = zeros(1,nCombos);
 % Calculate Rayleigh matches for each of the light combinations
 refFirst = round(rand(1)); % Choose randomly which light we present first on the first match 
 for i = 1:nCombos
-    refFirst = ~refFirst;   % Light order alternates on each tria
+    refFirst = ~refFirst;   % Light order alternates on each trial
     % Store OneLight data filename
     fNames{i} = fullfile(outputDir,[subjID,'_',num2str(sessionNum),...
         '_',num2str(i),'.mat']);
