@@ -44,7 +44,9 @@ theAxesGrid = plotlab.axesGrid(coneRecoveryPlotNoiseless, ...
 % Plot results
 set(gcf,'CurrentAxes',theAxesGrid{1,1});
 axis(theAxesGrid{1,1}, 'square');
-plot(wls,standardObs.T_cones(1,:),wls,lambdaMaxObs.T_cones(1,:));
+hold on;
+plot(wls,standardObs.T_cones(1,:),'g','LineWidth',6)
+plot(wls,lambdaMaxObs.T_cones(1,:),'b','LineWidth',4);
 theTitle = sprintf('L cone Lambda Max Shift: %g nm',coneParamSds(6)*2);
 title(theTitle);
 lgd = legend('Standard', 'Shifted','FontSize',12);
@@ -54,7 +56,9 @@ ylabel('Sensitivity');
 
 set(gcf,'CurrentAxes',theAxesGrid{1,2});
 axis(theAxesGrid{1,2}, 'square');
-plot(wls,standardObs.T_cones(1,:),wls,odObs.T_cones(1,:));
+hold on;
+plot(wls,standardObs.T_cones(1,:),'g','LineWidth',6)
+plot(wls,odObs.T_cones(1,:),'b','LineWidth',4);
 theTitle = sprintf('L cone Optical Density Shift: %g%%',coneParamSds(3)*2);
 title(theTitle);
 lgd = legend('Standard', 'Shifted','FontSize',12);
@@ -64,14 +68,16 @@ ylabel('Sensitivity');
 
 set(gcf,'CurrentAxes',theAxesGrid{2,1});
 axis(theAxesGrid{2,1}, 'square');
-plot(wls,lambdaMaxObs.T_cones(1,:)-standardObs.T_cones(1,:));
+hold on;
+plot(wls,lambdaMaxObs.T_cones(1,:)-standardObs.T_cones(1,:),'LineWidth',3);
 xlabel('Wavelength (nm)');
 ylabel('Shifted Cone - Standard Cone');
 ylim([-0.06 0.06]);
 
 set(gcf,'CurrentAxes',theAxesGrid{2,2});
 axis(theAxesGrid{2,2}, 'square');
-plot(wls,odObs.T_cones(1,:)-standardObs.T_cones(1,:));
+hold on;
+plot(wls,odObs.T_cones(1,:)-standardObs.T_cones(1,:),'LineWidth',3);
 xlabel('Wavelength (nm)');
 ylabel('Shifted Cone - Standard Cone');
 ylim([-0.06 0.06]);
@@ -263,9 +269,9 @@ theAxesGrid = plotlab.axesGrid(coneRecoveryPlotNoisy, ...
 set(gcf,'CurrentAxes',theAxesGrid{1,1});
 axis(theAxesGrid{1,1}, 'square');
 hold on;
-plot(wls,standardObs.T_cones(1,:),'g','LineWidth',4);
-plot(wls,lambdaMaxObs.T_cones(1,:),'b','LineWidth',2.5);
-plot(wls,lambdaMaxObsRec.T_cones(1,:),'r','LineWidth',1);
+plot(wls,standardObs.T_cones(1,:),'g','LineWidth',6);
+plot(wls,lambdaMaxObs.T_cones(1,:),'b','LineWidth',4);
+plot(wls,lambdaMaxObsRec.T_cones(1,:),'r','LineWidth',1.75);
 theTitle = sprintf('L Lambda Max Shift: %g nm',coneParamSds(6)*2);
 title(theTitle);
 lgd = legend('Standard', 'Simulated', 'Recovered');
@@ -276,9 +282,9 @@ ylabel('Sensitivity');
 set(gcf,'CurrentAxes',theAxesGrid{1,2});
 axis(theAxesGrid{1,2}, 'square');
 hold on;
-plot(wls,standardObs.T_cones(1,:),'g','LineWidth',4);
-plot(wls,odObs.T_cones(1,:),'b','LineWidth',2.5);
-plot(wls,odObsRec.T_cones(1,:),'r','LineWidth',1);
+plot(wls,standardObs.T_cones(1,:),'g','LineWidth',6);
+plot(wls,odObs.T_cones(1,:),'b','LineWidth',4);
+plot(wls,odObsRec.T_cones(1,:),'r','LineWidth',1.75);
 theTitle = sprintf('L Optical Density Shift: %g%%',coneParamSds(3)*2);
 title(theTitle);
 lgd = legend('Standard', 'Simulated', 'Recovered');
@@ -327,9 +333,9 @@ resFile = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
 coneShiftData = load(resFile);
 recoveredParams = coneShiftData.recoveredParams;
 
-odObsRec = genRayleighObserver('coneVec',recoveredParams(1,:),'S',S,...
+odObsRecNoisy = genRayleighObserver('coneVec',recoveredParams(1,:),'S',S,...
     'opponentParams',opponentParams);
-lambdaMaxObsRec = genRayleighObserver('coneVec',recoveredParams(2,:),'S',S,...
+lambdaMaxObsRecNoisy = genRayleighObserver('coneVec',recoveredParams(2,:),'S',S,...
     'opponentParams',opponentParams);
 
 % Set up figure and subplots
@@ -345,9 +351,9 @@ theAxesGrid = plotlab.axesGrid(coneRecoveryPlotNoiseless, ...
 set(gcf,'CurrentAxes',theAxesGrid{1,1});
 axis(theAxesGrid{1,1}, 'square');
 hold on;
-plot(wls,standardObs.T_cones(1,:),'g','LineWidth',4);
-plot(wls,lambdaMaxObs.T_cones(1,:),'b','LineWidth',2.5);
-plot(wls,lambdaMaxObsRec.T_cones(1,:),'r','LineWidth',1);
+plot(wls,standardObs.T_cones(1,:),'g','LineWidth',6);
+plot(wls,lambdaMaxObs.T_cones(1,:),'b','LineWidth',4);
+plot(wls,lambdaMaxObsRecNoisy.T_cones(1,:),'r','LineWidth',1.75);
 theTitle = sprintf('L Lambda Max Shift: %g nm',coneParamSds(6)*2);
 title(theTitle);
 lgd = legend('Standard', 'Simulated', 'Recovered');
@@ -358,9 +364,9 @@ ylabel('Sensitivity');
 set(gcf,'CurrentAxes',theAxesGrid{1,2});
 axis(theAxesGrid{1,2}, 'square');
 hold on;
-plot(wls,standardObs.T_cones(1,:),'g','LineWidth',4);
-plot(wls,odObs.T_cones(1,:),'b','LineWidth',2.5);
-plot(wls,odObsRec.T_cones(1,:),'r','LineWidth',1);
+plot(wls,standardObs.T_cones(1,:),'g','LineWidth',6);
+plot(wls,odObs.T_cones(1,:),'b','LineWidth',4);
+plot(wls,odObsRecNoisy.T_cones(1,:),'r','LineWidth',1.75);
 theTitle = sprintf('L Optical Density Shift: %g%%',coneParamSds(3)*2);
 title(theTitle);
 lgd = legend('Standard', 'Simulated', 'Recovered');
@@ -372,22 +378,26 @@ set(gcf,'CurrentAxes',theAxesGrid{2,1});
 axis(theAxesGrid{2,1}, 'square');
 hold on;
 plot(wls,lambdaMaxObs.T_cones(1,:)-standardObs.T_cones(1,:),'g','LineWidth',3)
-plot(wls,lambdaMaxObs.T_cones(1,:)-lambdaMaxObsRec.T_cones(1,:),'r','LineWidth',3);
+plot(wls,lambdaMaxObs.T_cones(1,:)-lambdaMaxObsRec.T_cones(1,:),'b','LineWidth',3);
+plot(wls,lambdaMaxObs.T_cones(1,:)-lambdaMaxObsRecNoisy.T_cones(1,:),'r','LineWidth',3);
 xlabel('Wavelength (nm)');
 ylabel('Sensitivity Difference');
 title('L Sensitivity Difference');
-lgd = legend('Simulated - Standard', 'Simulated - Recovered','Location','south');
+lgd = legend('Simulated - Standard', 'Simulated - Recovered (Noiseless)',...
+    'Simulated - Recovered (Noisy)','Location','south');
 ylim([-0.085 0.085]);
 
 set(gcf,'CurrentAxes',theAxesGrid{2,2});
 axis(theAxesGrid{2,2}, 'square');
 hold on;
 plot(wls,odObs.T_cones(1,:)-standardObs.T_cones(1,:),'g','LineWidth',3);
-plot(wls,odObs.T_cones(1,:)-odObsRec.T_cones(1,:),'r','LineWidth',3);
+plot(wls,odObs.T_cones(1,:)-odObsRec.T_cones(1,:),'b','LineWidth',3);
+plot(wls,odObs.T_cones(1,:)-odObsRecNoisy.T_cones(1,:),'r','LineWidth',3);
 xlabel('Wavelength (nm)');
 ylabel('Sensitivity Difference');
 title('L Sensitivity Difference');
-lgd = legend('Simulated - Standard', 'Simulated - Recovered','Location','south');
+lgd = legend('Simulated - Standard', 'Simulated - Recovered (Noiseless)',...
+    'Simulated - Recovered (Noisy)','Location','south');
 ylim([-0.085 0.085]);
 
 sgtitle('Cone Recovery: Noise Sd = 4','FontSize',18);
@@ -507,7 +517,7 @@ for i = 1:5
     title(theTitle);
     refline(1,0);
     l1 = plot(noisyData{i}.sampledParams(:,3),noisyData{i}.recoveredParams(:,3),...
-        '. ','MarkerEdgeColor','Yellow');
+        '. ','MarkerEdgeColor','Green');
     l2 = plot(noisyData{i}.sampledParams(:,4),noisyData{i}.recoveredParams(:,4),...
         '. ','MarkerEdgeColor','Blue');
     legend([l1 l2],'L','M','Location','southeast');
@@ -524,7 +534,7 @@ for i = 1:5
     title(theTitle);
     refline(1,0);
     l1 = plot(noisyData{i}.sampledParams(:,6),noisyData{i}.recoveredParams(:,6),...
-        '. ','MarkerEdgeColor','Yellow');
+        '. ','MarkerEdgeColor','Green');
     l2 = plot(noisyData{i}.sampledParams(:,7),noisyData{i}.recoveredParams(:,7),...
         '. ','MarkerEdgeColor','Blue');
     legend([l1 l2],'L','M','Location','southeast');
@@ -597,7 +607,7 @@ for i = 1:4
     title(theTitle);
     refline(1,0);
     l1 = plot(nMatchData{i}.sampledParams(:,3),nMatchData{i}.recoveredParams(:,3),...
-        '. ','MarkerEdgeColor','Yellow');
+        '. ','MarkerEdgeColor','Green');
     l2 = plot(nMatchData{i}.sampledParams(:,4),nMatchData{i}.recoveredParams(:,4),...
         '. ','MarkerEdgeColor','Blue');
     legend([l1 l2],'L','M','Location','southeast');
@@ -614,13 +624,13 @@ for i = 1:4
     title(theTitle);
     refline(1,0);
     l1 = plot(nMatchData{i}.sampledParams(:,6),nMatchData{i}.recoveredParams(:,6),...
-        '. ','MarkerEdgeColor','Yellow');
+        '. ','MarkerEdgeColor','Green');
     l2 = plot(nMatchData{i}.sampledParams(:,7),nMatchData{i}.recoveredParams(:,7),...
         '. ','MarkerEdgeColor','Blue');
     legend([l1 l2],'L','M','Location','southeast');
 end 
 figure(11);
-sgtitle('Optical Density Recovered vs Simulated: Vary Number of Matches','FontSize',18);
+sgtitle('Optical Density Recovery: Vary Number of Matches (Noise SD = 3)','FontSize',18,'Interpreter','none');
 
 figure(12);
-sgtitle('Lambda Max Recovered vs Simulated: Vary Number of Matches','FontSize',18);
+sgtitle('Lambda Max Recovery: Vary Number of Matches (Noise SD = 3)','FontSize',18,'Interpreter','none');

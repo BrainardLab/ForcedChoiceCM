@@ -144,6 +144,11 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %                            Default is false.
 %    'whiteScaleFactor'     -Scale factor for the neutral (white) light,
 %                            between 0 and 1. Default is 0.001.
+%    'outerFilename'        -Character vector name for an optional extra
+%                            layer of hierarchy in the file saving tree 
+%                            (immediately before subject ID). If empty, the
+%                            extra level of hierarchy is not included.
+%                            Default is [].
 
 % History:
 %   xx/xx/19  dce       Wrote it.
@@ -223,6 +228,7 @@ p.addParameter('stimLimits',[],@(x)(isnumeric(x)));
 p.addParameter('testFirst',false,@(x)(islogical(x)));
 p.addParameter('pairStepSizes',false,@(x)(islogical(x)));
 p.addParameter('whiteScaleFactor',0.001,@(x)(isnumeric(x)));
+p.addParameter('outerFileName',[],@(x)(ischar(x)));
 p.parse(varargin{:});
 
 p1 = p.Results.p1;
@@ -276,7 +282,8 @@ end
 %% Set up directory for saving results
 % Create directory named subjectID for saving data, if it doesn't exist
 outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
-    'matchFiles',subjectID);
+    'matchFiles',p.Results.outerFileName,subjectID);
+
 if (~exist(outputDir,'dir'))
     mkdir(outputDir);
 end
@@ -305,7 +312,7 @@ if ~monochromatic  % Matching using OL primaries
     end
     % Save some variables locally
     lightSettings = load(lightFileName);
-    calName = lightSettings.cal.describe.calType;
+    calName = lightSettings.cal.describe.calID;
     primarySpdsNominal = lightSettings.primarySpdsNominal;
     primarySpdsPredicted = lightSettings.primarySpdsPredicted;
     testSpdsNominal = lightSettings.testSpdsNominal;

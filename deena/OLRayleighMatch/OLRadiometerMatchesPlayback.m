@@ -35,7 +35,7 @@ p.parse(varargin{:});
 
 %% Set up output file for saving results
 outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
-    'matchFiles',[subjID '_' num2str(sessionNum)]);
+    'matchFiles',subjID,[subjID '_' num2str(sessionNum)]);
 if ~exist(outputDir,'dir')
     error('Match data not found for specified subject');
 end

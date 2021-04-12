@@ -170,7 +170,7 @@ end
 
 % Set up subject directory
 outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
-    'matchFiles',[subjID '_' num2str(sessionNum)]);
+    'matchFiles',subjID,[subjID '_' num2str(sessionNum)]);
 outputFile = fullfile(outputDir,[subjID '_' num2str(sessionNum) '_summary.mat']);
 fNames = cell(1,nCombos);
 
@@ -216,7 +216,7 @@ for i = 1:nCombos
         'pairStepSizes',p.Results.pairStepSizes, ...
         'isInterval',p.Results.isInterval,'itInterval',...
         p.Results.itInterval,'stimInterval',p.Results.stimInterval,...
-        'whiteScaleFactor',p.Results.whiteScaleFactor);
+        'whiteScaleFactor',p.Results.whiteScaleFactor,'outerFileName',subjID);
     
     % Extract match position data
     [~,~,testIntensities(i),primaryRatios(i)] =...
