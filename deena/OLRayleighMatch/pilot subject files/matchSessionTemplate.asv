@@ -2,8 +2,8 @@
 
 %% To run once
 % Subject information 
-subjID = 'test';  % Correct as needed (MELA ID)
-age = 32;         % Correct as needed
+subjID = 'MELA_3045';  % Correct as needed (MELA ID)
+age = 60;              % Correct as needed
 
 % Experimental parameters
 nMatchesPerSession = 2; 
@@ -35,9 +35,6 @@ shuffledRefScalars2 = refScalars(rand2);
 % Save settings data 
 outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
     'matchFiles',subjID);
-if ~exist(outputDir,'dir')
-    mkdir(outputDir);
-end 
 outputFile = fullfile(outputDir,[subjID '_expSettings.mat']);
 save(outputFile,'refWls','p2Scalars','refScalars','shuffledWls1','shuffledWls2',...
    'shuffledP2Scalars1','shuffledP2Scalars2','shuffledRefScalars1',...
@@ -45,8 +42,6 @@ save(outputFile,'refWls','p2Scalars','refScalars','shuffledWls1','shuffledWls2',
    'p1','p2','isInterval','itInterval','stimInterval','whiteScaleFactor','pairStepSizes');
 
 %% To run each time you come in (before testing)
-clear; 
-close all;
 subjID = 'test';  % Correct as needed (MELA ID)
 
 % Load settings data 
@@ -59,14 +54,15 @@ fNames = {};           % Data filenames
 trialSessionNums = []; % Session numbers of individual trials tested in this session
 
 %% To run each time you come in (after testing) 
+% Record which wavelengths were tested in this session
+sessionNums = [sessionNums,sessionNum]; 
+wlsTested{end+1}{1} = wlsTestedSession;
+
 % Radiometer measurements 
 for i = 1:length(trialSessionNums)
     OLRadiometerMatchesPlayback(subjID,trialSessionNums(i),fNames{i},'measWhite',...
         true)
 end 
-% Close up 
-ol = OneLight();
-ol.shutdown;
 
 %% Session 1 
 % First ref wavelength 

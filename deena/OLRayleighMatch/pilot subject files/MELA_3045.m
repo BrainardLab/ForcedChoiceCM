@@ -2,8 +2,8 @@
 
 %% To run once
 % Subject information 
-subjID = 'test';  % Correct as needed (MELA ID)
-age = 32;         % Correct as needed
+subjID = 'MELA_3045';  % Correct as needed (MELA ID)
+age = 32;              % Correct as needed
 
 % Experimental parameters
 nMatchesPerSession = 2; 
@@ -47,7 +47,7 @@ save(outputFile,'refWls','p2Scalars','refScalars','shuffledWls1','shuffledWls2',
 %% To run each time you come in (before testing)
 clear; 
 close all;
-subjID = 'test';  % Correct as needed (MELA ID)
+subjID = 'MELA_3045'; 
 
 % Load settings data 
 outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
@@ -225,4 +225,3 @@ trialSessionNum = 26;
     'stimInterval',settings.stimInterval,'whiteScaleFactor',settings.whiteScaleFactor);
 fNames{end+1} = trialFNames;
 trialSessionNums(end+1) = trialSessionNum;
-
