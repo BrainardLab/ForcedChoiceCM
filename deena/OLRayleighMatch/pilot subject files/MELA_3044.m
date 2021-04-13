@@ -19,7 +19,7 @@ pairStepSizes = true;
 
 % Wavelength information 
 refWls = [570 584 598 612 626 640];
-p2Scalars = [0.02 0.02 0.02 0.02 0.0004 0.004];
+p2Scalars = [0.02 0.02 0.02 0.02 0.004 0.004];
 refScalars = [0.1 0.1 0.1 0.1 0.1 0.25];
 
 % Shuffle wavelength order
@@ -32,22 +32,23 @@ shuffledP2Scalars2 = p2Scalars(rand2);
 shuffledRefScalars1 = refScalars(rand1);
 shuffledRefScalars2 = refScalars(rand2);
 
-% Parameters for tracking progression 
-sessionNums = [];   % How many sessions has the subject come in for?
-wlsTested = {};     % Which wavelengths have been tested?
-
 % Save settings data 
 outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
     'matchFiles',subjID);
+if ~exist(outputDir,'dir')
+    mkdir(outputDir);
+end 
 outputFile = fullfile(outputDir,[subjID '_expSettings.mat']);
 save(outputFile,'refWls','p2Scalars','refScalars','shuffledWls1','shuffledWls2',...
    'shuffledP2Scalars1','shuffledP2Scalars2','shuffledRefScalars1',...
    'shuffledRefScalars2','age','fieldSize','nMatchesPerSession','nReversals',...
-   'p1','p2','isInterval','itInterval','stimInterval','whiteScaleFactor','pairStepSizes');
+   'p1','p2','isInterval','itInterval','stimInterval','whiteScaleFactor','pairStepSizes',...
+   'sessionNums','wlsTested');
 
 %% To run each time you come in (before testing)
+clear;
+close all;
 subjID = 'MELA_3044';  % Correct as needed (MELA ID)
-sessionNum = 1;        % Reset with what number session this is for you 
 
 % Load settings data 
 outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
@@ -57,21 +58,19 @@ settings = load(outputFile);
 
 fNames = {};           % Data filenames
 trialSessionNums = []; % Session numbers of individual trials tested in this session
-wlsTestedSession = [];        % Wavelengths tested during this session
 
 %% To run each time you come in (after testing) 
-% Record which wavelengths were tested in this session
-sessionNums = [sessionNums,sessionNum]; 
-wlsTested{end+1}{1} = wlsTestedSession;
-
 % Radiometer measurements 
 for i = 1:length(trialSessionNums)
     OLRadiometerMatchesPlayback(subjID,trialSessionNums(i),fNames{i},'measWhite',...
         true)
 end 
+% Close up 
+ol = OneLight();
+ol.shutdown;
 
 %% Session 1 
-% First ref wavelength 
+% First ref wavelength-Done 4/13
 trialSessionNum = 11;  
 [trialFNames, ~, ~] = getMatchSeriesLive(subjID,trialSessionNum,settings.p1,...
     settings.p2,settings.shuffledWls1(1),'nObserverMatches',...
@@ -84,7 +83,7 @@ trialSessionNum = 11;
 fNames{end+1} = trialFNames;
 trialSessionNums(end+1) = trialSessionNum;
 
-% Second ref wavelength 
+% Second ref wavelength-Done 4/13
 trialSessionNum = 12;  
 [trialFNames, ~, ~] = getMatchSeriesLive(subjID,trialSessionNum,settings.p1,...
     settings.p2,settings.shuffledWls1(2),'nObserverMatches',...
@@ -97,7 +96,7 @@ trialSessionNum = 12;
 fNames{end+1} = trialFNames;
 trialSessionNums(end+1) = trialSessionNum;
 
-% Third ref wavelength 
+% Third ref wavelength-Done 4/13
 trialSessionNum = 13;  
 [trialFNames, ~, ~] = getMatchSeriesLive(subjID,trialSessionNum,settings.p1,...
     settings.p2,settings.shuffledWls1(3),'nObserverMatches',...
