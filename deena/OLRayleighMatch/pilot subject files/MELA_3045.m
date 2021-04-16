@@ -3,7 +3,7 @@
 %% To run once
 % Subject information 
 subjID = 'MELA_3045';  % Correct as needed (MELA ID)
-age = 32;              % Correct as needed
+age = 60;              % Correct as needed
 
 % Experimental parameters
 nMatchesPerSession = 2; 
@@ -62,13 +62,9 @@ trialSessionNums = []; % Session numbers of individual trials tested in this ses
 % Radiometer measurements 
 for i = 1:length(trialSessionNums)
     OLRadiometerMatchesPlayback(subjID,trialSessionNums(i),fNames{i},'measWhite',...
-        true)
-end 
-% Close up 
-ol = OneLight();
-ol.shutdown;
+        true);
+end
 
-%% Session 1 
 % First ref wavelength 
 trialSessionNum = 11;  
 [trialFNames, ~, ~] = getMatchSeriesLive(subjID,trialSessionNum,settings.p1,...
