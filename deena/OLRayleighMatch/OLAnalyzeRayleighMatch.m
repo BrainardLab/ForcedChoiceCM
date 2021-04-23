@@ -106,7 +106,7 @@ trajectoryPlotFNames = {};
 for i = 1:length(sessionNums)
     % Names of results files
     outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
-        'matchFiles',[subjID '_' num2str(sessionNums(i))]);
+        'matchFiles',subjID,[subjID '_' num2str(sessionNums(i))]);
     outputFile = fullfile(outputDir,[subjID '_' num2str(sessionNums(i)) '_summary.mat']);
     measFile = fullfile(outputDir,[subjID '_' num2str(sessionNums(i)) '_meas.mat']);
     

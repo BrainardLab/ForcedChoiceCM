@@ -86,7 +86,7 @@ for kk = 1:length(matchFiles)
         fprintf('Measuring white light...\n');
         ol.setMirrors(squeeze(theData.whiteStarts)', squeeze(theData.whiteStops)');
         pause(0.1);
-        measuredWhite = [measuredWhite,spectroRadiometerOBJ.measure];
+        measuredWhite = [measuredWhite;spectroRadiometerOBJ.measure];
         fprintf('Successfully measured white light. Begin measuring matches...\n');
         save(outputFile,'measuredTestSpds', 'measuredPrimarySpds', 'measuredWhite');
     else
