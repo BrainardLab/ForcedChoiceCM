@@ -179,9 +179,13 @@ testIntensities = zeros(1,nCombos);
 primaryRatios = zeros(1,nCombos);
 
 % Calculate Rayleigh matches for each of the light combinations
-refFirst = round(rand(1)); % Choose randomly which light we present first on the first match 
+refFirst = round(rand(1)); % Choose randomly which light we present first on the first match
+refFirstAll = zeros(1,nCombos); % Store which light is first on each trial
 for i = 1:nCombos
-    refFirst = ~refFirst;   % Light order alternates on each trial
+    % Light order alternates on each trial
+    refFirst = ~refFirst;   
+    refFirstAll(i) = refFirst;
+    
     % Store OneLight data filename
     fNames{i} = fullfile(outputDir,[subjID,'_',num2str(sessionNum),...
         '_',num2str(i),'.mat']);
@@ -226,6 +230,7 @@ for i = 1:nCombos
     % Save data
     save(outputFile,'fNames','testIntensities','primaryRatios','lightCombosFull',...
         'age','fieldSize','opponentParams','p1Scale','p2Scale','testScale',...
-        'adjustmentLength','adjustment','nObserverMatches','testWls');
+        'adjustmentLength','adjustment','nObserverMatches','testWls',...
+        'refFirstAll');
 end
 end
