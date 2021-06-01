@@ -24,9 +24,11 @@ function OLRadiometerMatchesPlayback(subjID,sessionNum,matchFiles,varargin)
 % History
 %    dce    xx/xx/19  - Wrote it
 %    dce    3/29/20   - Edited for style, added ongoing saving
-%    dce    2/13/20   - Restructured to measure matches from multiple files
+%    dce    2/13/21   - Restructured to measure matches from multiple files
 %                       at once.
-%    dce    2/25/20   - Added measurement of dark spd. 
+%    dce    2/25/21   - Added measurement of dark spd. 
+%    dce    6/01/21   - Restructure to explicitly measure the number of
+%                       reversals needed to record a match
 
 %% Parse input
 p = inputParser;
@@ -43,7 +45,7 @@ outputFile = fullfile(outputDir,[subjID '_' num2str(sessionNum) '_meas.mat']);
 
 % Set up arrays for storing radiometer data 
 measuredPrimarySpds = [];
-measuredTestSpds = [];
+measuredRefSpds = [];
 measuredWhite = [];
 
 %% Set up OneLight and radiometer
@@ -71,6 +73,9 @@ for kk = 1:length(matchFiles)
     theData = load(matchFiles{kk});
     if(isfield(theData,'matchPositions') == 0 || ...
             isfield(theData,'matches') == 0 || ...
+            isfield(theData,'nReversals') == 0 || ...
+            isfield(theData,'subjectSettings') == 0 || ...
+            isfield(theData,'matchSettingInds') == 0 || ...
             isfield(theData,'primarySpdsPredicted') == 0 || ...
             isfield(theData,'primaryStartStops') == 0 ||...
             isfield(theData,'testSpdsPredicted') == 0 || ...
@@ -96,35 +101,39 @@ for kk = 1:length(matchFiles)
     % Loop through matches within the file; display and measure each one
     [nMatches, ~] = size(theData.matchPositions);
     for i = 1:nMatches
-        % Display primary on OL, measure with radiometer
+        % Find settings indices we are using
+        if i==nMatches
+            matchInds = theData.matchSettingInds(i):size(theData.subjectSettings,1);
+        else 
+             matchInds = theData.matchSettingInds(i):theData.matchSettingInds(i+1)-1;
+        end 
+        matchSettings = theData.subjectSettings(matchInds);
         
-        ol.setMirrors(squeeze(theData.primaryStartStops(ceil(theData.matchPositions(i,2)),1,:))',...
-            squeeze(theData.primaryStartStops(ceil(theData.matchPositions(i,2)),2,:))');
-        pause(0.1);
-        primaryMeas1 = spectroRadiometerOBJ.measure;
+        % Number of settings to average for a given match 
+        nSettingsToAvg = min(size(matchSettings,1),theData.nReversals);
         
-        ol.setMirrors(squeeze(theData.primaryStartStops(floor(theData.matchPositions(i,2)),1,:))',...
-            squeeze(theData.primaryStartStops(floor(theData.matchPositions(i,2)),2,:))');
-        pause(0.1);
-        primaryMeas2 = spectroRadiometerOBJ.measure;
+        primaryMeas = [];
+        refMeas = [];
+        for j = 0:(nSettingsToAvg-1)
+            trialPInd = find(p1Scales==matchSettings(end-j,2));
+            trialRefInd = find(testScales==matchSettings(end-j,1));
+            
+            % Display primary on OL, measure with radiometer
+            ol.setMirrors(squeeze(theData.primaryStartStops(trialPInd,1,:))',...
+                squeeze(theData.primaryStartStops(trialPInd,2,:))');
+            pause(0.1);
+            primaryMeas = [primaryMeas; spectroRadiometerOBJ.measure];
+            
+            % Display reference on OL, measure with radiometer
+            ol.setMirrors(squeeze(theData.testStartStops(trialRefInd,1,:))',...
+                squeeze(theData.testStartStops(trialRefInd,2,:))');
+            pause(0.1);
+            refMeas = [refMeas; spectroRadiometerOBJ.measure];
+        end
         
-        measuredPrimarySpds = [measuredPrimarySpds; mean([primaryMeas1;primaryMeas2],1)];
-        save(outputFile, 'measuredTestSpds', 'measuredPrimarySpds', 'measuredWhite');
-        
-        % Display test on OL, measure with radiometer
-        ol.setMirrors(squeeze(theData.testStartStops(ceil(theData.matchPositions(i,1)),1,:))',...
-            squeeze(theData.testStartStops(ceil(theData.matchPositions(i,1)),2,:))');
-        pause(0.1);
-        testMeas1 = spectroRadiometerOBJ.measure;
-        
-        ol.setMirrors(squeeze(theData.testStartStops(floor(theData.matchPositions(i,1)),1,:))',...
-            squeeze(theData.testStartStops(floor(theData.matchPositions(i,1)),2,:))');
-        pause(0.1);
-        testMeas2 = spectroRadiometerOBJ.measure;
-        
-        measuredTestSpds = [measuredTestSpds; mean([testMeas1; testMeas2],1)];
-        save(outputFile, 'measuredTestSpds', 'measuredPrimarySpds', 'measuredWhite');
-        fprintf('File %g, match %g complete\n', kk,i);
+        measuredPrimarySpds = [measuredPrimarySpds; mean(primaryMeas,1)];
+        measuredRefSpds = [measuredRefSpds,mean(refMeas,1)];
+        save(outputFile, 'measuredRefSpds', 'measuredPrimarySpds', 'measuredWhite');
     end
     fprintf('File %g of %g complete\n',kk,length(matchFiles));
 end
@@ -133,7 +142,7 @@ end
 ol.setAll(false);
 pause(0.1);
 measuredDarkSpd = spectroRadiometerOBJ.measure;
-save(outputFile, 'measuredTestSpds', 'measuredPrimarySpds', 'measuredWhite',...
+save(outputFile, 'measuredRefSpds', 'measuredPrimarySpds', 'measuredWhite',...
     'measuredDarkSpd');
 
 %% Close devices

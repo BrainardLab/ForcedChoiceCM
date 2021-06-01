@@ -51,6 +51,8 @@ function [params,error,observer] = findObserverParameters(testSpds,primarySpds,v
 %                     density(params(2)) to be 0. Default is false.
 %    'dLM0'          -Logical. If true, constrains the L and M optical
 %                     density(params(3:4)) to be 0. Default is false.
+%    'dS0'           -Logical. If true, constrains the S lambda max and 
+%                     optical density to be 0. Default is true.
 %    'restrictBySD'  -Logical. If true, adds lower and upper bounds on all
 %                     paramters to keep them within three standard
 %                     deviations of their means. Default is true. 
@@ -62,6 +64,9 @@ function [params,error,observer] = findObserverParameters(testSpds,primarySpds,v
 %                         difference parameters. Default is zeros(1,8);
 %    'opponentParams'    -1x4 numerical vector of opponent contrast
 %                         parameters. Default is [40.3908 205.7353 62.9590 1.0000].
+%    'minimizeConeErr'   -Logical. If true, minimizes cone exictation error
+%                         instead of opponent contrast difference. Default 
+%                         is false.
 
 % History:
 %   06/12/20  dce       Wrote it.
@@ -73,6 +78,9 @@ function [params,error,observer] = findObserverParameters(testSpds,primarySpds,v
 %   01/01/21  dce       Restricted to within 3 standard deviations
 %   03/01/21  dce       Added option to lock L and M optical densities at
 %                       0.
+%   04/30/21  dce       Added S locking as a key value pair.
+%   05/09/21  dce       Added option to minimize cone excitation difference
+%                       instead of opponent contrast.
 
 %% Initial Setup
 % Parse input
@@ -83,11 +91,13 @@ p.addParameter('LMEqualOD',false,@(x)(islogical(x)));
 p.addParameter('dlens0',false,@(x)(islogical(x)));
 p.addParameter('dmac0',false,@(x)(islogical(x)));
 p.addParameter('dLM0',false,@(x)(islogical(x)));
+p.addParameter('dS0',true,@(x)(islogical(x)));
 p.addParameter('restrictBySd',true,@(x)(islogical(x)));
 p.addParameter('initialConeParams',zeros(1,8),@(x)(isnumeric(x)));
 p.addParameter('opponentParams',[40.3908 205.7353 62.9590 1.0000],@(x)(isvector(x)));
 p.addParameter('S',[380 2 201],@(x)(isnumeric(x)));
 p.addParameter('errScalar',100,@(x)(isnumeric(x)));
+p.addParameter('minimizeConeErr',false,@(x)(islogical(x)));
 p.parse(varargin{:});
 
 % Input checks
@@ -142,6 +152,14 @@ if p.Results.dLM0
     ub(4) = p.Results.initialConeParams(4);
 end
 
+% Constrain S cone parameters to 0 
+if p.Results.dS0
+    lb(5) = p.Results.initialConeParams(5);
+    ub(5) = p.Results.initialConeParams(5);
+    lb(8) = p.Results.initialConeParams(8);
+    ub(8) = p.Results.initialConeParams(8);
+end
+
 % Constrain L and M OD to be equal
 if p.Results.LMEqualOD
     Aeq = [0 0 1 -1 0 0 0 0];
@@ -156,8 +174,9 @@ options = optimset(options,'Diagnostics','off','Display','iter',...
 
 % Find optimal parameters
 params = fmincon(@(x)findMatchError(x,observer,testSpds,primarySpds,...
-    'S',p.Results.S,'errScalar',p.Results.errScalar),....
-    p.Results.initialConeParams(1:8),[],[],Aeq,Beq,lb,ub,[],options);
+    'S',p.Results.S,'errScalar',p.Results.errScalar,'minimizeConeErr',...
+    p.Results.minimizeConeErr),p.Results.initialConeParams(1:8),...
+    [],[],Aeq,Beq,lb,ub,[],options);
 
 % Reset observer with the final parameters
 observer = ObserverVecToParams('basic', ...
@@ -167,7 +186,8 @@ observer.T_cones = ComputeObserverFundamentals(observer.coneParams,...
 
 % What is the error?
 error = findMatchError(params,observer,testSpds,primarySpds,'S',...
-    p.Results.S,'errScalar',p.Results.errScalar)/p.Results.errScalar;
+    p.Results.S,'errScalar',p.Results.errScalar,'minimizeConeErr',...
+    p.Results.minimizeConeErr)/p.Results.errScalar;
 
 %% Optional - plot LMS response
 plotLMS = false;

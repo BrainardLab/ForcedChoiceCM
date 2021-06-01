@@ -1,4 +1,15 @@
-% Rayleigh matching pilot session template (recreate for each subject)
+%% Rayleigh matching pilot data collection session template (recreate for each subject)
+% Description
+%    Template script to organize runs for pilot OneLight Rayleigh match 
+%    data collection. Includes code for conducting Rayleigh matches at each 
+%    of six reference wavelengths in two sessions. For each reference
+%    wavelength, runs two matches simultaneously - one with the primary
+%    mixture displayed first, one with the reference light displayed first.
+%    
+
+% History
+%    dce    xx/xx/21  - Wrote it
+%    dce    06/01/21   - Changed default number of reversals
 
 %% To run once
 % Subject information 
@@ -7,7 +18,7 @@ age = 32;         % Correct as needed
 
 % Experimental parameters
 nMatchesPerSession = 2; 
-nReversals = [1 2];
+nReversals = [1 4];
 fieldSize = 10;
 p1 = 670;
 p2 = 560;

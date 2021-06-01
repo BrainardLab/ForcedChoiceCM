@@ -38,15 +38,21 @@ function error = findMatchError(coneParamsVec,initialObs,testSpds,...
 %                 (OneLight convention)  
 %    errScalar   -Integer for scaling the match error, to improve search.
 %                 Default is 100.
+%    minimizeConeErr   -Logical. If true, minimizes cone exictation error
+%                       instead of opponent contrast difference. Default 
+%                       is false.
 
 % History:
 %   06/12/20  dce       Wrote it.
 %   06/15/20  dce       Modified to take in multiple spds
+%   05/09/21  dce       Added option to find error based on cone excitation
+%                       difference instead of opponent contrast.
 
 % Parse input 
 p = inputParser;
 p.addParameter('S',[380 2 201],@(x)(isnumeric(x)));
 p.addParameter('errScalar',100,@(x)(isnumeric(x)));
+p.addParameter('minimizeConeErr',false,@(x)(islogical(x)));
 p.parse(varargin{:});
 
 [spdLength,nMatches] = size(testSpds);   
@@ -66,18 +72,23 @@ observer = genRayleighObserver('age', initialObs.coneParams.ageYears,...
     'fieldSize', initialObs.coneParams.fieldSizeDegrees,...
     'coneVec',coneParamsVec,'opponentParams',opponentParams,'S',p.Results.S); 
 
-% Calculate opponent contrast for each match 
+% Calculate error metric for each match 
 for i = 1:nMatches
     % Calculate cone responses for the given spectra
     test_LMS = observer.T_cones * testSpds(:,i);
     primary_LMS = observer.T_cones * primarySpds(:,i);
     
-    % Calculate opponent contrast
-    opponentContrast = LMSToOpponentContrast(observer.colorDiffParams,...
-        test_LMS, primary_LMS);
-    
-    % Find vector length of luminance and RG opponent components
-    pairError(i) = norm(opponentContrast(1:2));
+    if p.Results.minimizeConeErr
+        % Calculate excitation difference
+        error = test_LMS - primary_LMS;
+    else
+        % Calculate opponent contrast
+        opponentContrast = LMSToOpponentContrast(observer.colorDiffParams,...
+            test_LMS, primary_LMS);
+        error = opponentContrast;
+    end
+    % Find vector length of error (excluding S components)
+    pairError(i) = norm(error(1:2));
 end
 
 % Report the root mean square error (scaled up to improve searching)

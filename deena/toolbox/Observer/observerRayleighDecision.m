@@ -104,7 +104,7 @@ end
 
 % Check R/G ratio. If negative, the primary mixture needs to be made
 % redder.
-if opponentContrastDiff(2) < 0 % Test is greener than primary mixture 
+if opponentContrastDiff(2) < 0 % Test is redder than primary mixture 
     primary_redder = false; 
 else 
     primary_redder = true; 

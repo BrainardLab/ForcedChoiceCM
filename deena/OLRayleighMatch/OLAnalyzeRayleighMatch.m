@@ -52,6 +52,10 @@ function OLAnalyzeRayleighMatch(subjID,sessionNums,varargin)
 %                      excitations for averaged spds. Default is false.
 %    'makePittDiagram'-Logical. If true, makes generalized Pitt diagram.
 %                      Default is false.
+%    minimizeConeErr  -Logical. If true, minimizes cone exictation error
+%                      instead of opponent contrast difference. Default 
+%                      is false.
+
 
 % History:
 %   2/19/21  dce       Wrote it.
@@ -59,9 +63,9 @@ function OLAnalyzeRayleighMatch(subjID,sessionNums,varargin)
 %   4/22/21  dce       Added plots for individual excitations
 %   4/28/21  dce       Switched to not average spds in fit, restructed and
 %                      edited
-
+%   05/09/21  dce      Added option to fit params using cone excitation 
+%                      difference instead of opponent contrast.
 close all; 
-clear
 
 % Parse input
 p = inputParser;
@@ -70,8 +74,10 @@ p.addParameter('LMEqualOD',false,@(x)(islogical(x)));
 p.addParameter('dlens0',true,@(x)(islogical(x)));
 p.addParameter('dmac0',true,@(x)(islogical(x)));
 p.addParameter('dLM0',false,@(x)(islogical(x)));
+p.addParameter('dS0',true,@(x)(islogical(x)));
 p.addParameter('restrictBySd',true,@(x)(islogical(x)));
 p.addParameter('avgSpds',false,@(x)(islogical(x)));
+p.addParameter('minimizeConeErr',false,@(x)(islogical(x)));
 p.addParameter('makeBarPlots',false,@(x)(islogical(x)));
 p.addParameter('makePittDiagram',false,@(x)(islogical(x)));
 p.parse(varargin{:});
@@ -171,7 +177,8 @@ end
     'age',sessionData.age,'fieldSize',sessionData.fieldSize,...
     'opponentParams',sessionData.opponentParams,'dlens0',p.Results.dlens0,...
     'dmac0',p.Results.dmac0,'LMEqualOD',p.Results.LMEqualOD,...
-    'restrictBySd',p.Results.restrictBySd,'dLM0',p.Results.dLM0);
+    'restrictBySd',p.Results.restrictBySd,'dLM0',p.Results.dLM0,...
+    'dS0',true,'minimizeConeErr',p.Results.minimizeConeErr);
 
 % Standard and fit observers
 estObs = genRayleighObserver('age',sessionData.age,'fieldSize',...
