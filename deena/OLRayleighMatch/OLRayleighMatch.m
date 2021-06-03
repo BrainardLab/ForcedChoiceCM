@@ -260,7 +260,6 @@ plotResponses = p.Results.plotResponses;
 savePlots = p.Results.savePlots;
 stimLimits = p.Results.stimLimits;
 lambdaRef = p.Results.lambdaRef;
-testFirst = p.Results.testFirst;
 pairStepSizes = p.Results.pairStepSizes;
 whiteScaleFactor = p.Results.whiteScaleFactor;
 interleaveStaircases = p.Results.interleaveStaircases;
@@ -427,18 +426,16 @@ if interleaveStaircases
     dataArr{2}.nPlots = -1;
     staircaseTestFirst = [true false];   % Is the ref or the primary shown first?
     staircaseCompleted = [false false];  % Has the staircase been completed?
-    
-    % Track which staircase came first on a given trial. Enter 1 if the 
-    % first staircase came first, 0 otherwise
-    superTrialOrderings = []; 
 else
     nTrialsPerLoop = 1;
-    dataArr = matchData;
-    dataArr.nPlots = -1;
-    testFirst = p.Results.testFirst;
+    dataArr = {matchData};
+    dataArr{1}.nPlots = -1;
+    staircaseTestFirst = p.Results.testFirst;
     staircaseCompleted = false;
-    superTrialOrderings = [];
 end
+% Track which staircase came first on a given trial. Enter 1 if the
+% first staircase came first, 0 otherwise
+superTrialOrderings = [];
 
 %% Display loop
 stillLooping = true;
@@ -453,19 +450,17 @@ while(stillLooping)
     
     % Conduct a supertrial (one trial of each staircase)
     for tt = 1:nTrialsPerLoop
-        if interleaveStaircases
-            % If both staircases are finished, the experiment is done. If 
-            % this staircase is completed, move to the next.
-            if all(staircaseCompleted)
-                stillLooping = false;
-                break;
-            elseif staircaseCompleted(staircaseOrder(tt))
-                continue;
-            else
-                matchData = dataArr{staircaseOrder(tt)};
-                testFirst = staircaseTestFirst(staircaseOrder(tt));
-            end 
-        end 
+        % If all staircases are finished, the experiment is done. If
+        % this staircase is completed, move to the next.
+        if all(staircaseCompleted)
+            stillLooping = false;
+            break;
+        elseif staircaseCompleted(staircaseOrder(tt))
+            continue;
+        else
+            matchData = dataArr{staircaseOrder(tt)};
+            testFirst = staircaseTestFirst(staircaseOrder(tt));
+        end
         
         % Reset loop control parameters to initial states
         matchData.displayLoopCounter = matchData.displayLoopCounter + 1;
@@ -516,7 +511,7 @@ while(stillLooping)
                 ylabel('Proportional Reference Intensity');
                 xlabel('Primary Ratio (Proportion Red)');
                 title2 = sprintf('Subject Settings Over Time, Staircase %g, Match %g',...
-                    staircaseOrder(tt),ceil(matchData.nPlots/2));
+                    staircaseOrder(tt),ceil((matchData.nPlots+1-staircaseOrder(tt))/2));
                 title(title2);
                 plot(idealPRatio,idealTestIntensity,'gs',...
                     'MarkerFaceColor','g');
@@ -548,8 +543,8 @@ while(stillLooping)
         % simulated observer for a decision.
         if (~simObserver)
             % For forced choice, we display the lights first before
-            % prompting for the observer decision
-            if ~adjustment
+            % prompting for the observer decision 
+            if ~adjustment 
                 for i = 1:4
                     nowTime = mglGetSecs;
                     lightInd = mod(i,4);
@@ -560,13 +555,15 @@ while(stillLooping)
                         ol.setMirrors(starts{lightInd},stops{lightInd});
                     end
                 end
-                Speak('Redder or greener?'); % Prompt for first decision
             end
             % Get the observer decision. If using the forced-choice method, we
             % get one R/G and one brightness decision. If using the adjustment
             % method, we wait for the first keypress.
             innerLoopCounter = 0;
             waitingForResponse = true;
+            if ~adjustment         
+                Speak('Redder or greener?'); % Prompt for first decision
+            end
             while(waitingForResponse)
                 %  Identify which light to display on this loop
                 innerLoopCounter = innerLoopCounter+1;
@@ -811,7 +808,7 @@ while(stillLooping)
                 matchData.pStepModePos = 1;
             end
             % Number of beeps indicates new step size position
-            if ~silent
+            if ~silent && adjustment
                 for i = 1:matchData.pStepModePos
                     Snd('Play',sin(0:5000));
                 end
@@ -831,7 +828,7 @@ while(stillLooping)
                 matchData.tStepModePos = 1;
             end
             % Number of beeps indicates new step size position
-            if ~silent
+            if ~silent && adjustment
                 for i = 1:matchData.tStepModePos
                     Snd('Play',sin(0:5000));
                 end
@@ -843,7 +840,7 @@ while(stillLooping)
         end
         
         % P1 up
-        if matchData.p1_up
+        if p1_up
             matchData.primaryPos = matchData.primaryPos+stepModes(matchData.pStepModePos);
             if matchData.primaryPos > allowedLambdaInds(end)
                 matchData.primaryPos = allowedLambdaInds(end);
@@ -952,7 +949,7 @@ while(stillLooping)
         
         % Match
         if match
-            if ~silent
+            if ~silent && adjustment
                 Snd('Play',sin(0:5000));
             end
             % Calculate match. If this is an adjustment match, simply provide
@@ -1044,10 +1041,12 @@ while(stillLooping)
                     plot2 = figure(matchData.nPlots+1);
                     NicePlot.exportFigToPDF(fullfile(outputDir,...
                         [subjectID  '_' num2str(sessionNum) '_'...
-                        num2str(size(matchData.matches,1)) '_' staircaseOrder(tt) '_plot']),plot1,300);
+                        num2str(size(matchData.matches,1)) '_' ...
+                        num2str(staircaseOrder(tt)) '_plot']),plot1,300);
                     NicePlot.exportFigToPDF(fullfile(outputDir,....
                         [subjectID '_' num2str(sessionNum)...
-                        '_' num2str(size(matchData.matches,1)) '_' staircaseOrder(tt) '_jointPlot']),plot2,300);
+                        '_' num2str(size(matchData.matches,1)) '_'...
+                        num2str(staircaseOrder(tt)) '_jointPlot']),plot2,300);
                 end
                 matchData.matchSettingInds(end+1) = length(matchData.subjectSettings(:,1))+1;
             end
@@ -1062,11 +1061,8 @@ while(stillLooping)
 
         % Quit
         if quit
-            if ~silent
-                Snd('Play',sin(0:5000));
-            end
             if plotResponses
-                fprintf('User completed Rayleigh match%g\n',staircaseOrder(tt));
+                fprintf('User completed Rayleigh match %g\n',staircaseOrder(tt));
             end
             staircaseCompleted(staircaseOrder(tt)) = true;
             save(fileLoc,'dataArr','age','p1','p2','test','calName',...
@@ -1092,5 +1088,9 @@ if ~simObserver
     if fieldSize > 2
         GLW_CloseAnnularStimulus();
     end
+end
+fprintf('User exited program\n');
+if ~silent
+    Snd('Play',sin(0:5000));
 end
 end

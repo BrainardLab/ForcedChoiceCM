@@ -42,7 +42,7 @@ p.parse(varargin{:});
 % Data arrays
 % Assume an equal number of matches for each interleaved staircase
 trialData = load(fName);   % OLRayleighMatch dataset
-spdLength = size(trialData.primarySpdsPredicted,1);
+spdLength = size(trialData.primarySpds,1);
 nMatches = length(trialData.dataArr{1}.matchPositions(:,1));
 nInterleaved = length(trialData.dataArr);
 
@@ -58,8 +58,8 @@ for kk = 1:nInterleaved
         pMatchInds = trialData.dataArr{kk}.matchPositions(:,2);
         
         % Define the spd arrays we're searching in
-        testArr = trialData.testSpdsPredicted;
-        primaryArr = trialData.primarySpdsPredicted;
+        testArr = trialData.testSpds;
+        primaryArr = trialData.primarySpds;
         
         for i = 1:length(tMatchInds)
             % Find spds corresponding to the match position indices. If an index is

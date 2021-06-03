@@ -182,8 +182,13 @@ outputFile = fullfile(outputDir,[subjID '_' num2str(sessionNum) '_summary.mat'])
 fNames = cell(1,nCombos);
 
 % Set up data arrays
-testIntensities = zeros(1,nCombos);
-primaryRatios = zeros(1,nCombos);
+if interleaveStaircases
+    testIntensities = zeros(2,nCombos);
+    primaryRatios = zeros(2,nCombos);
+else
+    testIntensities = zeros(1,nCombos);
+    primaryRatios = zeros(1,nCombos);
+end
 
 % Calculate Rayleigh matches for each of the light combinations
 refFirst = round(rand(1)); % Choose randomly which light we present first on the first match
@@ -231,9 +236,8 @@ for i = 1:nCombos
         subjID,'interleaveStaircases',interleaveStaircases);
     
     % Extract match position data
-    [~,~,testIntensities(i),primaryRatios(i)] =...
-        getMatchData(fNames{i},'nominal',false,...
-        'averageSpds',false);
+    [~,~,testIntensities(:,i),primaryRatios(:,i)] =...
+        getMatchData(fNames{i},'averageSpds',false);
     
     % Save data
     save(outputFile,'fNames','testIntensities','primaryRatios','lightCombosFull',...

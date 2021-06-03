@@ -19,7 +19,7 @@ function OLRadiometerMatchesPlayback(subjID,sessionNum,matchFiles,varargin)
 %
 % Optional key-value pairs:
 %    'measWhite'   - Logical indicating whether to measure white light.
-%                    Default is false.
+%                    Default is true.
 
 % History
 %    dce    xx/xx/19  - Wrote it
@@ -34,7 +34,7 @@ function OLRadiometerMatchesPlayback(subjID,sessionNum,matchFiles,varargin)
 
 %% Parse input
 p = inputParser;
-p.addParameter('measWhite', false, @(x) (islogical(x)));
+p.addParameter('measWhite', true, @(x) (islogical(x)));
 p.parse(varargin{:});
 
 %% Set up output file for saving results
@@ -105,8 +105,8 @@ for kk = 1:length(matchFiles)
             primaryMeas = [];
             refMeas = [];
             for j = 0:(nSettingsToAvg-1)
-                trialPInd = find(p1Scales==matchSettings(end-j,2));
-                trialRefInd = find(testScales==matchSettings(end-j,1));
+                trialPInd = find(theData.p1Scales==matchSettings(end-j,2));
+                trialRefInd = find(theData.testScales==matchSettings(end-j,1));
                 
                 % Display primary on OL, measure with radiometer
                 ol.setMirrors(squeeze(theData.primaryStartStops(trialPInd,1,:))',...
@@ -122,7 +122,7 @@ for kk = 1:length(matchFiles)
             end
             
             measuredPrimarySpds = [measuredPrimarySpds; mean(primaryMeas,1)];
-            measuredRefSpds = [measuredRefSpds,mean(refMeas,1)];
+            measuredRefSpds = [measuredRefSpds; mean(refMeas,1)];
             save(outputFile, 'measuredRefSpds', 'measuredPrimarySpds', 'measuredWhite');
         end
     end    
