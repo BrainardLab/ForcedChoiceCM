@@ -47,8 +47,7 @@ save(outputFile,'refWls','p2Scalars','refScalars','shuffledWls1','shuffledWls2',
 %% To run each time you come in (before testing)
 clear; 
 close all;
-subjID = 'MELA_3045'; 
-
+  
 % Load settings data 
 outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
     'matchFiles',subjID);
