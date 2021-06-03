@@ -87,6 +87,10 @@ function [fNames,testIntensities,primaryRatios] = ...
 %                            Default is false.
 %    'whiteScaleFactor'     -Scale factor for the neutral (white) light,
 %                            between 0 and 1. Default is 0.001.
+%    'interleaveStaircases' -Logical. If true, runs 2 interleaved
+%                            staircases in each call of OLRayleighMatch - 
+%                            one with primary first and one with reference 
+%                            first. Default is true.
 
 % History:
 %   02/10/21   dce   - Wrote it, adapted from getMatchSeries and
@@ -98,6 +102,7 @@ function [fNames,testIntensities,primaryRatios] = ...
 %   03/15/21   dce   - Began counterbalancing light order, added option to
 %                      pair step size adjustments
 %   03/25/21   dce   - Added interval key-value pairs
+%   06/02/21   dce   - Edited to include new OLRayleighMatch key value pairs
 
 %{
 Examples:
@@ -124,6 +129,7 @@ p.addParameter('resetAnnulus',false,@(x)(islogical(x)));
 p.addParameter('adjustment',false,@(x)(islogical(x)));
 p.addParameter('pairStepSizes',false,@(x)(islogical(x)));
 p.addParameter('whiteScaleFactor',0.001,@(x)(isnumeric(x)));
+p.addParameter('interleaveStaircases',true,@(x)(islogical(x)));
 p.parse(varargin{:});
 
 age = p.Results.age;
@@ -135,6 +141,7 @@ testScale = p.Results.testScale;
 adjustmentLength = p.Results.adjustmentLength;
 adjustment = p.Results.adjustment;
 nObserverMatches = p.Results.nObserverMatches;
+interleaveStaircases = p.Results.interleaveStaircases;
 
 % Check that appropriate parameter limits have been entered
 if ~isempty(p.Results.stimLimits)
@@ -220,7 +227,8 @@ for i = 1:nCombos
         'pairStepSizes',p.Results.pairStepSizes, ...
         'isInterval',p.Results.isInterval,'itInterval',...
         p.Results.itInterval,'stimInterval',p.Results.stimInterval,...
-        'whiteScaleFactor',p.Results.whiteScaleFactor,'outerFileName',subjID);
+        'whiteScaleFactor',p.Results.whiteScaleFactor,'outerFileName',...
+        subjID,'interleaveStaircases',interleaveStaircases);
     
     % Extract match position data
     [~,~,testIntensities(i),primaryRatios(i)] =...
@@ -231,6 +239,6 @@ for i = 1:nCombos
     save(outputFile,'fNames','testIntensities','primaryRatios','lightCombosFull',...
         'age','fieldSize','opponentParams','p1Scale','p2Scale','testScale',...
         'adjustmentLength','adjustment','nObserverMatches','testWls',...
-        'refFirstAll');
+        'refFirstAll','interleaveStaircases');
 end
 end
