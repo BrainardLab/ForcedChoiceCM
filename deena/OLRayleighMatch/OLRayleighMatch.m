@@ -844,7 +844,9 @@ while(stillLooping)
         if switchTStepSize
             announceStepSizeChange = true;
             for kk = 1:length(dataArr)
-                if dataArr{kk}.tStepModePos ~= matchData.tStepModePos
+                if kk == staircaseOrder(tt)
+                    continue;
+                elseif dataArr{kk}.tStepModePos ~= matchData.tStepModePos
                     announceStepSizeChange = false;
                 end 
             end
