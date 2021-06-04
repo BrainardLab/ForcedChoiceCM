@@ -193,6 +193,7 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %                       added option to interleave staircases, edited for style
 %   06/02/21  dce       Edited for style, got rid of monochromatic
 %                       and nominal spd matching, fixed interleaving
+%   06/04/21  dce       Step size adjustment, fixed plotting
 
 %% Close any stray figures
 close all;
@@ -403,7 +404,7 @@ waitTimes = [stimInterval isInterval stimInterval itInterval];
 % match - for interleaved matching, use two copies of this struct.
 matchData = struct();
 matchData.ideal = false;              % Do not start with the ideal match 
-matchData.displayLoopCounter = 0;     % Count number of iterations
+matchData.displayLoopCounter = 1;     % Count number of iterations
 matchData.p1_up_prev = true;          % Previous primary setting
 matchData.t_up_prev = true;           % Previous ref setting
 matchData.firstAdjustment = true;     % This is the first adjustment of the match
@@ -837,6 +838,20 @@ while(stillLooping)
                 fprintf('User switched reference step size to %g for staircase %g\n',...
                     (stepModes(matchData.tStepModePos)/(adjustmentLength-1)),staircaseOrder(tt));
             end
+        end
+        
+        % Announce step size change (works best for paired step sizes)
+        if switchTStepSize
+            announceStepSizeChange = true;
+            for kk = 1:length(dataArr)
+                if dataArr{kk}.tStepModePos ~= matchData.tStepModePos
+                    announceStepSizeChange = false;
+                end 
+            end
+            if announceStepSizeChange
+                stepString = sprintf('Step size %g of %g', matchData.tStepModePos, length(stepModes));
+                Speak(stepString);
+            end 
         end
         
         % P1 up

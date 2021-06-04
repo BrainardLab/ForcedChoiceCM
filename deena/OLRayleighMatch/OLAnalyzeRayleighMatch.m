@@ -52,7 +52,7 @@ function OLAnalyzeRayleighMatch(subjID,sessionNums,varargin)
 %                      excitations for averaged spds. Default is false.
 %    'makePittDiagram'-Logical. If true, makes generalized Pitt diagram.
 %                      Default is false.
-%    minimizeConeErr  -Logical. If true, minimizes cone exictation error
+%    'minimizeConeErr'-Logical. If true, minimizes cone exictation error
 %                      instead of opponent contrast difference. Default 
 %                      is false.
 
@@ -65,6 +65,8 @@ function OLAnalyzeRayleighMatch(subjID,sessionNums,varargin)
 %                      edited
 %   05/09/21  dce      Added option to fit params using cone excitation 
 %                      difference instead of opponent contrast.
+%   06/04/21  dce      Changed to reflect edits to OLRayleighMatch output
+%                      file structure
 close all; 
 
 % Parse input
@@ -124,24 +126,25 @@ for i = 1:length(sessionNums)
     refIntensities = [refIntensities;sessionData.testIntensities'];
     
     % Go through each match
-    for j = 1:length(sessionData.testIntensities)
+    for j = 1:sessionData.nObserverMatches
         % Fill in scale factors for spds
         p1Scales = [p1Scales;sessionData.p1Scale(find(sessionData.testWls==lightCombos(i,3)))];
         p2Scales = [p2Scales;sessionData.p2Scale(find(sessionData.testWls==lightCombos(i,3)))];
         refScales = [refScales;sessionData.testScale(find(sessionData.testWls==lightCombos(i,3)))];
         
-        % Find match spds (as measured by radiometer)
+        % Find match spds (predicted)
         fName = fullfile(outputDir,[subjID '_' num2str(sessionNums(i))...
             '_' num2str(j) '.mat']);
-        [rSpds,pSpds,~,~] = getMatchData(fName,'averageSpds',false,'nominal',false);
-        predRefSpds = [predRefSpds,rSpds];
-        predPrimarySpds = [predPrimarySpds,pSpds];
+        [rSpds,pSpds,~,~] = getMatchData(fName,'averageSpds',false);
+        spdLength = size(rSpds,1);
+        predRefSpds = [predRefSpds,reshape(rSpds,[spdLength numel(rSpds)/201])];
+        predPrimarySpds = [predPrimarySpds,reshape(pSpds, [spdLength numel(pSpds)/201])];
     end
     
     % Add radiometer data to collected data
     radiometerData = load(measFile);
     measPrimarySpds = [measPrimarySpds,radiometerData.measuredPrimarySpds'];
-    measRefSpds = [measRefSpds,radiometerData.measuredTestSpds'];
+    measRefSpds = [measRefSpds,radiometerData.measuredRefSpds'];
     darkSpds = [darkSpds, repmat(radiometerData.measuredDarkSpd',1,length(sessionData.testIntensities))];
 end
 
