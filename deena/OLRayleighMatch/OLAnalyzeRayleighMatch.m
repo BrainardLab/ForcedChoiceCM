@@ -122,8 +122,13 @@ for i = 1:length(sessionNums)
     sessionData = load(outputFile);
     
     lightCombos = [lightCombos;sessionData.lightCombosFull];
-    primaryRatios = [primaryRatios;sessionData.primaryRatios'];
-    refIntensities = [refIntensities;sessionData.testIntensities'];
+    if size(sessionData.primaryRatios) == [2 1]
+        primaryRatios = [primaryRatios;sessionData.primaryRatios];
+        refIntensities = [refIntensities;sessionData.testIntensities];
+    else
+        primaryRatios = [primaryRatios;sessionData.primaryRatios'];
+        refIntensities = [refIntensities;sessionData.testIntensities'];
+    end
     
     % Go through each match
     for j = 1:sessionData.nObserverMatches
@@ -137,8 +142,8 @@ for i = 1:length(sessionNums)
             '_' num2str(j) '.mat']);
         [rSpds,pSpds,~,~] = getMatchData(fName,'averageSpds',false);
         spdLength = size(rSpds,1);
-        predRefSpds = [predRefSpds,reshape(rSpds,[spdLength numel(rSpds)/201])];
-        predPrimarySpds = [predPrimarySpds,reshape(pSpds, [spdLength numel(pSpds)/201])];
+        predRefSpds = [predRefSpds,reshape(rSpds,[spdLength numel(rSpds)/spdLength])];
+        predPrimarySpds = [predPrimarySpds,reshape(pSpds,[spdLength numel(pSpds)/spdLength])];
     end
     
     % Add radiometer data to collected data
@@ -147,6 +152,10 @@ for i = 1:length(sessionNums)
     measRefSpds = [measRefSpds,radiometerData.measuredRefSpds'];
     darkSpds = [darkSpds, repmat(radiometerData.measuredDarkSpd',1,length(sessionData.testIntensities))];
 end
+% Duplicate light combos array if interleaved
+if sessionData.interleaveStaircases
+    lightCombos = repelem(lightCombos,2,1);
+end 
 
 %% Sort collected data by unique wavelength combo, and find average spds
 % Identify the different sets of wavelengths used
