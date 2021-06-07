@@ -168,8 +168,8 @@ fNames{end+1} = trialFNames;
 trialSessionNums(end+1) = trialSessionNum;
 
 %% Session 2
-% First ref wavelength 
-trialSessionNum = 41;  
+% First ref wavelength - done 6/7
+trialSessionNum = 51;  
 [trialFNames, ~, ~] = getMatchSeriesLive(subjID,trialSessionNum,settings.p1,...
     settings.p2,settings.shuffledWls2(1),'nObserverMatches',...
     settings.nMatchesPerSession,'fieldSize',settings.fieldSize,...
@@ -182,8 +182,8 @@ trialSessionNum = 41;
 fNames{end+1} = trialFNames;
 trialSessionNums(end+1) = trialSessionNum;
 
-% Second ref wavelength 
-trialSessionNum = 42;  
+% Second ref wavelength - done 6/7
+trialSessionNum = 52;  
 [trialFNames, ~, ~] = getMatchSeriesLive(subjID,trialSessionNum,settings.p1,...
     settings.p2,settings.shuffledWls2(2),'nObserverMatches',...
     settings.nMatchesPerSession,'fieldSize',settings.fieldSize,...
@@ -196,7 +196,7 @@ trialSessionNum = 42;
 fNames{end+1} = trialFNames;
 trialSessionNums(end+1) = trialSessionNum;
 
-% Third ref wavelength 
+% Third ref wavelength - done 6/7
 trialSessionNum = 53;  
 [trialFNames, ~, ~] = getMatchSeriesLive(subjID,trialSessionNum,settings.p1,...
     settings.p2,settings.shuffledWls2(3),'nObserverMatches',...
@@ -210,7 +210,7 @@ trialSessionNum = 53;
 fNames{end+1} = trialFNames;
 trialSessionNums(end+1) = trialSessionNum;
 
-% Fourth ref wavelength 
+% Fourth ref wavelength - Done 6/7
 trialSessionNum = 54;  
 [trialFNames, ~, ~] = getMatchSeriesLive(subjID,trialSessionNum,settings.p1,...
     settings.p2,settings.shuffledWls2(4),'nObserverMatches',...
@@ -224,7 +224,7 @@ trialSessionNum = 54;
 fNames{end+1} = trialFNames;
 trialSessionNums(end+1) = trialSessionNum;
 
-% Fifth ref wavelenth 
+% Fifth ref wavelenth - done 6/7
 trialSessionNum = 55;  
 [trialFNames, ~, ~] = getMatchSeriesLive(subjID,trialSessionNum,settings.p1,...
     settings.p2,settings.shuffledWls2(5),'nObserverMatches',...
@@ -238,7 +238,7 @@ trialSessionNum = 55;
 fNames{end+1} = trialFNames;
 trialSessionNums(end+1) = trialSessionNum;
 
-% Sixth ref wavelength 
+% Sixth ref wavelength - done 6/7 
 trialSessionNum = 56;  
 [trialFNames, ~, ~] = getMatchSeriesLive(subjID,trialSessionNum,settings.p1,...
     settings.p2,settings.shuffledWls2(6),'nObserverMatches',...

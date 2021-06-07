@@ -97,10 +97,10 @@ for kk = 1:length(matchFiles)
                 matchInds = theData.dataArr{tt}.matchSettingInds(i):...
                     theData.dataArr{tt}.matchSettingInds(i+1)-1;
             end
-            matchSettings = theData.dataArr{tt}.subjectSettings(matchInds);
+            matchSettings = theData.dataArr{tt}.subjectSettings(matchInds,:);
             
             % Number of settings to average for a given match
-            nSettingsToAvg = min(size(matchSettings,1),theData.nReversals);
+            nSettingsToAvg = min(size(matchSettings,1),theData.nReversals(2));
             
             primaryMeas = [];
             refMeas = [];

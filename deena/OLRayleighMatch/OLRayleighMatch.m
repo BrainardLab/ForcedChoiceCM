@@ -385,8 +385,8 @@ if ~simObserver && fieldSize > 2
     end
     % Load and display annulus file
     annulusData = load(annulusFile);
-    annulusData.win.open;
-    annulusData.win.draw;
+%     annulusData.win.open;
+%     annulusData.win.draw;
 end
 
 %% Display parameters
