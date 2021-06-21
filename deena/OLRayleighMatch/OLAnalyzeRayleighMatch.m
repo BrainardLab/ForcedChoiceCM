@@ -38,9 +38,12 @@ function OLAnalyzeRayleighMatch(subjID,sessionNums,varargin)
 %    'dmac0'          -Logical. If true, constrains the macular pigment
 %                      density to be 0 during cone parameter search.
 %                      Default is true.
-%    'dLM0'           -Logical. If true, constrains the L and M optical
-%                      densities to be 0 during cone parameter search.
-%                      Default is false.
+%    'OD0'            -Logical. If true, constrains the optical densities to 
+%                      be 0 during cone parameter search. Default is false.
+%    'lambdaMax0'     -Logical. If true, constrains lambda max parameters to 
+%                      be 0. Default is false.
+%    'S0'            -Logical. If true, constrains S lambda max and optical
+%                     density (params 5 and 8) to be 0. Default is true.
 %    'restrictBySD'   -Logical. If true, adds lower and upper bounds on all
 %                      paramters to keep them within three standard
 %                      deviations of their means during optimization.
@@ -48,6 +51,12 @@ function OLAnalyzeRayleighMatch(subjID,sessionNums,varargin)
 %    'avgSpds'        -Logical. If true, fits cone parameters based on
 %                      averaged spds for each reference wavelength. Default
 %                      is false.
+%    'multipleParamFits' -Logical. If true, fits parameters using several
+%                         different procedures, and makes a cone contrast
+%                         plot for each. Note that this overrides 
+%                         constraint settings for the lambda max and OD 
+%                         params that are entered as key-value pairs. 
+%                         Default is true.
 %    'makeBarPlots'   -Logical. If true, makes bar plots of cone
 %                      excitations for averaged spds. Default is false.
 %    'makePittDiagram'-Logical. If true, makes generalized Pitt diagram.
@@ -55,7 +64,10 @@ function OLAnalyzeRayleighMatch(subjID,sessionNums,varargin)
 %    'minimizeConeErr'-Logical. If true, minimizes cone exictation error
 %                      instead of opponent contrast difference. Default 
 %                      is false.
-
+%    'checkOrderEffect'-Logical. If true, the cone excitation plot
+%                       highlights which trials were run with the primary
+%                       mixture first, and which with the reference first.
+%                       Default is false.
 
 % History:
 %   2/19/21  dce       Wrote it.
@@ -66,23 +78,38 @@ function OLAnalyzeRayleighMatch(subjID,sessionNums,varargin)
 %   05/09/21  dce      Added option to fit params using cone excitation 
 %                      difference instead of opponent contrast.
 %   06/04/21  dce      Changed to reflect edits to OLRayleighMatch output
-%                      file structure
+%                      file structure and to findObserverParameters options
+%   06/09/21  dce      Added option to check for order effects in cone 
+%                      response figures (highlight whether primary or ref 
+%                      was shown first)
+%   06/16/21  dce      Added an option to do several different cone fits, 
+%                      added analysis of deviation from predicted match, 
+%                      removed some summary stats 
+%   06/21/21  dce      Fixed positioning of reversals, and changed which
+%                      spectra are used to calculate match
 close all; 
-
 % Parse input
 p = inputParser;
 p.addParameter('estNoise',false,@(x)(islogical(x)));
 p.addParameter('LMEqualOD',false,@(x)(islogical(x)));
 p.addParameter('dlens0',true,@(x)(islogical(x)));
 p.addParameter('dmac0',true,@(x)(islogical(x)));
-p.addParameter('dLM0',false,@(x)(islogical(x)));
-p.addParameter('dS0',true,@(x)(islogical(x)));
+p.addParameter('OD0',false,@(x)(islogical(x)));
+p.addParameter('lambdaMax0',false,@(x)(islogical(x)));
+p.addParameter('S0',true,@(x)(islogical(x)));
 p.addParameter('restrictBySd',true,@(x)(islogical(x)));
 p.addParameter('avgSpds',false,@(x)(islogical(x)));
 p.addParameter('minimizeConeErr',false,@(x)(islogical(x)));
 p.addParameter('makeBarPlots',false,@(x)(islogical(x)));
+p.addParameter('checkOrderEffect',false,@(x)(islogical(x)));
 p.addParameter('makePittDiagram',false,@(x)(islogical(x)));
+p.addParameter('multipleParamFits',true,@(x)(islogical(x)));
 p.parse(varargin{:});
+
+% Error checking 
+if p.Results.estNoise && ~p.Results.makePittDiagram
+    error('Set "make Pitt diagram" to true to estimate noise');
+end 
 
 % Define results directory
 resDir = fullfile(getpref('ForcedChoiceCM','rayleighAnalysisDir'),subjID);
@@ -104,6 +131,7 @@ darkSpds = [];         % Dark spds
 p1Scales = [];         % Scale factors for first primary spd
 p2Scales = [];         % Scale factors for second primary spd
 refScales = [];        % Scale factors for reference light
+refFirst = [];         % Was the reference light shown first for a given match?
 
 % Collect match positions and radiometer data from each file
 for i = 1:length(sessionNums)
@@ -122,7 +150,7 @@ for i = 1:length(sessionNums)
     sessionData = load(outputFile);
     
     lightCombos = [lightCombos;sessionData.lightCombosFull];
-    if size(sessionData.primaryRatios) == [2 1]
+    if size(sessionData.primaryRatios) == [2 1] % This is to fix a bug in saving
         primaryRatios = [primaryRatios;sessionData.primaryRatios];
         refIntensities = [refIntensities;sessionData.testIntensities];
     else
@@ -133,17 +161,20 @@ for i = 1:length(sessionNums)
     % Go through each match
     for j = 1:sessionData.nObserverMatches
         % Fill in scale factors for spds
-        p1Scales = [p1Scales;sessionData.p1Scale(find(sessionData.testWls==lightCombos(i,3)))];
-        p2Scales = [p2Scales;sessionData.p2Scale(find(sessionData.testWls==lightCombos(i,3)))];
-        refScales = [refScales;sessionData.testScale(find(sessionData.testWls==lightCombos(i,3)))];
+        p1Scales = [p1Scales;sessionData.p1Scale(sessionData.testWls==lightCombos(i,3))];
+        p2Scales = [p2Scales;sessionData.p2Scale(sessionData.testWls==lightCombos(i,3))];
+        refScales = [refScales;sessionData.testScale(sessionData.testWls==lightCombos(i,3))];
         
         % Find match spds (predicted)
         fName = fullfile(outputDir,[subjID '_' num2str(sessionNums(i))...
             '_' num2str(j) '.mat']);
+        trialData = load(fName);
         [rSpds,pSpds,~,~] = getMatchData(fName,'averageSpds',false);
         spdLength = size(rSpds,1);
         predRefSpds = [predRefSpds,reshape(rSpds,[spdLength numel(rSpds)/spdLength])];
         predPrimarySpds = [predPrimarySpds,reshape(pSpds,[spdLength numel(pSpds)/spdLength])];
+        trialData.staircaseTestFirst = [true false];
+        refFirst = [refFirst,trialData.staircaseTestFirst];
     end
     
     % Add radiometer data to collected data
@@ -155,25 +186,27 @@ end
 % Duplicate light combos array if interleaved
 if sessionData.interleaveStaircases
     lightCombos = repelem(lightCombos,2,1);
+    p1Scales = repelem(p1Scales,2);
+    p2Scales = repelem(p2Scales,2);
+    refScales = repelem(refScales,2);
 end 
 
 %% Sort collected data by unique wavelength combo, and find average spds
 % Identify the different sets of wavelengths used
-matchWls = unique(lightCombos,'rows');
+[matchWls,uniqueWlIndices] = unique(lightCombos,'rows');
 [nMatchWls,~] = size(matchWls);
 [spdLength,~] = size(measRefSpds);
 
 % Extract data for each set of wavelengths and average spds.
 meanPrimarySpds= zeros(spdLength,nMatchWls);
 meanRefSpds = zeros(spdLength,nMatchWls);
-for i = 1:nMatchWls
-    primarySpds = measPrimarySpds(:,all(lightCombos==matchWls(i,:),2));
-    meanPrimarySpds(:,i) = mean(primarySpds,2);
-    
-    refSpds = measRefSpds(:,all(lightCombos==matchWls(i,:),2));
-    meanRefSpds(:,i) = mean(refSpds,2);
-end
-
+    for i = 1:nMatchWls
+        primarySpds = measPrimarySpds(:,all(lightCombos==matchWls(i,:),2));
+        meanPrimarySpds(:,i) = mean(primarySpds,2);
+        
+        refSpds = measRefSpds(:,all(lightCombos==matchWls(i,:),2));
+        meanRefSpds(:,i) = mean(refSpds,2);
+    end
 %% Estimate cone fundamentals
 % Are we using averaged spds or not?
 if p.Results.avgSpds
@@ -185,26 +218,120 @@ else
 end
 
 % Fit cone fundamentals
-[estConeParams,~,~] = findObserverParameters(refSpdsFit,primarySpdsFit,...
-    'age',sessionData.age,'fieldSize',sessionData.fieldSize,...
-    'opponentParams',sessionData.opponentParams,'dlens0',p.Results.dlens0,...
-    'dmac0',p.Results.dmac0,'LMEqualOD',p.Results.LMEqualOD,...
-    'restrictBySd',p.Results.restrictBySd,'dLM0',p.Results.dLM0,...
-    'dS0',true,'minimizeConeErr',p.Results.minimizeConeErr);
+if p.Results.multipleParamFits
+    % Perform several different versions of the fit, with varying levels of
+    % constraint
+    [estConeParamsUnconstrained,~,~] = findObserverParameters(refSpdsFit,primarySpdsFit,...
+        'age',sessionData.age,'fieldSize',sessionData.fieldSize,...
+        'opponentParams',sessionData.opponentParams,'dlens0',p.Results.dlens0,...
+        'dmac0',p.Results.dmac0,'LMEqualOD',false,...
+        'restrictBySd',p.Results.restrictBySd,'OD0',false,...
+        'S0',p.Results.S0,'lambdaMax0',false,'minimizeConeErr',...
+        p.Results.minimizeConeErr);
+    [estConeParamsLockOD,~,~] =...
+        findObserverParameters(refSpdsFit,primarySpdsFit,...
+        'age',sessionData.age,'fieldSize',sessionData.fieldSize,...
+        'opponentParams',sessionData.opponentParams,'dlens0',p.Results.dlens0,...
+        'dmac0',p.Results.dmac0,'LMEqualOD',false,...
+        'restrictBySd',p.Results.restrictBySd,'OD0',true,...
+        'S0',p.Results.S0,'lambdaMax0',false,'minimizeConeErr',...
+        p.Results.minimizeConeErr);
+    [estConeParamsLockLambdaMax,~,~] = ...
+        findObserverParameters(refSpdsFit,primarySpdsFit,...
+        'age',sessionData.age,'fieldSize',sessionData.fieldSize,...
+        'opponentParams',sessionData.opponentParams,'dlens0',p.Results.dlens0,...
+        'dmac0',p.Results.dmac0,'LMEqualOD',false,...
+        'restrictBySd',p.Results.restrictBySd,'OD0',false,...
+        'S0',p.Results.S0,'lambdaMax0',true,'minimizeConeErr',...
+        p.Results.minimizeConeErr);
+    [estConeParamsLMEqualOD,~,~] = ...
+        findObserverParameters(refSpdsFit,primarySpdsFit,...
+        'age',sessionData.age,'fieldSize',sessionData.fieldSize,...
+        'opponentParams',sessionData.opponentParams,'dlens0',p.Results.dlens0,...
+        'dmac0',p.Results.dmac0,'LMEqualOD',true,...
+        'restrictBySd',p.Results.restrictBySd,'OD0',false,...
+        'S0',p.Results.S0,'lambdaMax0',false,'minimizeConeErr',...
+        p.Results.minimizeConeErr);
+    estConeParams = [estConeParamsUnconstrained;estConeParamsLockOD;...
+        estConeParamsLockLambdaMax;estConeParamsLMEqualOD];
+else
+    % Perform one version of the fit, as specified by key-value pairs
+    [estConeParams,~,~] = findObserverParameters(refSpdsFit,primarySpdsFit,...
+        'age',sessionData.age,'fieldSize',sessionData.fieldSize,...
+        'opponentParams',sessionData.opponentParams,'dlens0',p.Results.dlens0,...
+        'dmac0',p.Results.dmac0,'LMEqualOD',p.Results.LMEqualOD,...
+        'restrictBySd',p.Results.restrictBySd,'OD0',p.Results.OD0,...
+        'S0',p.Results.S0,'lambdaMax0',p.Results.lambdaMax0,'minimizeConeErr',...
+        p.Results.minimizeConeErr);
+end 
 
-% Standard and fit observers
-estObs = genRayleighObserver('age',sessionData.age,'fieldSize',...
-    sessionData.fieldSize,'opponentParams',sessionData.opponentParams,...
-    'coneVec',estConeParams);
+% Create standard and fit observers, and compute nominal matches for each
+nConeParams = size(estConeParams,1);
+estObs = cell(1,nConeParams);
+for i = 1:nConeParams
+    estObs{i} = genRayleighObserver('age',sessionData.age,'fieldSize',...
+        sessionData.fieldSize,'opponentParams',sessionData.opponentParams,...
+        'coneVec',estConeParams(i,:));
+end
 stdObs = genRayleighObserver('age',sessionData.age,'fieldSize',...
     sessionData.fieldSize,'opponentParams',sessionData.opponentParams,...
     'coneVec',zeros(1,8));
 
+%% Compute nominal matches for each of the fit observers
+% We start by preallocating some arrays 
+primarySpdsPredictedMatch = cell(1,nConeParams);
+refSpdsPredictedMatch = cell(1,nConeParams);
+primaryConeResPredictedMatch = cell(1,nConeParams);
+refConeResPredictedMatch = cell(1,nConeParams);
+refLMinusMPredicted = cell(1,nConeParams);
+refLPlusMPredicted = cell(1,nConeParams);
+primaryLMinusMPredicted = cell(1,nConeParams);
+primaryLPlusMPredicted = cell(1,nConeParams);
+for kk = 1:nConeParams
+    primarySpdsPredictedMatch{kk} = zeros(spdLength,nMatchWls);
+    refSpdsPredictedMatch{kk} = zeros(spdLength,nMatchWls);
+    primaryConeResPredictedMatch{kk} = zeros(3,nMatchWls);
+    refConeResPredictedMatch{kk} = zeros(3,nMatchWls);    
+    primaryLMinusMPredicted{kk} = zeros(1,nMatchWls);
+    refLMinusMPredicted{kk} = zeros(1,nMatchWls);
+    primaryLPlusMPredicted{kk} = zeros(1,nMatchWls);
+    refLPlusMPredicted{kk} = zeros(1,nMatchWls);
+end 
+% Find predicted matches for each fit observer at each set of wavelengths tested 
+for i = 1:nMatchWls
+    lightFile = sprintf('OLRayleighMatch%gSpectralSettings_%g_%g_%g_%g_%g_%g.mat',...
+        sessionData.adjustmentLength,matchWls(i,1),matchWls(i,2),matchWls(i,3),...
+        p1Scales(uniqueWlIndices(i)),p2Scales(uniqueWlIndices(i)),...
+        refScales(uniqueWlIndices(i)));
+    lightData = load(fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
+        'precomputedStartStops',lightFile));
+    for kk = 1:nConeParams   
+        [rSpdsPredictedMatch,pSpdsPredictedMatch,~,~] = ...
+            searchPredictedRayleighMatch(lightData.testSpdsPredicted,...
+            lightData.primarySpdsPredicted,estObs{kk});      
+        primarySpdsPredictedMatch{kk}(:,i) = pSpdsPredictedMatch;
+        refSpdsPredictedMatch{kk}(:,i) = rSpdsPredictedMatch;
+        primaryConeResPredictedMatch{kk}(:,i) = estObs{kk}.T_cones*pSpdsPredictedMatch;
+        refConeResPredictedMatch{kk}(:,i) = estObs{kk}.T_cones*rSpdsPredictedMatch;
+        
+        primaryLMinusMPredicted{kk}(i) =...
+            primaryConeResPredictedMatch{kk}(1,i)-primaryConeResPredictedMatch{kk}(2,i);
+        primaryLPlusMPredicted{kk}(i) = ...
+            primaryConeResPredictedMatch{kk}(1,i)+primaryConeResPredictedMatch{kk}(2,i);
+        refLMinusMPredicted{kk}(i) = ...
+            refConeResPredictedMatch{kk}(1,i)-refConeResPredictedMatch{kk}(2,i);
+        refLPlusMPredicted{kk}(i) = ...
+            refConeResPredictedMatch{kk}(1,i)+refConeResPredictedMatch{kk}(2,i);
+    end
+end
+
 %% Make cone excitations bar graphs for averaged spds (Optional)
+% If multiple fits were performed, this figure is made only for the
+% unconstrained fit
 if p.Results.makeBarPlots
     for i = 1:nMatchWls
-        primaryRes = estObs.T_cones*meanPrimarySpds(:,i);
-        refRes = estObs.T_cones*meanRefSpds(:,i);
+        primaryRes = estObs{1}.T_cones*meanPrimarySpds(:,i);
+        refRes = estObs{1}.T_cones*meanRefSpds(:,i);
         primaryResStd = stdObs.T_cones*meanPrimarySpds(:,i);
         refResStd = stdObs.T_cones*meanRefSpds(:,i);
         
@@ -237,145 +364,224 @@ if p.Results.makeBarPlots
 end
 
 %% Make cone response figures
-% Setup
+% Loop through the different sets of fit parameters
 plotColors = 'rkbgcmrkbgcm';
 refWls = unique(lightCombos(:,3));
-legendHandles1 = [];
-legendHandles2 = [];
-legendEntries = {};
 
-stdConeDiffPlot = figure();
-hold on;
-xlim([0 0.35]);
-ylim([0.015 0.035]);
-xlabel('(L - M)/(L+M)');
-ylabel('L + M');
-title([subjID ' Cone Response Difference - Standard Cones'],'interpreter','none');
+if p.Results.multipleParamFits
+    plotNames = {'Unconstrained','Lock Lambda Max','Lock Optical Density',...
+        'Equal LM Optical Density'};
+    plotFNames = {'_unconstrained','_lockLambdaMax','_lockOD',...
+        '_LMEqualOD'};
+else 
+    plotNames = {''};
+    plotFNames = {''};
+end 
 
-fitConeDiffPlot = figure();
-hold on;
-xlim([0 0.35]);
-ylim([0.015 0.035]);
-xlabel('(L - M)/(L+M)');
-ylabel('L + M');
-title([subjID ' Cone Response Difference - Fit Cones'],'interpreter','none');
+% Data arrays to store cone responses
+primaryConeRes = cell(nConeParams,nMatchWls);
+refConeRes = cell(nConeParams,nMatchWls);
+primaryLMinusM = cell(nConeParams,nMatchWls);
+refLMinusM = cell(nConeParams,nMatchWls);
+primaryLPlusM = cell(nConeParams,nMatchWls);
+refLPlusM = cell(nConeParams,nMatchWls);
+primaryConeResStd = cell(1,nMatchWls);
+refConeResStd = cell(1,nMatchWls);
 
-% Data arrays
-meanPrimaryExcitationsFitL = zeros(1,nMatchWls);
-meanRefExcitationsFitL = zeros(1,nMatchWls);
-semPrimaryExcitationsFitL = zeros(1,nMatchWls);
-semRefExcitationsFitL = zeros(1,nMatchWls);
-
-meanPrimaryExcitationsFitM = zeros(1,nMatchWls);
-meanRefExcitationsFitM = zeros(1,nMatchWls);
-semPrimaryExcitationsFitM = zeros(1,nMatchWls);
-semRefExcitationsFitM = zeros(1,nMatchWls);
-
-meanPrimaryExcitationsStdL = zeros(1,nMatchWls);
-meanRefExcitationsStdL = zeros(1,nMatchWls);
-semPrimaryExcitationsStdL = zeros(1,nMatchWls);
-semRefExcitationsStdL = zeros(1,nMatchWls);
-
-meanPrimaryExcitationsStdM = zeros(1,nMatchWls);
-meanRefExcitationsStdM = zeros(1,nMatchWls);
-semPrimaryExcitationsStdM = zeros(1,nMatchWls);
-semRefExcitationsStdM = zeros(1,nMatchWls);
-
-for i = 1:nMatchWls
-    % Extract relevant spds
-    sessionInds = all(lightCombos==matchWls(i,:),2);
-    measPrimarySpdsTrial = measPrimarySpds(:,sessionInds);
-    measRefSpdsTrial = measRefSpds(:,sessionInds);
+for kk = 1:nConeParams
+    legendHandles1 = [];
+    legendHandles2 = [];
+    legendEntries = {};
     
-    % Compute excitations
-    primaryRes = estObs.T_cones*measPrimarySpdsTrial;
-    refRes = estObs.T_cones*measRefSpdsTrial;
-    primaryLMinusM = primaryRes(1,:)-primaryRes(2,:);
-    primaryLPlusM = primaryRes(1,:)+primaryRes(2,:);
-    refLMinusM = refRes(1,:)-refRes(2,:);
-    refLPlusM = refRes(1,:)+refRes(2,:);
-    
-    primaryResStd = stdObs.T_cones*measPrimarySpdsTrial;
-    refResStd = stdObs.T_cones*measRefSpdsTrial;
-    primaryLMinusMStd = primaryResStd(1,:)-primaryResStd(2,:);
-    primaryLPlusMStd = primaryResStd(1,:)+primaryResStd(2,:);
-    refLMinusMStd = refResStd(1,:)-refResStd(2,:);
-    refLPlusMStd = refResStd(1,:)+refResStd(2,:);
-    
-    % Compute summary statistics
-    meanPrimaryExcitationsFitL(i) = mean(primaryRes(1,:));
-    meanRefExcitationsFitL(i) = mean(refRes(1));
-    semPrimaryExcitationsFitL(i) = std(primaryRes(1,:))/sqrt(length(primaryRes(1,:)));
-    semRefExcitationsFitL(i) = std(refRes(1,:))/sqrt(length(refRes(1,:)));
-    
-    meanPrimaryExcitationsFitM(i) = mean(primaryRes(2,:));
-    meanRefExcitationsFitM(i) =  mean(refRes(2,:));
-    semPrimaryExcitationsFitM(i) = std(primaryRes(2,:))/sqrt(length(primaryRes(2,:)));
-    semRefExcitationsFitM(i) = std(refRes(2,:))/sqrt(length(refRes(2,:)));
-    
-    meanPrimaryExcitationsStdL(i) =  mean(primaryResStd(1,:));
-    meanRefExcitationsStdL(i) = mean(refResStd(1,:));
-    semPrimaryExcitationsStdL(i) = std(primaryResStd(1,:))/sqrt(length(primaryResStd(1,:)));
-    semRefExcitationsStdL(i) = std(refResStd(1,:))/sqrt(length(refResStd(1,:)));
-    
-    meanPrimaryExcitationsStdM(i) = mean(primaryResStd(2,:));
-    meanRefExcitationsStdM(i) = mean(refResStd(2,:));
-    semPrimaryExcitationsStdM(i) = std(primaryResStd(2,:))/sqrt(length(primaryResStd(2,:)));
-    semRefExcitationsStdM(i) = std(refResStd(2,:))/sqrt(length(refResStd(2,:)));
-    
-    % Add points to plot
-    figure(stdConeDiffPlot);
-    hold on;
-    a  = plot(primaryLMinusMStd./primaryLPlusMStd,...
-        primaryLPlusMStd,[plotColors(i) '* ']);
-    plot(refLMinusMStd./refLPlusMStd,refLPlusMStd,[plotColors(i) 'o ']);
-    if length(refLMinusMStd) >=4
-        plot(refLMinusMStd(3:4)./refLPlusMStd(3:4),refLPlusMStd(3:4),...
-            'yo','MarkerFaceColor','Yellow','MarkerSize',5);
+    if kk==1  % Make standard cones figure on the first loop through
+        stdConeDiffPlot = figure();
+        hold on;
+        xlim([0 0.35]);
+        ylim([0.015 0.035]);
+        xlabel('(L - M)/(L+M)');
+        ylabel('L + M');
+        title([subjID ' Cone Response Difference - Standard Cones'],'interpreter','none');
     end
-    legendHandles1 = [legendHandles1,a];
+    
+    fitConeDiffPlot = figure();
+    hold on;
+    xlim([0 0.35]);
+    ylim([0.015 0.035]);
+    xlabel('(L - M)/(L+M)');
+    ylabel('L + M');
+    title([subjID ' Cone Response Difference - Fit Cones ' plotNames{kk}],'interpreter','none');
+        
+    for i = 1:nMatchWls
+        % Extract relevant spds
+        sessionInds = all(lightCombos==matchWls(i,:),2);
+        measPrimarySpdsTrial = measPrimarySpds(:,sessionInds);
+        measRefSpdsTrial = measRefSpds(:,sessionInds);
+        
+        % Extract relevant refFirst data
+        trialRefFirst = refFirst(sessionInds);
+        trialRefFirst = logical(trialRefFirst);
+        
+        % Compute and store excitations
+        primaryConeRes{kk,i} = estObs{kk}.T_cones*measPrimarySpdsTrial;
+        refConeRes{kk,i} = estObs{kk}.T_cones*measRefSpdsTrial;
+        primaryLMinusM{kk,i} = primaryConeRes{kk,i}(1,:)-primaryConeRes{kk,i}(2,:);
+        primaryLPlusM{kk,i} = primaryConeRes{kk,i}(1,:)+primaryConeRes{kk,i}(2,:);
+        refLMinusM{kk,i} = refConeRes{kk,i}(1,:)-refConeRes{kk,i}(2,:);
+        refLPlusM{kk,i} = refConeRes{kk,i}(1,:)+refConeRes{kk,i}(2,:);
+        
+        if kk==1
+            % Standard excitations
+            primaryConeResStd{i} = stdObs.T_cones*measPrimarySpdsTrial;
+            refConeResStd{i} = stdObs.T_cones*measRefSpdsTrial;
+            primaryLMinusMStd = primaryConeResStd{i}(1,:)-primaryConeResStd{i}(2,:);
+            primaryLPlusMStd = primaryConeResStd{i}(1,:)+primaryConeResStd{i}(2,:);
+            refLMinusMStd = refConeResStd{i}(1,:)-refConeResStd{i}(2,:);
+            refLPlusMStd = refConeResStd{i}(1,:)+refConeResStd{i}(2,:);
+            
+            % Add points to standard plot           
+            figure(stdConeDiffPlot);
+            hold on;
+            a  = plot(primaryLMinusMStd./primaryLPlusMStd,...
+                primaryLPlusMStd,[plotColors(i) '* ']);
+            if p.Results.checkOrderEffect
+                plot(refLMinusMStd(trialRefFirst)./refLPlusMStd(trialRefFirst),...
+                    refLPlusMStd(trialRefFirst),[plotColors(i) 'o ']);
+                plot(refLMinusMStd(~trialRefFirst)./refLPlusMStd(~trialRefFirst),...
+                    refLPlusMStd(~trialRefFirst),[plotColors(i) 's ']);
+            else
+                plot(refLMinusMStd./refLPlusMStd,refLPlusMStd,[plotColors(i) 'o ']);
+            end
+            % Highlight second session matches
+            if length(refLMinusMStd) >=4
+                if p.Results.checkOrderEffect
+                    selectionArr = logical([0 0 refFirst(3:4)]);
+                    selectionArr2 = logical([0 0 ~refFirst(3:4)]);
+                    plot(refLMinusMStd(selectionArr)./refLPlusMStd(selectionArr),refLPlusMStd(selectionArr),...
+                        'yo','MarkerFaceColor','Yellow','MarkerSize',5);
+                    plot(refLMinusMStd(selectionArr2)./refLPlusMStd(selectionArr2),refLPlusMStd(selectionArr2),...
+                        'ys','MarkerFaceColor','Yellow','MarkerSize',5);
+                else
+                    plot(refLMinusMStd(3:4)./refLPlusMStd(3:4),refLPlusMStd(3:4),...
+                        'yo','MarkerFaceColor','Yellow','MarkerSize',5);
+                end
+            end
+            legendHandles1 = [legendHandles1,a];
+            
+            % Add lines connecting each pair of primary/reference points
+            for j = 1:length(primaryConeRes{kk,i}(1,:))
+                plot([primaryLMinusMStd(j)/primaryLPlusMStd(j)...
+                    refLMinusMStd(j)/refLPlusMStd(j)],...
+                    [primaryLPlusMStd(j) refLPlusMStd(j)],'k-');
+            end
+        end
+        
+        % Add fit points to plot
+        figure(fitConeDiffPlot);
+        hold on;
+        a = plot(primaryLMinusM{kk,i}./primaryLPlusM{kk,i},primaryLPlusM{kk,i},...
+            [plotColors(i) '* ']);
+        if p.Results.checkOrderEffect
+            plot(refLMinusM{kk,i}(trialRefFirst)./refLPlusM{kk,i}(trialRefFirst),...
+                refLPlusM{kk,i}(trialRefFirst),[plotColors(i) 'o ']);
+            plot(refLMinusM{kk,i}(~trialRefFirst)./refLPlusM{kk,i}(~trialRefFirst),...
+                refLPlusM{kk,i}(~trialRefFirst),[plotColors(i) 's ']);
+        else
+            plot(refLMinusM{kk,i}./refLPlusM{kk,i},refLPlusM{kk,i},[plotColors(i) 'o ']);
+        end
+        
+        % Highlight second session points
+        if length(refLMinusM{kk,i}) >=4
+            if p.Results.checkOrderEffect
+                selectionArr = logical([0 0 refFirst(3:4)]);
+                selectionArr2 = logical([0 0 ~refFirst(3:4)]);
+                plot(refLMinusM{kk,i}(selectionArr)./refLPlusM{kk,i}(selectionArr),refLPlusM{kk,i}(selectionArr),...
+                    'yo','MarkerFaceColor','Yellow','MarkerSize',5);
+                plot(refLMinusM{kk,i}(selectionArr2)./refLPlusM{kk,i}(selectionArr2),refLPlusM{kk,i}(selectionArr2),...
+                    'ys','MarkerFaceColor','Yellow','MarkerSize',5);
+            else
+                plot(refLMinusM{kk,i}(3:4)./refLPlusM{kk,i}(3:4),refLPlusM{kk,i}(3:4),...
+                    'yo','MarkerFaceColor','Yellow','MarkerSize',5);
+            end
+        end
+        
+        % Add lines connecting each pair of primary/reference points
+        for j = 1:length(primaryConeRes{kk,i}(1,:))
+            plot([primaryLMinusM{kk,i}(j)/primaryLPlusM{kk,i}(j)...
+                refLMinusM{kk,i}(j)/refLPlusM{kk,i}(j)],...
+                [primaryLPlusM{kk,i}(j) refLPlusM{kk,i}(j)],'k-');
+        end
+        legendHandles2 = [legendHandles2,a];
+        legendEntries{end+1} = num2str(refWls(i));
+    end
+    
+    % Add legends and explanatory text labels, and save figures
+    if p.Results.checkOrderEffect
+        txtLabel = {'Yellow = second session','Square = primary first'};
+    else
+        txtLabel = 'Yellow = second session';
+    end
+    
+    if kk==1
+        figure(stdConeDiffPlot);
+        legend(legendHandles1,legendEntries);
+        text(0.05,0.03,txtLabel);
+        NicePlot.exportFigToPDF([resFile '_stdConeDiffs.pdf'],...
+            stdConeDiffPlot,300);
+    end
     
     figure(fitConeDiffPlot);
-    hold on;
-    a = plot(primaryLMinusM./primaryLPlusM,primaryLPlusM,...
-        [plotColors(i) '* ']);
-    plot(refLMinusM./refLPlusM,refLPlusM,[plotColors(i) 'o ']);
-    if length(refLMinusM)>=4
-        plot(refLMinusM(3:4)./refLPlusM(3:4),refLPlusM(3:4),...
-            'yo','MarkerFaceColor','Yellow','MarkerSize',5);
-    end
-    legendHandles2 = [legendHandles2,a];
-    
-    legendEntries{end+1} = num2str(refWls(i));
-    
-    % Add lines connecting each pair of primary/reference points
-    for j = 1:length(primaryRes(1,:))
-        figure(stdConeDiffPlot);
-        plot([primaryLMinusMStd(j)/primaryLPlusMStd(j)...
-            refLMinusMStd(j)/refLPlusMStd(j)],...
-            [primaryLPlusMStd(j) refLPlusMStd(j)],'k-');
-        
-        figure(fitConeDiffPlot);
-        plot([primaryLMinusM(j)/primaryLPlusM(j)...
-            refLMinusM(j)/refLPlusM(j)],...
-            [primaryLPlusM(j) refLPlusM(j)],'k-');
-    end
+    legend(legendHandles2,legendEntries);
+    text(0.05,0.03,txtLabel);
+    NicePlot.exportFigToPDF([resFile '_fitConeDiffs' plotFNames{kk} '.pdf'],...
+        fitConeDiffPlot,300);
 end
 
-% Add legends and save figures
-figure(stdConeDiffPlot);
-legend(legendHandles1,legendEntries);
-NicePlot.exportFigToPDF([resFile '_stdConeDiffs.pdf'],...
-    stdConeDiffPlot,300);
-
-figure(fitConeDiffPlot);
-legend(legendHandles2,legendEntries);
-NicePlot.exportFigToPDF([resFile '_fitConeDiffs.pdf'],...
-    fitConeDiffPlot,300);
+%% Make plots of deviation from nominal match 
+% Loop through each set of fit parameters, and make a separate figure 
+for kk = 1:nConeParams
+    coneDeviationFig = figure();
+    hold on;
+    legendHandles = [];
+    legendEntries = {};
+    xlabel('(L-M)/(L+M)');
+    ylabel('L+M');
+    title([subjID ' Deviation From Predicted Match- ' plotNames{kk}],'interpreter','none');
+    txtLabel = {'yellow = predicted matches'};
+    text(0.05,0.03,txtLabel);
+    
+    % Plot predicted matches (yellow)
+    plot(primaryLMinusMPredicted{kk}./primaryLPlusMPredicted{kk},primaryLPlusMPredicted{kk},...
+        'y* ');
+     plot(refLMinusMPredicted{kk}./refLPlusMPredicted{kk},refLPlusMPredicted{kk},...
+        'yo ','MarkerFaceColor','Yellow');
+    for j = 1:length(primaryConeResPredictedMatch{kk}(1,:))
+        plot([primaryLMinusMPredicted{kk}(j)./primaryLPlusMPredicted{kk}(j),...
+            refLMinusMPredicted{kk}(j)./refLPlusMPredicted{kk}(j)],...
+            [primaryLPlusMPredicted{kk}(j) refLPlusMPredicted{kk}(j)],'k-');
+    end
+      
+    % Plot observed matches
+    for i = 1:nMatchWls
+        a = plot(primaryLMinusM{kk,i}./primaryLPlusM{kk,i},primaryLPlusM{kk,i},...
+            [plotColors(i) '* ']);
+        plot(refLMinusM{kk,i}./refLPlusM{kk,i},refLPlusM{kk,i},...
+            [plotColors(i) 'o ']);     
+        for j = 1:length(primaryConeRes{kk,i}(1,:))
+            plot([primaryLMinusM{kk,i}(j)/primaryLPlusM{kk,i}(j)...
+                refLMinusM{kk,i}(j)/refLPlusM{kk,i}(j)],...
+                [primaryLPlusM{kk,i}(j) refLPlusM{kk,i}(j)],'k-');
+        end
+        legendHandles = [legendHandles,a];
+        legendEntries{end+1} = num2str(refWls(i));
+    end 
+    legend(legendHandles,legendEntries)
+    NicePlot.exportFigToPDF([resFile '_fitConeMatchDeviations' plotFNames{kk} '.pdf'],...
+        coneDeviationFig,300);
+end 
 
 %% Make summary Pitt diagram
 % Compute Pitt diagram points for radiometer measurements, using the
-% most extreme scale factors
+% most extreme scale factors. If there are 
 radiometerPrimaryRatios = [];
 radiometerRefIntensities = [];
 nominalPrimaryRatios = [];
@@ -385,8 +591,7 @@ nominalRefIntensitiesStd = [];
 if p.Results.makePittDiagram
     baseDir = '/Users/deena/Dropbox (Aguirre-Brainard Lab)';
     refWls = unique(lightCombos(:,3));
-    for i = 1:length(primaryRatios)
-        
+    for i = 1:length(primaryRatios)   
         % Define output light file we're using. Either load the data or
         % create file if it does not exist
         lightFile = sprintf('OLRayleighMatch%gSpectralSettings_%g_%g_%g_%g_%g_%g.mat',...
@@ -418,10 +623,12 @@ if p.Results.makePittDiagram
         radiometerPrimaryRatios = [radiometerPrimaryRatios,pRatioR];
         radiometerRefIntensities = [radiometerRefIntensities,refIntensityR];
         
-        % Find nominal match for standard observer and for estimated observer
+        % Find nominal match for standard observer and for estimated
+        % observer. If there are multiple estimated observers, use the
+        % unconstrained one.
         [~,~,rIndex,pIndex] = searchPredictedRayleighMatch(...
             lightSettings.testSpdsPredicted,lightSettings.primarySpdsPredicted,...
-            estObs);
+            estObs{1});
         [~,~,rIndexStd,pIndexStd] = searchPredictedRayleighMatch(...
             lightSettings.testSpdsPredicted,lightSettings.primarySpdsPredicted,...
             stdObs);
@@ -468,7 +675,7 @@ end
 % Find the number of times each match was repeated.
 % We assume an equal number of trials were done for each match, and an
 % equal number of trials were done in each session.
-if p.Results.estNoise
+if p.Results.estNoise && p.Results.makePittDiagram
     nRepeats = length(sessionNums)*length(sessionData.primaryRatios)/nMatchWls;
     
     % Define output arrays
@@ -498,29 +705,31 @@ if p.Results.estNoise
         % Note that getMatchSeries computes matches for all possible
         % combinations of the input wavelengths, not necessarily the specific
         % ones that were done here. This should not be relevant if we are only
-        % varying reference wavelength.
+        % varying reference wavelength. If there are multiple observer
+        % fits, the least constrained is used here. For now, this
+        % simulation runs with the most extreme scale factors, not the ones 
+        % that were actually used in the experiment for a given ref wl
+        nRefWls = length(unique(matchWls(:,3))');
         [~,~,refIntensitiesSim(:,noiseSd),primaryRatiosSim(:,noiseSd)] = ...
-            getMatchSeries(subjIDSim,estConeParams,sessionData.opponentParams,...
+            getMatchSeries(subjIDSim,estConeParams(1,:),sessionData.opponentParams,...
             unique(matchWls(:,1))',unique(matchWls(:,2))',unique(matchWls(:,3))',...
             method,'fieldSize',sessionData.fieldSize,'age',sessionData.age,...
             'nObserverMatches',nRepeats,'rayleighPlots',false,'noiseScaleFactor',...
-            noiseSd,'averageSpds',false,'p1Scale',sampleSession.p1Scale*[1 1],...
-            'p2Scale',sampleSession.p2Scale*[1 1],'testScale',...
-            sampleSession.testScale*[1 1],'nReversals',...
-            sampleSession.nReversals,'adjustmentLength',...
-            sampleSession.adjustmentLength);
+            noiseSd,'averageSpds',false,'p1Scale',max(p1Scales)*ones(1,nRefWls),...
+            'p2Scale',min(p2Scales)*ones(1,nRefWls),'testScale',...
+            max(refScales)*ones(1,nRefWls),'nReversals',sampleSession.nReversals,...
+            'adjustmentLength',sampleSession.adjustmentLength,'saveResults',false);
         [~,~,refIntensitiesSimStd(:,noiseSd),primaryRatiosSimStd(:,noiseSd)] = ...
             getMatchSeries(subjIDSimStd,zeros(1,8),sessionData.opponentParams,...
             unique(matchWls(:,1))',unique(matchWls(:,2))',unique(matchWls(:,3))',...
             method,'fieldSize',sessionData.fieldSize,'age',sessionData.age,...
             'nObserverMatches',nRepeats,'rayleighPlots',false,'noiseScaleFactor',...
-            noiseSd,'averageSpds',false,'p1Scale',sampleSession.p1Scale*[1 1],...
-            'p2Scale',sampleSession.p2Scale*[1 1],'testScale',...
-            sampleSession.testScale*[1 1],'nReversals',...
-            sampleSession.nReversals,'adjustmentLength',sampleSession.adjustmentLength);
+            noiseSd,'averageSpds',false,'p1Scale',p1Scales(uniqueWlIndices),...
+            'p2Scale',p2Scales(uniqueWlIndices),'testScale',...
+            refScales(uniqueWlIndices),'nReversals',sampleSession.nReversals,...
+            'adjustmentLength',sampleSession.adjustmentLength,'saveResults',false);
     end
     % Reset preference to MELA_data
-    baseDir = '/Users/deena/Dropbox (Aguirre-Brainard Lab)';
     setpref('ForcedChoiceCM','rayleighDataDir',...
         fullfile(baseDir,'MELA_data','Experiments','ForcedChoiceCM','OLRayleighMatch'));
     
@@ -534,16 +743,13 @@ if p.Results.estNoise
     simPittPlot = figure();
     hold on;
     xlabel('Primary Ratio');
-    ylabel('Test Intensity');
-    a = plot(primaryRatios.*commonP1ScaleFactors,refIntensities.*commonRefScaleFactors,...
-        'bs ','MarkerFaceColor','b','MarkerSize',5);
-    b = plot(radiometerPrimaryRatios,radiometerRefIntensities,...
-        'r* ','MarkerSize',4);
+    ylabel('Reference Intensity');
+    b = plot(radiometerPrimaryRatios,radiometerRefIntensities,'r* ','MarkerSize',4);
     c = plot(primaryRatiosSim(:,:,plotNoiseSd),refIntensitiesSim(:,:,plotNoiseSd),...
         'go ','MarkerFaceColor','g','MarkerSize',3);
     d = plot(primaryRatiosSimStd(:,:,plotNoiseSd),refIntensitiesSimStd(:,:,plotNoiseSd),...
         'mo ','MarkerFaceColor','m','MarkerSize',2);
-    legend([a(1),b(1),c(1),d(1)],'Settings','Radiometer Spd Fits',...
+    legend([b(1),c(1),d(1)],'Radiometer Spd Fits',...
         'Simulated Observer Matches (Estimated Cones)',...
         'Simulated Observer Matches (Standard Cones)');
     title([subjID ' Rayleigh Matches - Simulated Observer Comparison'],'interpreter','none');
@@ -553,20 +759,9 @@ if p.Results.estNoise
     % Save figure
     NicePlot.exportFigToPDF([resFile '_simPittPlot.pdf'],...
         simPittPlot,300);
-    
-    % Compute standard error for matches with each set of primary/reference
-    % wavelength
-    refIntensitiesSimStdErr = zeros(4,nMatchWls);
-    primaryRatiosSimStdErr = zeros(4,nMatchWls);
-    for i = 1:4
-        for j = 1:nMatchWls
-            refIntensitiesSimStdErr(i,j) = std(refIntensitiesSim(:,j,i))/sqrt(length(refIntensitiesSim(:,j,i)));
-            primaryRatiosSimStdErr(i,j) = std(primaryRatiosSim(:,j,i))/sqrt(length(primaryRatiosSim(:,j,i)));
-        end
-    end
 end
 
-%% Plot of measured and predicted spds - not made by default
+%% Plot of measured and predicted spds - not made by default, and not saved
 plotSpdsMeasPred = false;
 if plotSpdsMeasPred
     spdPlot = figure();
@@ -583,21 +778,16 @@ if plotSpdsMeasPred
         theTitle = sprintf('Match %g',i);
         title(theTitle);
     end
-    NicePlot.exportFigToPDF([resFile '_spdPlot.pdf'],...
-        spdPlot,300);
 end
 
 %% Save data
 save([resFile '_analysis.mat'],'p','lightCombos','primaryRatios','refIntensities',...
     'measPrimarySpds','measRefSpds','predPrimarySpds','predRefSpds','darkSpds',...
     'p1Scales','p2Scales','refScales','meanPrimarySpds','meanRefSpds',...
-    'estConeParams','estObs','stdObs','meanPrimaryExcitationsFitL',...
-    'meanPrimaryExcitationsFitM','meanRefExcitationsFitL','meanRefExcitationsFitM',...
-    'semPrimaryExcitationsFitL','semPrimaryExcitationsFitM','semRefExcitationsFitL',...
-    'semRefExcitationsFitM','meanPrimaryExcitationsStdL',...
-    'meanPrimaryExcitationsStdM','meanRefExcitationsStdL','meanRefExcitationsStdM',...
-    'semPrimaryExcitationsStdL','semPrimaryExcitationsStdM','semRefExcitationsStdL',...
-    'semRefExcitationsStdM','radiometerPrimaryRatios','radiometerRefIntensities',...
+    'estConeParams','estObs','stdObs','radiometerPrimaryRatios','radiometerRefIntensities',...
     'nominalPrimaryRatios','nominalRefIntensities','nominalPrimaryRatiosStd',...
-    'nominalRefIntensitiesStd');
+    'nominalRefIntensitiesStd','matchWls','uniqueWlIndices','primaryConeRes','refConeRes',...
+    'primaryConeResStd','refConeResStd','primarySpdsPredictedMatch',...
+    'refSpdsPredictedMatch','primaryConeResPredictedMatch','refConeResPredictedMatch',...
+    'primaryLMinusM','refLMinusM','primaryLPlusM','refLPlusM');
 end

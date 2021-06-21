@@ -38,9 +38,9 @@ function error = findMatchError(coneParamsVec,initialObs,testSpds,...
 %                 (OneLight convention)  
 %    errScalar   -Integer for scaling the match error, to improve search.
 %                 Default is 100.
-%    minimizeConeErr   -Logical. If true, minimizes cone exictation error
-%                       instead of opponent contrast difference. Default 
-%                       is false.
+%    findConeErr -Logical. If true, calculates cone exictation error
+%                 instead of opponent contrast difference. Default 
+%                 is false.
 
 % History:
 %   06/12/20  dce       Wrote it.
@@ -52,7 +52,7 @@ function error = findMatchError(coneParamsVec,initialObs,testSpds,...
 p = inputParser;
 p.addParameter('S',[380 2 201],@(x)(isnumeric(x)));
 p.addParameter('errScalar',100,@(x)(isnumeric(x)));
-p.addParameter('minimizeConeErr',false,@(x)(islogical(x)));
+p.addParameter('findConeErr',false,@(x)(islogical(x)));
 p.parse(varargin{:});
 
 [spdLength,nMatches] = size(testSpds);   
@@ -78,7 +78,7 @@ for i = 1:nMatches
     test_LMS = observer.T_cones * testSpds(:,i);
     primary_LMS = observer.T_cones * primarySpds(:,i);
     
-    if p.Results.minimizeConeErr
+    if p.Results.findConeErr
         % Calculate excitation difference
         error = test_LMS - primary_LMS;
     else

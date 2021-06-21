@@ -49,10 +49,12 @@ function [params,error,observer] = findObserverParameters(testSpds,primarySpds,v
 %                     (params(1)) to be 0. Default is false.
 %    'dmac0'         -Logical. If true, constrains the macular pigment 
 %                     density(params(2)) to be 0. Default is false.
-%    'dLM0'          -Logical. If true, constrains the L and M optical
-%                     density(params(3:4)) to be 0. Default is false.
-%    'dS0'           -Logical. If true, constrains the S lambda max and 
-%                     optical density to be 0. Default is true.
+%    'OD0'           -Logical. If true, constrains the optical
+%                     density(params(3:5)) to be 0. Default is false.
+%    'lambdaMax0'    -Logical. If true, constrains lambda max
+%                     (params(6:8)) to be 0. Default is false.
+%    'S0'            -Logical. If true, constrains S lambda max and optical
+%                     density (params 5 and 8) to be 0. Default is true.
 %    'restrictBySD'  -Logical. If true, adds lower and upper bounds on all
 %                     paramters to keep them within three standard
 %                     deviations of their means. Default is true. 
@@ -81,6 +83,8 @@ function [params,error,observer] = findObserverParameters(testSpds,primarySpds,v
 %   04/30/21  dce       Added S locking as a key value pair.
 %   05/09/21  dce       Added option to minimize cone excitation difference
 %                       instead of opponent contrast.
+%   06/08/21  dce       Renamed parameters, added option to constrain
+%                      lambda max to 0
 
 %% Initial Setup
 % Parse input
@@ -90,8 +94,9 @@ p.addParameter('fieldSize',2,@(x)(isnumeric(x)));
 p.addParameter('LMEqualOD',false,@(x)(islogical(x)));
 p.addParameter('dlens0',false,@(x)(islogical(x)));
 p.addParameter('dmac0',false,@(x)(islogical(x)));
-p.addParameter('dLM0',false,@(x)(islogical(x)));
-p.addParameter('dS0',true,@(x)(islogical(x)));
+p.addParameter('OD0',false,@(x)(islogical(x)));
+p.addParameter('lambdaMax0',false,@(x)(islogical(x)));
+p.addParameter('S0',true,@(x)(islogical(x)));
 p.addParameter('restrictBySd',true,@(x)(islogical(x)));
 p.addParameter('initialConeParams',zeros(1,8),@(x)(isnumeric(x)));
 p.addParameter('opponentParams',[40.3908 205.7353 62.9590 1.0000],@(x)(isvector(x)));
@@ -101,14 +106,10 @@ p.addParameter('minimizeConeErr',false,@(x)(islogical(x)));
 p.parse(varargin{:});
 
 % Input checks
-[spdLength,~] = size(testSpds);
+spdLength = size(testSpds,1);
 if length(SToWls(p.Results.S)) ~= spdLength
     error('Chosen S value is incompatible with spd length');
 end
-
-if p.Results.LMEqualOD && p.Results.dlens0
-    error('Only one equality constraint can be selected');
-end 
 
 % Generate a standard observer with the given initial values
 observer = genRayleighObserver('fieldSize',p.Results.fieldSize,'age',...
@@ -144,16 +145,28 @@ if p.Results.dmac0
     ub(2) = p.Results.initialConeParams(2);
 end
 
-% Constrain L and M optical density variation to 0 
-if p.Results.dLM0
+% Constrain optical density variation to 0 
+if p.Results.OD0
     lb(3) = p.Results.initialConeParams(3);
     ub(3) = p.Results.initialConeParams(3);
     lb(4) = p.Results.initialConeParams(4);
     ub(4) = p.Results.initialConeParams(4);
+    lb(5) = p.Results.initialConeParams(5);
+    ub(5) = p.Results.initialConeParams(5);
+end
+
+% Constrain lambda max variation to 0 
+if p.Results.lambdaMax0
+    lb(6) = p.Results.initialConeParams(6);
+    ub(6) = p.Results.initialConeParams(6);
+    lb(7) = p.Results.initialConeParams(7);
+    ub(7) = p.Results.initialConeParams(7);   
+    lb(8) = p.Results.initialConeParams(8);
+    ub(8) = p.Results.initialConeParams(8);
 end
 
 % Constrain S cone parameters to 0 
-if p.Results.dS0
+if p.Results.S0
     lb(5) = p.Results.initialConeParams(5);
     ub(5) = p.Results.initialConeParams(5);
     lb(8) = p.Results.initialConeParams(8);
@@ -174,7 +187,7 @@ options = optimset(options,'Diagnostics','off','Display','iter',...
 
 % Find optimal parameters
 params = fmincon(@(x)findMatchError(x,observer,testSpds,primarySpds,...
-    'S',p.Results.S,'errScalar',p.Results.errScalar,'minimizeConeErr',...
+    'S',p.Results.S,'errScalar',p.Results.errScalar,'findConeErr',...
     p.Results.minimizeConeErr),p.Results.initialConeParams(1:8),...
     [],[],Aeq,Beq,lb,ub,[],options);
 
@@ -186,7 +199,7 @@ observer.T_cones = ComputeObserverFundamentals(observer.coneParams,...
 
 % What is the error?
 error = findMatchError(params,observer,testSpds,primarySpds,'S',...
-    p.Results.S,'errScalar',p.Results.errScalar,'minimizeConeErr',...
+    p.Results.S,'errScalar',p.Results.errScalar,'findConeErr',...
     p.Results.minimizeConeErr)/p.Results.errScalar;
 
 %% Optional - plot LMS response

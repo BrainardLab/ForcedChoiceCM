@@ -33,6 +33,8 @@ function [testSpds,primarySpds,testIntensities,primaryRatios] =...
 %   08/07/20  dce       Added spd averaging option
 %   06/02/21  dce       Edited to reflect changes to OLRayleighMatch file
 %                       structure
+%   06/21/21  dce       Edited to calculate matches based on last
+%                       reversals, not last settings
 
 % Parse input
 p = inputParser;

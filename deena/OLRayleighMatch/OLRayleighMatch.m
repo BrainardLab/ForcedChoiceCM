@@ -112,6 +112,9 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %     'noiseScaleFactor'     -Number >=0 which determines which scalar
 %                             multiple of the opponent noise SD should be
 %                             used as the observer noise SD. Default is 0.
+%     'coneNoise'            -Logical. If true, adds noise at the level of 
+%                             the cones and not at the level of the opponent
+%                             response. Default is false.
 %    'nObserverMatches'     - Number of matches to simulate/run. Default is
 %                             1.
 %    'adjustmentLength'     - Number of possible steps available for
@@ -194,6 +197,8 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %   06/02/21  dce       Edited for style, got rid of monochromatic
 %                       and nominal spd matching, fixed interleaving
 %   06/04/21  dce       Step size adjustment, fixed plotting
+%   06/04/21  dce       Added option to add noise to cone responses
+%   06/21/21  dce       Fixed what counts as a reversal
 
 %% Close any stray figures
 close all;
@@ -224,13 +229,14 @@ p.addParameter('nReversals',[1 4],@(x)(isnumeric(x)));
 p.addParameter('adjustment',false,@(x)(islogical(x)));
 p.addParameter('nBelowThreshold',1,@(x)(isnumeric(x)));
 p.addParameter('noiseScaleFactor',0,@(x)(isnumeric(x)));
+p.addParameter('coneNoise',false,@(x)(islogical(x)));
 p.addParameter('thresholdScaleFactor',0.5,@(x)(isnumeric(x)));
 p.addParameter('lambdaRef',[],@(x)(isnumeric(x)));
 p.addParameter('stimLimits',[],@(x)(isnumeric(x)));
 p.addParameter('testFirst',false,@(x)(islogical(x)));
 p.addParameter('pairStepSizes',false,@(x)(islogical(x)));
 p.addParameter('whiteScaleFactor',0.001,@(x)(isnumeric(x)));
-p.addParameter('outerFileName',[],@(x)(ischar(x)));
+p.addParameter('outerFileName',[]);
 p.addParameter('interleaveStaircases',false,@(x)(islogical(x)));
 p.parse(varargin{:});
 
@@ -264,6 +270,7 @@ lambdaRef = p.Results.lambdaRef;
 pairStepSizes = p.Results.pairStepSizes;
 whiteScaleFactor = p.Results.whiteScaleFactor;
 interleaveStaircases = p.Results.interleaveStaircases;
+coneNoise = p.Results.coneNoise;
 
 % Basic input error checking
 if (length(nReversals)~=2)
@@ -725,7 +732,8 @@ while(stillLooping)
             [p1_up,t_up,isBelowThreshold] = ...
                 observerRayleighDecision(observer,primarySpds(:,matchData.primaryPos),...
                 testSpds(:,matchData.testPos),'thresholdScale',thresholdScaleFactor,...
-                'noiseScale',noiseScaleFactor,'refSpd',refSpd);
+                'noiseScale',noiseScaleFactor,'refSpd',refSpd,'coneNoise',...
+                coneNoise);
             if ~p1_up
                 p1_down = true;
             end
@@ -850,7 +858,7 @@ while(stillLooping)
                     announceStepSizeChange = false;
                 end 
             end
-            if announceStepSizeChange
+            if announceStepSizeChange && ~silent
                 stepString = sprintf('Step size %g of %g', matchData.tStepModePos, length(stepModes));
                 Speak(stepString);
             end 
@@ -1093,8 +1101,8 @@ while(stillLooping)
                 'observerParams','opponentParams','nObserverMatches',...
                 'pIdealIndex','tIdealIndex','idealTestIntensity','idealPRatio','S',...
                 'pairStepSizes','whiteStarts','whiteStops','resetAnnulus',...
-                'silent','testFirst','lambdaRef','stimLimits','noiseScaleFactor',...
-                'interleaveStaircases','superTrialOrderings');
+                'silent','staircaseTestFirst','lambdaRef','stimLimits','noiseScaleFactor',...
+                'interleaveStaircases','superTrialOrderings','coneNoise');
         end
     end
 end

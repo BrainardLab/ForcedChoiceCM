@@ -31,6 +31,8 @@ function OLRadiometerMatchesPlayback(subjID,sessionNum,matchFiles,varargin)
 %                       reversals needed to record a match
 %    dce    6/02/21   - Edited to reflect changes in structure of
 %                       OLRayleighMatch data files
+%    dce    6/21/21   - Edited to calculate matches based on last
+%                       reversals, not last settings
 
 %% Parse input
 p = inputParser;
