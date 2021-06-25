@@ -112,6 +112,9 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %     'noiseScaleFactor'     -Number >=0 which determines which scalar
 %                             multiple of the opponent noise SD should be
 %                             used as the observer noise SD. Default is 0.
+%     'coneNoise'            -Logical. If true, adds noise at the level of 
+%                             the cones and not at the level of the opponent
+%                             response. Default is false.
 %    'nObserverMatches'     - Number of matches to simulate/run. Default is
 %                             1.
 %    'adjustmentLength'     - Number of possible steps available for
@@ -194,6 +197,9 @@ function OLRayleighMatch(subjectID,sessionNum,varargin)
 %   06/02/21  dce       Edited for style, got rid of monochromatic
 %                       and nominal spd matching, fixed interleaving
 %   06/04/21  dce       Step size adjustment, fixed plotting
+%   06/04/21  dce       Added option to add noise to cone responses
+%   06/21/21  dce       Fixed recording of reversal placement, changed
+%                       match to be calculated based on last reversals 
 
 %% Close any stray figures
 close all;
@@ -224,13 +230,14 @@ p.addParameter('nReversals',[1 4],@(x)(isnumeric(x)));
 p.addParameter('adjustment',false,@(x)(islogical(x)));
 p.addParameter('nBelowThreshold',1,@(x)(isnumeric(x)));
 p.addParameter('noiseScaleFactor',0,@(x)(isnumeric(x)));
+p.addParameter('coneNoise',false,@(x)(islogical(x)));
 p.addParameter('thresholdScaleFactor',0.5,@(x)(isnumeric(x)));
 p.addParameter('lambdaRef',[],@(x)(isnumeric(x)));
 p.addParameter('stimLimits',[],@(x)(isnumeric(x)));
 p.addParameter('testFirst',false,@(x)(islogical(x)));
 p.addParameter('pairStepSizes',false,@(x)(islogical(x)));
 p.addParameter('whiteScaleFactor',0.001,@(x)(isnumeric(x)));
-p.addParameter('outerFileName',[],@(x)(ischar(x)));
+p.addParameter('outerFileName',[]);
 p.addParameter('interleaveStaircases',false,@(x)(islogical(x)));
 p.parse(varargin{:});
 
@@ -264,6 +271,7 @@ lambdaRef = p.Results.lambdaRef;
 pairStepSizes = p.Results.pairStepSizes;
 whiteScaleFactor = p.Results.whiteScaleFactor;
 interleaveStaircases = p.Results.interleaveStaircases;
+coneNoise = p.Results.coneNoise;
 
 % Basic input error checking
 if (length(nReversals)~=2)
@@ -354,16 +362,11 @@ observer = genRayleighObserver('fieldSize',fieldSize,'age',age,...
     'coneVec',observerParams,'opponentParams',opponentParams,...
     'S',S);
 
-% Find nominal match for observer. This is slow in simulation, so I have 
-% commented it out and replaced with dummy variables
-idealPRatio = 0;
-idealTestIntensity = 0;
-pIdealIndex = 1;
-tIdealIndex = 1;
-% [~,~,tIdealIndex,pIdealIndex] =...
-%     searchPredictedRayleighMatch(testSpds,primarySpds,observer,'refSpd',refSpd);
-% idealTestIntensity = testScales(tIdealIndex);
-% idealPRatio = p1Scales(pIdealIndex);
+% Find nominal match for observer. 
+[~,~,tIdealIndex,pIdealIndex] =...
+    searchPredictedRayleighMatch(testSpds,primarySpds,observer,'refSpd',refSpd);
+idealTestIntensity = testScales(tIdealIndex);
+idealPRatio = p1Scales(pIdealIndex);
 
 %% Intialize OneLight and button box for live experiment 
 if ~simObserver
@@ -385,8 +388,8 @@ if ~simObserver && fieldSize > 2
     end
     % Load and display annulus file
     annulusData = load(annulusFile);
-%     annulusData.win.open;
-%     annulusData.win.draw;
+    annulusData.win.open;
+    annulusData.win.draw;
 end
 
 %% Display parameters
@@ -404,7 +407,7 @@ waitTimes = [stimInterval isInterval stimInterval itInterval];
 % match - for interleaved matching, use two copies of this struct.
 matchData = struct();
 matchData.ideal = false;              % Do not start with the ideal match 
-matchData.displayLoopCounter = 1;     % Count number of iterations
+matchData.displayLoopCounter = 0;     % Count number of iterations
 matchData.p1_up_prev = true;          % Previous primary setting
 matchData.t_up_prev = true;           % Previous ref setting
 matchData.firstAdjustment = true;     % This is the first adjustment of the match
@@ -725,7 +728,8 @@ while(stillLooping)
             [p1_up,t_up,isBelowThreshold] = ...
                 observerRayleighDecision(observer,primarySpds(:,matchData.primaryPos),...
                 testSpds(:,matchData.testPos),'thresholdScale',thresholdScaleFactor,...
-                'noiseScale',noiseScaleFactor,'refSpd',refSpd);
+                'noiseScale',noiseScaleFactor,'refSpd',refSpd,'coneNoise',...
+                coneNoise);
             if ~p1_up
                 p1_down = true;
             end
@@ -800,7 +804,7 @@ while(stillLooping)
         end
         
         % ******** Process the keypresses *************
-                % Switch p1 step size
+        % Switch p1 step size
         if switchPStepSize
             matchData.pStepModePos = matchData.pStepModePos+1;
             matchData.nReversalsP = 0;
@@ -848,91 +852,95 @@ while(stillLooping)
                     continue;
                 elseif dataArr{kk}.tStepModePos < matchData.tStepModePos
                     announceStepSizeChange = false;
-                end 
+                end
             end
-            if announceStepSizeChange
+            if announceStepSizeChange && ~silent
                 stepString = sprintf('Step size %g of %g', matchData.tStepModePos, length(stepModes));
                 Speak(stepString);
-            end 
+            end
         end
         
-        % P1 up
-        if p1_up
-            matchData.primaryPos = matchData.primaryPos+stepModes(matchData.pStepModePos);
-            if matchData.primaryPos > allowedLambdaInds(end)
-                matchData.primaryPos = allowedLambdaInds(end);
-                if ~silent
-                    Snd('Play',sin(0:5000));
-                end
-                if plotResponses
-                    fprintf('User reached upper primary limit for staicase %g\n',staircaseOrder(tt));
-                end
-            end
-            if plotResponses
-                fprintf('User pressed key for staircase %g. Test intensity = %g, red primary = %g \n',...
-                    staircaseOrder(tt),testScales(matchData.testPos),p1Scales(matchData.primaryPos));
-            end
-            % P1 down
-        elseif p1_down
-            matchData.primaryPos = matchData.primaryPos-stepModes(matchData.pStepModePos);
-            if matchData.primaryPos < allowedLambdaInds(1)
-                matchData.primaryPos = allowedLambdaInds(1);
-                if ~silent
-                    Snd('Play',sin(0:5000));
-                end
-                if plotResponses
-                    fprintf('User reached lower primary limit for staircase %g\n', staircaseOrder(tt));
-                end
-            end
-            if plotResponses
-                fprintf('User pressed key for staircase %g. Test intensity = %g, red primary = %g\n',...
-                    staircaseOrder(tt),testScales(matchData.testPos),p1Scales(matchData.primaryPos));
-            end
-        end
-        matchData.primaryRes = [matchData.primaryRes, double(p1_up)];
-        
-        % test up
-        if t_up
-            matchData.testPos = matchData.testPos+stepModes(matchData.tStepModePos);
-            if matchData.testPos > allowedTIInds(end)
-                matchData.testPos = allowedTIInds(end);
-                if ~silent
-                    Snd('Play',sin(0:5000));
-                end
-                if plotResponses
-                    fprintf('User reached upper test limit for staircase %g\n',staircaseOrder(tt));
-                end
-            end
-            if plotResponses
-                fprintf('User pressed key for staircase %g. Test intensity = %g, red primary = %g\n',...
-                    staircaseOrder(tt),testScales(matchData.testPos),p1Scales(matchData.primaryPos));
-            end
-            % test down
-        elseif t_down
-            matchData.testPos = matchData.testPos-stepModes(matchData.tStepModePos);
-            if matchData.testPos < allowedTIInds(1)
-                matchData.testPos = allowedTIInds(1);
-                if ~silent
-                    Snd('Play',sin(0:5000));
-                end
-                if plotResponses
-                    fprintf('User reached lower test limit for staircase %g\n',staircaseOrder(tt));
-                end
-            end
-            if plotResponses
-                fprintf('User pressed key for staircase %g. Test intensity = %g, red primary = %g\n',...
-                    staircaseOrder(tt),testScales(matchData.testPos),p1Scales(matchData.primaryPos));
-            end
-        end
+        % Adjust primary and reference (unless you're at the match point,
+        % in which case further adjustment is irrelevant)
         matchData.testRes = [matchData.testRes, double(t_up)];
-        
-        % Store data and set up for the next iteration
-        matchData.p1_up_prev = p1_up;
-        matchData.t_up_prev = t_up;
-        matchData.subjectSettings = [matchData.subjectSettings;...
-            [testScales(matchData.testPos),p1Scales(matchData.primaryPos)]];
-        if (p1_up || p1_down || t_up || t_down)
-            matchData.firstAdjustment = false;
+        matchData.primaryRes = [matchData.primaryRes, double(p1_up)];            
+        if ~match
+            % P1 up
+            if p1_up
+                matchData.primaryPos = matchData.primaryPos+stepModes(matchData.pStepModePos);
+                if matchData.primaryPos > allowedLambdaInds(end)
+                    matchData.primaryPos = allowedLambdaInds(end);
+                    if ~silent
+                        Snd('Play',sin(0:5000));
+                    end
+                    if plotResponses
+                        fprintf('User reached upper primary limit for staicase %g\n',staircaseOrder(tt));
+                    end
+                end
+                if plotResponses
+                    fprintf('User pressed key for staircase %g. Test intensity = %g, red primary = %g \n',...
+                        staircaseOrder(tt),testScales(matchData.testPos),p1Scales(matchData.primaryPos));
+                end
+                % P1 down
+            elseif p1_down
+                matchData.primaryPos = matchData.primaryPos-stepModes(matchData.pStepModePos);
+                if matchData.primaryPos < allowedLambdaInds(1)
+                    matchData.primaryPos = allowedLambdaInds(1);
+                    if ~silent
+                        Snd('Play',sin(0:5000));
+                    end
+                    if plotResponses
+                        fprintf('User reached lower primary limit for staircase %g\n', staircaseOrder(tt));
+                    end
+                end
+                if plotResponses
+                    fprintf('User pressed key for staircase %g. Test intensity = %g, red primary = %g\n',...
+                        staircaseOrder(tt),testScales(matchData.testPos),p1Scales(matchData.primaryPos));
+                end
+            end
+            
+            % test up
+            if t_up
+                matchData.testPos = matchData.testPos+stepModes(matchData.tStepModePos);
+                if matchData.testPos > allowedTIInds(end)
+                    matchData.testPos = allowedTIInds(end);
+                    if ~silent
+                        Snd('Play',sin(0:5000));
+                    end
+                    if plotResponses
+                        fprintf('User reached upper test limit for staircase %g\n',staircaseOrder(tt));
+                    end
+                end
+                if plotResponses
+                    fprintf('User pressed key for staircase %g. Test intensity = %g, red primary = %g\n',...
+                        staircaseOrder(tt),testScales(matchData.testPos),p1Scales(matchData.primaryPos));
+                end
+                % test down
+            elseif t_down
+                matchData.testPos = matchData.testPos-stepModes(matchData.tStepModePos);
+                if matchData.testPos < allowedTIInds(1)
+                    matchData.testPos = allowedTIInds(1);
+                    if ~silent
+                        Snd('Play',sin(0:5000));
+                    end
+                    if plotResponses
+                        fprintf('User reached lower test limit for staircase %g\n',staircaseOrder(tt));
+                    end
+                end
+                if plotResponses
+                    fprintf('User pressed key for staircase %g. Test intensity = %g, red primary = %g\n',...
+                        staircaseOrder(tt),testScales(matchData.testPos),p1Scales(matchData.primaryPos));
+                end
+            end
+            
+            % Store data and set up for the next iteration
+            matchData.p1_up_prev = p1_up;
+            matchData.t_up_prev = t_up;
+            matchData.subjectSettings = [matchData.subjectSettings;...
+                [testScales(matchData.testPos),p1Scales(matchData.primaryPos)]];
+            if (p1_up || p1_down || t_up || t_down)
+                matchData.firstAdjustment = false;
+            end
         end
         
         % Edit plots
@@ -970,23 +978,23 @@ while(stillLooping)
                 Snd('Play',sin(0:5000));
             end
             % Calculate match. If this is an adjustment match, simply provide
-            % the subject setting. For a forced-choice match, average the last
-            % nReversals(2) light settings.
-            if ~adjustment
-                % Number of settings values to adjust
-                [nSettings,~] = size(matchData.subjectSettings);
-                nSettingsToAvg = min(nSettings,nReversals(2));
-                
-                % Average the selected number of values
-                pMatch = mean(matchData.subjectSettings(end-(nSettingsToAvg-1):end,2));
-                tMatch = mean(matchData.subjectSettings(end-(nSettingsToAvg-1):end,1));
+            % the subject setting. For a forced-choice match, average the 
+            % light settings from the last nReversals(2) reversals.
+            if ~adjustment                
+                % Average the selected number of reversals
+                pMatch = mean(matchData.subjectSettings(...
+                    matchData.pRevIndices(end-nReversals(2)+1:end),2));
+                tMatch = mean(matchData.subjectSettings(...
+                    matchData.tRevIndices(end-nReversals(2)+1:end),1));
                 
                 % Find the match positions
-                pMatchPositions = zeros(1,nSettingsToAvg);
-                tMatchPositions = zeros(1,nSettingsToAvg);
-                for i = 1:nSettingsToAvg
-                    pMatchPositions(i) = find(p1Scales==matchData.subjectSettings(end-i-1,2));
-                    tMatchPositions(i) = find(testScales==matchData.subjectSettings(end-i-1,1));
+                pMatchPositions = zeros(1,nReversals(2));
+                tMatchPositions = zeros(1,nReversals(2));
+                for i = 1:nReversals(2)
+                    pMatchPositions(i) = find(p1Scales==...
+                        matchData.subjectSettings(matchData.pRevIndices(end-i+1),2));
+                    tMatchPositions(i) = find(testScales==...
+                        matchData.subjectSettings(matchData.tRevIndices(end-i+1),1));
                 end
                 pMatchPos = mean(pMatchPositions);
                 tMatchPos = mean(tMatchPositions);
@@ -1009,13 +1017,15 @@ while(stillLooping)
                 line5p = plot(nAdjustments+1,matchData.matches(end,2),'m* ',...
                     nAdjustments+1,idealPRatio,'gs',...
                     'MarkerSize',6,'LineWidth',1);
-                if ~isempty(matchData.pStepSwitchInds)
-                    for i = 1:max(1,length(matchData.pStepSwitchInds))
-                        line4p = line([matchData.pStepSwitchInds(i) matchData.pStepSwitchInds(i)],[0 1]);
+                trialPStepSwitchInds = matchData.pStepSwitchInds(matchData.pStepSwitchInds>=matchData.matchSettingInds(end));
+                if ~isempty(trialPStepSwitchInds)
+                    for i = 1:length(trialPStepSwitchInds)
+                        line4p = line([trialPStepSwitchInds(i)-matchData.matchSettingInds(end)+1,...
+                            trialPStepSwitchInds(i)-matchData.matchSettingInds(end)+1],[0 1]);
                     end
-                    legend([line5p(1:2)', line1p, line2p, line4p, line3p],...
+                    legend([line5p(1:2)', line1p, line2p, line3p, line4p],...
                         'Subject Match','Nominal Match','Subject Settings',...
-                        'Subject Responses','Step Size Changes','Subject Reversals',...
+                        'Subject Responses','Subject Reversals','Step Size Changes',...
                         'Location','northeastoutside');
                 else
                     legend([line5p(1:2)', line1p, line2p, line3p],...
@@ -1028,13 +1038,16 @@ while(stillLooping)
                 line5t = plot(nAdjustments+1,matchData.matches(end,1),'m*',...
                     nAdjustments+1,idealTestIntensity,'gs',...
                     'MarkerSize',6,'LineWidth',1);
-                if ~isempty(matchData.tStepSwitchInds)
-                    for i = 1:max(1,length(matchData.tStepSwitchInds))
-                        line4t = line([matchData.tStepSwitchInds(i) matchData.tStepSwitchInds(i)],[0 1]);
+                trialTStepSwitchInds = matchData.tStepSwitchInds(matchData.tStepSwitchInds>=...
+                    matchData.matchSettingInds(end));
+                if ~isempty(trialTStepSwitchInds)
+                    for i = 1:length(trialTStepSwitchInds)
+                         line4t = line([trialTStepSwitchInds(i)-matchData.matchSettingInds(end)+1,...
+                            trialTStepSwitchInds(i)-matchData.matchSettingInds(end)+1],[0 1]);
                     end
-                    legend([line5t(1:2)',line1t, line2t,line4t,line3t],...
+                    legend([line5t(1:2)',line1t, line2t,line3t,line4t],...
                         'Subject Match','Nominal Match','Subject Settings', ...
-                        'Subject Responses','Step Size Changes', 'Subject Reversals', ...
+                        'Subject Responses','Subject Reversals','Step Size Changes', ...
                         'Location','northeastoutside');
                 else
                     legend([line5t(1:2)',line1t, line2t, line3t],...
@@ -1093,8 +1106,8 @@ while(stillLooping)
                 'observerParams','opponentParams','nObserverMatches',...
                 'pIdealIndex','tIdealIndex','idealTestIntensity','idealPRatio','S',...
                 'pairStepSizes','whiteStarts','whiteStops','resetAnnulus',...
-                'silent','testFirst','lambdaRef','stimLimits','noiseScaleFactor',...
-                'interleaveStaircases','superTrialOrderings');
+                'silent','staircaseTestFirst','lambdaRef','stimLimits','noiseScaleFactor',...
+                'interleaveStaircases','superTrialOrderings','coneNoise');
         end
     end
 end

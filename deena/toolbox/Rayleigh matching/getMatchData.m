@@ -33,6 +33,8 @@ function [testSpds,primarySpds,testIntensities,primaryRatios] =...
 %   08/07/20  dce       Added spd averaging option
 %   06/02/21  dce       Edited to reflect changes to OLRayleighMatch file
 %                       structure
+%   06/22/21  dce       Edited to calculate matches based on last
+%                       reversals, not last settings
 
 % Parse input
 p = inputParser;
@@ -63,30 +65,31 @@ for kk = 1:nInterleaved
         
         for i = 1:length(tMatchInds)
             % Find spds corresponding to the match position indices. If an index is
-            % not an integer, the spd is the average of the spds of the indices
+            % not an integer, the spd is a weighted average of the spds of the indices
             % above and below it.
-            test = mean([testArr(:,ceil(tMatchInds(i))), ...
-                testArr(:,floor(tMatchInds(i)))],2);
+            testScale = (1-(ceil(tMatchInds(i))-tMatchInds(i)));
+            test = ...
+                (testArr(:,ceil(tMatchInds(i)))*testScale+...
+                testArr(:,floor(tMatchInds(i)))*(1-testScale));
             testSpds(:,i,kk) = test;
             
-            primary = mean([primaryArr(:,ceil(pMatchInds(i))),...
-                primaryArr(:,floor(pMatchInds(i)))],2);
+            pScale = (1-(ceil(pMatchInds(i))-pMatchInds(i)));
+            primary = ...
+                (primaryArr(:,ceil(pMatchInds(i)))*pScale+...
+                primaryArr(:,floor(pMatchInds(i)))*(1-pScale));
             primarySpds(:,i,kk) = primary;
             
             % Find primary ratio and test intensity for each spd. If an index is
-            % not an integer, average the scale factors of the indices above and
-            % below it.
-            primaryRatio = mean([trialData.p1Scales(ceil(pMatchInds(i))),...
-                trialData.p1Scales(floor(pMatchInds(i)))]);
-            primaryRatios(i,kk) = primaryRatio;
-            
-            testIntensity = mean([trialData.testScales(ceil(tMatchInds(i))),...
-                trialData.testScales(floor(tMatchInds(i)))]);
-            testIntensities(i,kk) = testIntensity;
+            % not an integer, take the weighted average of the indices
+            % above and below it.
+            primaryRatios(i,kk) = (trialData.p1Scales(ceil(pMatchInds(i)))*...
+                pScale+trialData.p1Scales(floor(pMatchInds(i)))*(1-pScale));            
+            testIntensities(i,kk) = (trialData.testScales(ceil(tMatchInds(i)))*...
+                testScale+trialData.testScales(floor(tMatchInds(i)))*(1-testScale))./2;
         end
     end
 end
-% Average if we're looking for averages
+% Average spds if desired 
 if p.Results.averageSpds
     testSpds = mean(testSpds,[2 3]);
     primarySpds = mean(primarySpds,[2 3]);

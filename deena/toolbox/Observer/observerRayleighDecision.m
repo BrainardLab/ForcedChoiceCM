@@ -7,7 +7,7 @@ function [primary_redder,test_brighter,isMatch,differenceVector] = ...
 %
 % Description:
 %    Takes in a simulated observer's cone fundamentals and a pair of
-%    spds (primary and test). 
+%    spds (primary and test), and returns a Rayleigh matching decision. 
 %
 %    Computes the opponent contrast of the two spectra based on the
 %    observer's cone fundamentals. Using the contrast values of individual
@@ -16,7 +16,8 @@ function [primary_redder,test_brighter,isMatch,differenceVector] = ...
 %    primary or the green primary. Also determines whether the difference
 %    between lights is below the matching threshold, which is a scalar 
 %    multiple of the observer standard deviation. Noise can be added as a
-%    key-value pair. 
+%    key-value pair, at the level of either cone responses or opponent 
+%    channels. 
 %   
 % Inputs:
 %     observer          -Struct with observer parameters. Must contain the
@@ -45,6 +46,9 @@ function [primary_redder,test_brighter,isMatch,differenceVector] = ...
 %                        light relative to the reference, rather than their 
 %                        opponent contrast relative to one another. Default 
 %                        is [].
+%     'coneNoise'       -Logical. If true, adds noise at the level of the
+%                        cones and not at the level of the opponent
+%                        response. Default is false.
 % History:
 %   06/02/20  dce       Wrote initial code
 %   06/03/20  dce       Added noise, style edits
@@ -57,19 +61,32 @@ function [primary_redder,test_brighter,isMatch,differenceVector] = ...
 %   11/15/20  dce       Added option to compute opponent contrast relative 
 %                       to a reference, changed so opponent contrast of
 %                       test is computed relative to primary mixture.
+%   06/08/21  dce       Added option to add noise at the cone response
+%                       level, rather than the opponent level
 
 % Parse input 
 p = inputParser;
 p.addParameter('noiseScale',1, @(x)(isnumeric(x)));
 p.addParameter('thresholdScale',0.5, @(x)(isnumeric(x)));
 p.addParameter('refSpd',[], @(x)(isnumeric(x)));
+p.addParameter('coneNoise',false, @(x)(islogical(x)));
 p.parse(varargin{:});
 
-% Cone responses for the given spectra
+% Find cone responses for the given spectra
 test_LMS = observer.T_cones*testSpd; 
-primary_LMS = observer.T_cones*primarySpd; 
+primary_LMS = observer.T_cones*primarySpd;
 
-% Opponent contrasts for the given spectra. The result has the form [LUM; RG; BY].
+% Compute noise to be added by sampling from a Gaussian distribution
+observerNoiseSd = observer.colorDiffParams.noiseSd*p.Results.noiseScale;
+noise = normrnd(0,observerNoiseSd,6,1); 
+
+% Add noise to cone responses, if desired
+if p.Results.coneNoise
+    test_LMS = test_LMS + noise(1:3);
+    primary_LMS = primary_LMS + noise(4:6);
+end 
+
+% Compute opponent contrasts for the given spectra. The result has the form [LUM; RG; BY].
 if isempty(p.Results.refSpd)
     % No reference light provided - return opponent contrast of test
     % relative to primary mixture.
@@ -86,14 +103,10 @@ else
     opponentContrastDiff = tOpponentContrast - pOpponentContrast;
 end 
 
-% Add noise to opponent contrast by sampling three values from a Gaussian
-% distribution.
-opponentNoiseSd = observer.colorDiffParams.noiseSd; 
-observerNoiseSd = p.Results.noiseScale*opponentNoiseSd;
-if observerNoiseSd ~= 0 % The simulated matching is noisy
-    noise = normrnd(0,observerNoiseSd,3,1); 
-    opponentContrastDiff = opponentContrastDiff+noise; 
-end 
+% Add noise to opponent contrast, if it was not added before
+if ~p.Results.coneNoise
+    opponentContrastDiff = opponentContrastDiff+noise(1:3);
+end
 
 % Check luminance. If negative, the test light needs to be made brighter. 
 if opponentContrastDiff(1) < 0 % Test is less bright than primary mixture 
@@ -114,7 +127,7 @@ end
 if observerNoiseSd ~= 0
     threshold = observerNoiseSd*p.Results.thresholdScale;  
 else 
-    threshold = opponentNoiseSd*p.Results.thresholdScale;
+    threshold = p.Results.thresholdScale;
 end
 
 % Check whether we're below the matching threshold  
