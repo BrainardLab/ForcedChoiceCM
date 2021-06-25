@@ -31,7 +31,7 @@ function OLRadiometerMatchesPlayback(subjID,sessionNum,matchFiles,varargin)
 %                       reversals needed to record a match
 %    dce    6/02/21   - Edited to reflect changes in structure of
 %                       OLRayleighMatch data files
-%    dce    6/21/21   - Edited to calculate matches based on last
+%    dce    6/24/21   - Edited to calculate matches based on last
 %                       reversals, not last settings
 
 %% Parse input
@@ -91,24 +91,46 @@ for kk = 1:length(matchFiles)
     for tt = 1:length(theData.dataArr) % Number of interleaved staircases
         [nMatches, ~] = size(theData.dataArr{tt}.matchPositions);
         for i = 1:nMatches % Number of matches within each staircase
-            % Find settings indices we are using
-            if i==nMatches
+            % Find settings and reversal indices we are using
+            if i==nMatches  % Last match in the file 
                 matchInds = theData.dataArr{tt}.matchSettingInds(i):...
                     size(theData.dataArr{tt}.subjectSettings,1);
+                pRevSettings = theData.dataArr{tt}.pRevIndices(...
+                    theData.dataArr{tt}.pRevIndices>=matchSettingInds(i));
+                refRevSettings = theData.dataArr{tt}.tRevIndices(...
+                    theData.dataArr{tt}.tRevIndices>=matchSettingInds(i));
             else
                 matchInds = theData.dataArr{tt}.matchSettingInds(i):...
-                    theData.dataArr{tt}.matchSettingInds(i+1)-1;
+                    theData.dataArr{tt}.matchSettingInds(i+1)-1;             
+                pRevSettings = theData.dataArr{tt}.pRevIndices(...
+                    theData.dataArr{tt}.pRevIndices>=matchSettingInds(i)...
+                    && theData.dataArr{tt}.pRevIndices<matchSettingInds(i+1));
+                refRevSettings = theData.dataArr{tt}.tRevIndices(...
+                    theData.dataArr{tt}.tRevIndices>=matchSettingInds(i)...
+                      && theData.dataArr{tt}.tRevIndices<matchSettingInds(i+1));
             end
             matchSettings = theData.dataArr{tt}.subjectSettings(matchInds,:);
             
-            % Number of settings to average for a given match
-            nSettingsToAvg = min(size(matchSettings,1),theData.nReversals(2));
+            % Find which indices we are measuring. By default, the
+            % last nReversals(2) reversals are measured and averaged. If 
+            % fewer reversals are available, the last nReversals(2)
+            % settings are measured. If fewer settings are available, then
+            % all available settings are measured and averaged. 
+            if length(pRevSettings) < nReversals(2) || length(refRevSettings) < nReversals(2)
+                nSettingsToMeasure = min(nReversals(2),size(matchSettings,1));
+                pIndsToMeasure = matchSettings(end-nSettingsToMeasure+1:end,2);
+                refIndsToMeasure = matchSettings(end-nSettingsToMeasure+1:end,1);
+            else 
+                nSettingsToMeasure = nReversals(2);
+                pIndsToMeasure = matchSettings(pRevSettings(end-nSettingsToMeasure+1:end),2);
+                refIndsToMeasure = matchSettings(refRevSettings(end-nSettingsToMeasure+1:end),1);
+            end 
             
             primaryMeas = [];
             refMeas = [];
-            for j = 0:(nSettingsToAvg-1)
-                trialPInd = find(theData.p1Scales==matchSettings(end-j,2));
-                trialRefInd = find(theData.testScales==matchSettings(end-j,1));
+            for j = 1:nSettingsToMeasure
+                trialPInd = find(theData.p1Scales==pIndsToMeasure(j));
+                trialRefInd = find(theData.testScales==refIndsToMeasure(j));
                 
                 % Display primary on OL, measure with radiometer
                 ol.setMirrors(squeeze(theData.primaryStartStops(trialPInd,1,:))',...
