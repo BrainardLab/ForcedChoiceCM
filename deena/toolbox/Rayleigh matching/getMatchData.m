@@ -82,10 +82,8 @@ for kk = 1:nInterleaved
             % Find primary ratio and test intensity for each spd. If an index is
             % not an integer, take the weighted average of the indices
             % above and below it.
-            primaryRatios(i,kk) = (trialData.p1Scales(ceil(pMatchInds(i)))*...
-                pScale+trialData.p1Scales(floor(pMatchInds(i)))*(1-pScale));            
-            testIntensities(i,kk) = (trialData.testScales(ceil(tMatchInds(i)))*...
-                testScale+trialData.testScales(floor(tMatchInds(i)))*(1-testScale))./2;
+            primaryRatios(i,kk) = trialData.dataArr{kk}.matches(i,2);            
+            testIntensities(i,kk) = trialData.dataArr{kk}.matches(i,1);
         end
     end
 end

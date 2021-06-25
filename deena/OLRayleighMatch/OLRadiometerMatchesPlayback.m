@@ -40,10 +40,16 @@ p.addParameter('measWhite', true, @(x) (islogical(x)));
 p.parse(varargin{:});
 
 %% Set up output file for saving results
+% Check a few options for what the output directory could be-start with a
+% more specific subfolder, if not look for a more general subfolder
 outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
     'matchFiles',subjID,[subjID '_' num2str(sessionNum)]);
 if ~exist(outputDir,'dir')
-    error('Match data not found for specified subject');
+    outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
+        'matchFiles',subjID);
+    if ~exist(outputDir,'dir')       
+        error('Match file not found for specified subject');
+    end
 end
 outputFile = fullfile(outputDir,[subjID '_' num2str(sessionNum) '_meas.mat']);
 
@@ -96,18 +102,18 @@ for kk = 1:length(matchFiles)
                 matchInds = theData.dataArr{tt}.matchSettingInds(i):...
                     size(theData.dataArr{tt}.subjectSettings,1);
                 pRevSettings = theData.dataArr{tt}.pRevIndices(...
-                    theData.dataArr{tt}.pRevIndices>=matchSettingInds(i));
+                    theData.dataArr{tt}.pRevIndices>=theData.dataArr{tt}.matchSettingInds(i));
                 refRevSettings = theData.dataArr{tt}.tRevIndices(...
-                    theData.dataArr{tt}.tRevIndices>=matchSettingInds(i));
+                    theData.dataArr{tt}.tRevIndices>=theData.dataArr{tt}.matchSettingInds(i));
             else
                 matchInds = theData.dataArr{tt}.matchSettingInds(i):...
                     theData.dataArr{tt}.matchSettingInds(i+1)-1;             
                 pRevSettings = theData.dataArr{tt}.pRevIndices(...
-                    theData.dataArr{tt}.pRevIndices>=matchSettingInds(i)...
-                    && theData.dataArr{tt}.pRevIndices<matchSettingInds(i+1));
+                    (theData.dataArr{tt}.pRevIndices>=theData.dataArr{tt}.matchSettingInds(i))...
+                    & (theData.dataArr{tt}.pRevIndices<theData.dataArr{tt}.matchSettingInds(i+1)));
                 refRevSettings = theData.dataArr{tt}.tRevIndices(...
-                    theData.dataArr{tt}.tRevIndices>=matchSettingInds(i)...
-                      && theData.dataArr{tt}.tRevIndices<matchSettingInds(i+1));
+                    (theData.dataArr{tt}.tRevIndices>=theData.dataArr{tt}.matchSettingInds(i))...
+                      & (theData.dataArr{tt}.tRevIndices<theData.dataArr{tt}.matchSettingInds(i+1)));
             end
             matchSettings = theData.dataArr{tt}.subjectSettings(matchInds,:);
             
@@ -116,12 +122,12 @@ for kk = 1:length(matchFiles)
             % fewer reversals are available, the last nReversals(2)
             % settings are measured. If fewer settings are available, then
             % all available settings are measured and averaged. 
-            if length(pRevSettings) < nReversals(2) || length(refRevSettings) < nReversals(2)
-                nSettingsToMeasure = min(nReversals(2),size(matchSettings,1));
+            if length(pRevSettings) < theData.nReversals(2) || length(refRevSettings) < theData.nReversals(2)
+                nSettingsToMeasure = min(theData.nReversals(2),size(matchSettings,1));
                 pIndsToMeasure = matchSettings(end-nSettingsToMeasure+1:end,2);
                 refIndsToMeasure = matchSettings(end-nSettingsToMeasure+1:end,1);
             else 
-                nSettingsToMeasure = nReversals(2);
+                nSettingsToMeasure = theData.nReversals(2);
                 pIndsToMeasure = matchSettings(pRevSettings(end-nSettingsToMeasure+1:end),2);
                 refIndsToMeasure = matchSettings(refRevSettings(end-nSettingsToMeasure+1:end),1);
             end 
@@ -157,8 +163,8 @@ end
 ol.setAll(false);
 pause(0.1);
 measuredDarkSpd = spectroRadiometerOBJ.measure;
-save(outputFile, 'measuredRefSpds', 'measuredPrimarySpds', 'measuredWhite',...
-    'measuredDarkSpd');
+% save(outputFile, 'measuredRefSpds', 'measuredPrimarySpds', 'measuredWhite',...
+%     'measuredDarkSpd');
 
 %% Close devices
 spectroRadiometerOBJ.shutDown;
