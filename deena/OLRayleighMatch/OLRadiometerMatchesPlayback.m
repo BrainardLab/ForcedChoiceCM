@@ -20,6 +20,8 @@ function OLRadiometerMatchesPlayback(subjID,sessionNum,matchFiles,varargin)
 % Optional key-value pairs:
 %    'measWhite'   - Logical indicating whether to measure white light.
 %                    Default is true.
+%    'measLastOnly'- Logical. If true, measures only the last setting, not
+%                    the last few reversals. Default is false.
 
 % History
 %    dce    xx/xx/19  - Wrote it
@@ -33,10 +35,14 @@ function OLRadiometerMatchesPlayback(subjID,sessionNum,matchFiles,varargin)
 %                       OLRayleighMatch data files
 %    dce    6/24/21   - Edited to calculate matches based on last
 %                       reversals, not last settings
+%    dce    6/28/21   - Added option to measure only the last setting, not
+%                       the last few settings. This should be used in cases 
+%                       of adjustment matching, but not forced choice.
 
 %% Parse input
 p = inputParser;
 p.addParameter('measWhite', true, @(x) (islogical(x)));
+p.addParameter('measLastOnly', false, @(x) (islogical(x)));
 p.parse(varargin{:});
 
 %% Set up output file for saving results
@@ -97,46 +103,58 @@ for kk = 1:length(matchFiles)
     for tt = 1:length(theData.dataArr) % Number of interleaved staircases
         [nMatches, ~] = size(theData.dataArr{tt}.matchPositions);
         for i = 1:nMatches % Number of matches within each staircase
-            % Find settings and reversal indices we are using
-            if i==nMatches  % Last match in the file 
-                matchInds = theData.dataArr{tt}.matchSettingInds(i):...
-                    size(theData.dataArr{tt}.subjectSettings,1);
-                pRevSettings = theData.dataArr{tt}.pRevIndices(...
-                    theData.dataArr{tt}.pRevIndices>=theData.dataArr{tt}.matchSettingInds(i));
-                refRevSettings = theData.dataArr{tt}.tRevIndices(...
-                    theData.dataArr{tt}.tRevIndices>=theData.dataArr{tt}.matchSettingInds(i));
+            if p.Results.measLastOnly
+                if i==nMatches
+                    matchSettings = theData.dataArr{tt}.subjectSettings(end,:);
+                else 
+                    matchInd = theData.dataArr{tt}.matchSettingInds(i+1)-1;
+                    matchSettings = theData.dataArr{tt}.subjectSettings(matchInd,:);
+                end 
+                nSettingsToMeasure = 1;
+                pValsToMeasure = matchSettings(2);
+                refValsToMeasure = matchSettings(1);
             else
-                matchInds = theData.dataArr{tt}.matchSettingInds(i):...
-                    theData.dataArr{tt}.matchSettingInds(i+1)-1;             
-                pRevSettings = theData.dataArr{tt}.pRevIndices(...
-                    (theData.dataArr{tt}.pRevIndices>=theData.dataArr{tt}.matchSettingInds(i))...
-                    & (theData.dataArr{tt}.pRevIndices<theData.dataArr{tt}.matchSettingInds(i+1)));
-                refRevSettings = theData.dataArr{tt}.tRevIndices(...
-                    (theData.dataArr{tt}.tRevIndices>=theData.dataArr{tt}.matchSettingInds(i))...
-                      & (theData.dataArr{tt}.tRevIndices<theData.dataArr{tt}.matchSettingInds(i+1)));
-            end
-            matchSettings = theData.dataArr{tt}.subjectSettings(matchInds,:);
-            
-            % Find which indices we are measuring. By default, the
-            % last nReversals(2) reversals are measured and averaged. If 
-            % fewer reversals are available, the last nReversals(2)
-            % settings are measured. If fewer settings are available, then
-            % all available settings are measured and averaged. 
-            if length(pRevSettings) < theData.nReversals(2) || length(refRevSettings) < theData.nReversals(2)
-                nSettingsToMeasure = min(theData.nReversals(2),size(matchSettings,1));
-                pIndsToMeasure = matchSettings(end-nSettingsToMeasure+1:end,2);
-                refIndsToMeasure = matchSettings(end-nSettingsToMeasure+1:end,1);
-            else 
-                nSettingsToMeasure = theData.nReversals(2);
-                pIndsToMeasure = matchSettings(pRevSettings(end-nSettingsToMeasure+1:end),2);
-                refIndsToMeasure = matchSettings(refRevSettings(end-nSettingsToMeasure+1:end),1);
+                % Find settings and reversal indices we are using
+                if i==nMatches  % Last match in the file
+                    matchInds = theData.dataArr{tt}.matchSettingInds(i):...
+                        size(theData.dataArr{tt}.subjectSettings,1);
+                    pRevSettings = theData.dataArr{tt}.pRevIndices(...
+                        theData.dataArr{tt}.pRevIndices>=theData.dataArr{tt}.matchSettingInds(i));
+                    refRevSettings = theData.dataArr{tt}.tRevIndices(...
+                        theData.dataArr{tt}.tRevIndices>=theData.dataArr{tt}.matchSettingInds(i));
+                else
+                    matchInds = theData.dataArr{tt}.matchSettingInds(i):...
+                        theData.dataArr{tt}.matchSettingInds(i+1)-1;
+                    pRevSettings = theData.dataArr{tt}.pRevIndices(...
+                        (theData.dataArr{tt}.pRevIndices>=theData.dataArr{tt}.matchSettingInds(i))...
+                        & (theData.dataArr{tt}.pRevIndices<theData.dataArr{tt}.matchSettingInds(i+1)));
+                    refRevSettings = theData.dataArr{tt}.tRevIndices(...
+                        (theData.dataArr{tt}.tRevIndices>=theData.dataArr{tt}.matchSettingInds(i))...
+                        & (theData.dataArr{tt}.tRevIndices<theData.dataArr{tt}.matchSettingInds(i+1)));
+                end
+                matchSettings = theData.dataArr{tt}.subjectSettings(matchInds,:);
+                
+                % Find which indices we are measuring. By default, the
+                % last nReversals(2) reversals are measured and averaged. If
+                % fewer reversals are available, the last nReversals(2)
+                % settings are measured. If fewer settings are available, then
+                % all available settings are measured and averaged.
+                if length(pRevSettings) < theData.nReversals(2) || length(refRevSettings) < theData.nReversals(2)
+                    nSettingsToMeasure = min(theData.nReversals(2),size(matchSettings,1));
+                    pValsToMeasure = matchSettings(end-nSettingsToMeasure+1:end,2);
+                    refValsToMeasure = matchSettings(end-nSettingsToMeasure+1:end,1);
+                else
+                    nSettingsToMeasure = theData.nReversals(2);
+                    pValsToMeasure = matchSettings(pRevSettings(end-nSettingsToMeasure+1:end),2);
+                    refValsToMeasure = matchSettings(refRevSettings(end-nSettingsToMeasure+1:end),1);
+                end
             end 
             
             primaryMeas = [];
             refMeas = [];
             for j = 1:nSettingsToMeasure
-                trialPInd = find(theData.p1Scales==pIndsToMeasure(j));
-                trialRefInd = find(theData.testScales==refIndsToMeasure(j));
+                trialPInd = find(theData.p1Scales==pValsToMeasure(j));
+                trialRefInd = find(theData.testScales==refValsToMeasure(j));
                 
                 % Display primary on OL, measure with radiometer
                 ol.setMirrors(squeeze(theData.primaryStartStops(trialPInd,1,:))',...
@@ -163,8 +181,8 @@ end
 ol.setAll(false);
 pause(0.1);
 measuredDarkSpd = spectroRadiometerOBJ.measure;
-% save(outputFile, 'measuredRefSpds', 'measuredPrimarySpds', 'measuredWhite',...
-%     'measuredDarkSpd');
+save(outputFile, 'measuredRefSpds', 'measuredPrimarySpds', 'measuredWhite',...
+    'measuredDarkSpd');
 
 %% Close devices
 spectroRadiometerOBJ.shutDown;

@@ -76,7 +76,7 @@ trialSessionNums = []; % Session numbers of individual trials tested in this ses
 % Radiometer measurements 
 for i = 1:length(trialSessionNums)
     OLRadiometerMatchesPlayback(subjID,trialSessionNums(i),fNames{i},'measWhite',...
-        true)
+        true,'measLastOnly',false)
 end 
 % Close up 
 ol = OneLight();
