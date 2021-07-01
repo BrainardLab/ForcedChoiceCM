@@ -1,16 +1,22 @@
 function crossValErr = crossValidateRayleighMatch(primaryMatchSpds,refMatchSpds,...
     lowerBounds,upperBounds,AEq,BEq,varargin)
-% Computes the cross-validated error associated with a set of Rayleigh 
-% matches with parameters fit using different models
+% Computes the cross-validated error when parameters are fit to observers'
+% Rayleigh matching data using various models
 %
 % Syntax:
 %   crossValidateRayleighMatch(primaryMatchSpds,refMatchSpds,...
 %   lowerBounds,upperBounds,AEq,BEq)
 %
 % Description:
-%    Given a set of primary and reference spds which an observer identified
-%    as Rayleigh matches, performs cross-validation to determine which of
-%    several models best accounts for the observer's data. 
+%    Computes the cross-validated error associated with various parameter 
+%    fits to observers' Rayleigh matching data on the OneLight. Takes in
+%    arrays of (radiometer-measured) primary and reference spds which were
+%    identified by the observer as matches, as well as arrays containing
+%    parameter constraints for the various models of interest. Performs
+%    cross-validation for each model, with the number of iterations 
+%    determined by the number of times the matches were repeated at a given 
+%    reference wavelength during the experiment. Returns a vector 
+%    containing the cross-validated fit error for each model.
 %
 % Inputs:
 %    primaryMatchSpds -[spdLength x nCrossValIters x nReferenceLights]
@@ -25,19 +31,20 @@ function crossValErr = crossValidateRayleighMatch(primaryMatchSpds,refMatchSpds,
 %    upperBounds      -nModels x 8 matrix. Each row contains the upper
 %                      parameter bounds for a different fitting model. See
 %                      findObserverParameters for details on parameters.
-%    AEq              -nModels x 8 matrix. Each row contains the linear 
-%                      equality constraints on parameters for a different 
-%                      fitting model.
-%    BEq              -Vector with (nModels) elements containing the linear 
-%                      equality sum for each model tested.
+%    AEq              -Cell array with (nModels) elements. Each entry contains 
+%                      the linear equality constraints on parameters for a  
+%                      different fitting model ([] = no constraint).
+%    BEq              -Cell array with (nModels elements). Each entry  
+%                      contains the linear equality sum for a different
+%                      fitting model ([] = no constraint).
 %                                         
 % Outputs:
 %    crossValError  -Row vector where each entry is the cross-validated fit
 %                    error for a different model of interest
 %
 % Optional key-value pairs:
-%    'age'           -Observer age in years. Default is 32.
-%    'fieldSize'     -Field size in degrees. Default is 2.
+%    'age'               -Observer age in years. Default is 32.
+%    'fieldSize'         -Field size in degrees. Default is 2.
 %    'initialConeParams' -1x8 numerical vector of cone individual  
 %                         difference parameters. Default is zeros(1,8);
 %    'opponentParams'    -1x4 numerical vector of opponent contrast
@@ -55,35 +62,36 @@ p.addParameter('fieldSize',2,@(x)(isnumeric(x)));
 p.addParameter('initialConeParams',zeros(1,8),@(x)(isnumeric(x)));
 p.addParameter('opponentParams',[40.3908 205.7353 62.9590 1.0000],@(x)(isvector(x)));
 p.addParameter('errScalar',100,@(x)(isnumeric(x)));
-p.Parse(varargin{:});
+p.parse(varargin{:});
 
 % Generate base observer
-baseObs = genRayleighObserver('age',p.Results.age,'fieldSize',p.Results.fieldSize,...
+baseObserver = genRayleighObserver('age',p.Results.age,'fieldSize',p.Results.fieldSize,...
     'coneVec',p.Results.initialConeParams,'opponentParams',p.Results.opponentParams);
 
 % Set up cross-validation indices
 % Each row of the matrix set up here is the order to leave one
 % measurement out, randomized separately for each reference light.
-[spdLength,nCrossValIters,nReferenceLights] = size(refMatchSpds);
-leaveOneOutOrder = zeros(nReferenceLights,nCrossValIters);
-for rr = 1:nReferenceLights
+[spdLength,nCrossValIters,nRefWls] = size(refMatchSpds);
+leaveOneOutOrder = zeros(nRefWls,nCrossValIters);
+for rr = 1:nRefWls
     leaveOneOutOrder(rr,:) = Shuffle(1:nCrossValIters);
 end
 
 nModelsToEval = length(BEq);  % Number of models we are evaluating
-crossValError = zeros(nModelsToEval,nCrossValIters); % Store error for each model 
 
-% Loop through the reference lights, and perform cross validation for the
-% specified number of iterations
+% Matrix to store error for each model and each iteration
+crossValError = zeros(nModelsToEval,nCrossValIters);
+
+% Perform cross validation for the specified number of iterations
 for cc = 1:nCrossValIters   
     % Collect up the matches to fit for this iteration
-    matchesToFit = zeros(nReferenceLights,nCrossValIters-1);
-    matchToEval = zeros(nReferenceLights,1);
+    matchesToFit = zeros(nRefWls,nCrossValIters-1);
+    matchToEval = zeros(nRefWls,1);
     pSpdsToFit = [];
     refSpdsToFit = [];
     pSpdsToEval = zeros(spdLength,nRefWls);
     refSpdsToEval = zeros(spdLength,nRefWls);
-    for rr = 1:nReferenceLights
+    for rr = 1:nRefWls
         % We fit nCrossValIters-1 matches for each reference wavelength.
         % This code defines the indices of the ones being fit.
         matchesToFit(rr,:) = setdiff(1:nCrossValIters,leaveOneOutOrder(rr,cc));
@@ -98,30 +106,30 @@ for cc = 1:nCrossValIters
         refSpdsToFit = [refSpdsToFit,refMatchSpds(:,matchesToFit(rr,:),rr)];
         
         pSpdsToEval(:,rr) = primaryMatchSpds(:,matchToEval(rr),rr);
-        refSpdsToEval(:,rr) = refMatchSpds(:,matcheToEva(rr),rr);
+        refSpdsToEval(:,rr) = refMatchSpds(:,matchToEval(rr),rr);
     end
     
     % Fit parameters using the specified matches and the provided bounds
     % for each of the models we are comparing, and evaluate the error for 
-    % the remaining match. 
+    % the left-out matches. 
     for mm = 1:nModelsToEval
         % Fit parameters using the selected matches
         [fitParams,~,~] = findObserverParameters(refSpdsToFit,pSpdsToFit,...
             'age',p.Results.age,'fieldSize',p.Results.fieldSize,...
             'opponentParams',p.Results.opponentParams,'initialConeParams',...
-            p.Results.initialConeParams,',minimizeConeErr',false,...
+            p.Results.initialConeParams,'minimizeConeErr',false,...
             'lowerBounds',lowerBounds(mm,:),'upperBounds',upperBounds(mm,:),...
-            'AEq',AEq(mm,:),'BEq',BEq(mm),'errScalar',p.Results.errScalar,...
+            'AEq',AEq{mm},'BEq',BEq{mm},'errScalar',p.Results.errScalar,...
             'minimizeConeErr',false);
         
         % Evaluate fit on the left-out data
-        crossValError(mm,cc) = findObserverError(fitParams,baseObserver,...
+        crossValError(mm,cc) = findMatchError(fitParams,baseObserver,...
             refSpdsToEval,pSpdsToEval,'errScalar',1,'findConeErr',false);
     end
 end
 % For each model, average the fit error across cross validation iterations
 crossValErr = zeros(1,nModelsToEval);
 for mm = 1:nModelsToEval
-    crossValErr(mm) = sqrt(sum(crossValError(mm,:).^2));
+    crossValErr(mm) = norm(crossValError(mm,:));
 end 
 end 

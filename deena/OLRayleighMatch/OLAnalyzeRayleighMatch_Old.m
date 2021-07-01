@@ -1,4 +1,4 @@
-function OLAnalyzeRayleighMatch(subjID,sessionNums,varargin)
+function OLAnalyzeRayleighMatch_Old(subjID,sessionNums,varargin)
 % Function for analyzing Rayleigh matching data from live subjects.
 % Syntax:
 %   OLAnalyzeRayleighMatch(subjID, sessionNums)
@@ -184,16 +184,17 @@ for i = 1:length(sessionNums)
     % Add radiometer data to collected data
     radiometerData = load(measFile);
     measPrimarySpds = [measPrimarySpds,radiometerData.measuredPrimarySpds'];
-    measRefSpds = [measRefSpds,radiometerData.measuredRefSpds'];
+    measRefSpds = [measRefSpds,radiometerData.measuredTestSpds'];
+%     measRefSpds = [measRefSpds,radiometerData.measuredRefSpds'];
     darkSpds = [darkSpds, repmat(radiometerData.measuredDarkSpd',1,length(sessionData.testIntensities))];
 end
 % Duplicate light combos array if interleaved
-if sessionData.interleaveStaircases
-    lightCombos = repelem(lightCombos,2,1);
-    p1Scales = repelem(p1Scales,2);
-    p2Scales = repelem(p2Scales,2);
-    refScales = repelem(refScales,2);
-end 
+% if sessionData.interleaveStaircases
+%     lightCombos = repelem(lightCombos,2,1);
+%     p1Scales = repelem(p1Scales,2);
+%     p2Scales = repelem(p2Scales,2);
+%     refScales = repelem(refScales,2);
+% end 
 
 %% Sort collected data by unique wavelength combo, and find average spds
 % Identify the different sets of wavelengths used
