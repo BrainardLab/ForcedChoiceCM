@@ -69,6 +69,14 @@ function [params,error,observer] = findObserverParameters(testSpds,primarySpds,v
 %    'minimizeConeErr'   -Logical. If true, minimizes cone exictation error
 %                         instead of opponent contrast difference. Default 
 %                         is false.
+%    'lowerBounds'   -1x8 vector with lower bounds. Overwrites key-value
+%                     preferences. Default is [].
+%    'upperBounds'   -1x8 vector with upper bounds. Overwrites key-value
+%                     preferences. Default is [].
+%    'AEq'           -1x8 vector with linear equality constraints. 
+%                     Overwrites key-value preferences. Default is [].
+%    'BEq'           -1x8 vector with linear equality sum. Overwrites 
+%                     key-value preferences. Default is [].
 
 % History:
 %   06/12/20  dce       Wrote it.
@@ -84,7 +92,11 @@ function [params,error,observer] = findObserverParameters(testSpds,primarySpds,v
 %   05/09/21  dce       Added option to minimize cone excitation difference
 %                       instead of opponent contrast.
 %   06/08/21  dce       Renamed parameters, added option to constrain
-%                      lambda max to 0
+%                       lambda max to 0
+%   06/30/21  dce       Added option to directly input lower and upper
+%                       bounds and equality constraints - useful for cross 
+%                       validation. Note that these settings overwrite
+%                       key-value pair results.
 
 %% Initial Setup
 % Parse input
@@ -103,6 +115,10 @@ p.addParameter('opponentParams',[40.3908 205.7353 62.9590 1.0000],@(x)(isvector(
 p.addParameter('S',[380 2 201],@(x)(isnumeric(x)));
 p.addParameter('errScalar',100,@(x)(isnumeric(x)));
 p.addParameter('minimizeConeErr',false,@(x)(islogical(x)));
+p.addParameter('lowerBounds',[],@(x)(isnumeric(x)));
+p.addParameter('upperBounds',[],@(x)(isnumeric(x)));
+p.addParameter('AEq',[],@(x)(isnumeric(x)));
+p.addParameter('BEq',[],@(x)(isnumeric(x)));
 p.parse(varargin{:});
 
 % Input checks
@@ -110,6 +126,16 @@ spdLength = size(testSpds,1);
 if length(SToWls(p.Results.S)) ~= spdLength
     error('Chosen S value is incompatible with spd length');
 end
+% Check if lower bounds were provided without upper bounds, or if partial
+% equality constraints were inputted
+if (isempty(p.Results.lowerBounds) || isempty(p.Results.upperBounds)) && ...
+        ~(isempty(p.Results.lowerBounds) && isempty(p.Results.upperBounds))
+    error('Both lower and upper bounds must be provided');
+end 
+if (isempty(p.Results.AEq) || isempty(p.Results.BEq)) && ...
+        ~(isempty(p.Results.AEq) && isempty(p.Results.BEq))
+    error('Both AEq and BEq must be provided');
+end 
 
 % Generate a standard observer with the given initial values
 observer = genRayleighObserver('fieldSize',p.Results.fieldSize,'age',...
@@ -122,61 +148,72 @@ Beq = [];              % Equality constraint
 lb = -Inf*ones(1,8);   % Lower bounds
 ub = Inf*ones(1,8);    % Upper bounds
 
-% Set lower and upper bounds based on the standard deviations for the 8
-% parameters (from Asano 2015). The standard deviations are expressed as
-% percent deviations from the mean, except for last three parameters
-% (lambda max shifts) which are expressed as deviations in nm.
-sds = [18.7 36.5 9.0 9.0 7.4 2.0 1.5 1.3]; % Standard deviations
-scaleFactor = 3;    % Set limits at 3 standard deviations from the mean
-if p.Results.restrictBySd
-    lb = -1*scaleFactor*sds;
-    ub = scaleFactor*sds;
+% Set lower and upper bounds, either with explicit input or using key-value
+% pairs for specific constraints
+if ~isempty(p.Results.lowerBounds)  % Explicit input of bounds
+    lb = p.Results.lowerBounds;
+    ub = p.Results.upperBounds;
+else       % Key-value pairs with specified constraints
+    % Set lower and upper bounds based on the standard deviations for the 8
+    % parameters (from Asano 2015). The standard deviations are expressed as
+    % percent deviations from the mean, except for last three parameters
+    % (lambda max shifts) which are expressed as deviations in nm.
+    sds = [18.7 36.5 9.0 9.0 7.4 2.0 1.5 1.3]; % Standard deviations
+    scaleFactor = 3;    % Set limits at 3 standard deviations from the mean
+    if p.Results.restrictBySd
+        lb = -1*scaleFactor*sds;
+        ub = scaleFactor*sds;
+    end
+    
+    % Constrain lens density variation to 0
+    if p.Results.dlens0
+        lb(1) = p.Results.initialConeParams(1);
+        ub(1) = p.Results.initialConeParams(1);
+    end
+    
+    % Constrain macular pigment density variation to 0
+    if p.Results.dmac0
+        lb(2) = p.Results.initialConeParams(2);
+        ub(2) = p.Results.initialConeParams(2);
+    end
+    
+    % Constrain optical density variation to 0
+    if p.Results.OD0
+        lb(3) = p.Results.initialConeParams(3);
+        ub(3) = p.Results.initialConeParams(3);
+        lb(4) = p.Results.initialConeParams(4);
+        ub(4) = p.Results.initialConeParams(4);
+        lb(5) = p.Results.initialConeParams(5);
+        ub(5) = p.Results.initialConeParams(5);
+    end
+    
+    % Constrain lambda max variation to 0
+    if p.Results.lambdaMax0
+        lb(6) = p.Results.initialConeParams(6);
+        ub(6) = p.Results.initialConeParams(6);
+        lb(7) = p.Results.initialConeParams(7);
+        ub(7) = p.Results.initialConeParams(7);
+        lb(8) = p.Results.initialConeParams(8);
+        ub(8) = p.Results.initialConeParams(8);
+    end
+    
+    % Constrain S cone parameters to 0
+    if p.Results.S0
+        lb(5) = p.Results.initialConeParams(5);
+        ub(5) = p.Results.initialConeParams(5);
+        lb(8) = p.Results.initialConeParams(8);
+        ub(8) = p.Results.initialConeParams(8);
+    end
 end
 
-% Constrain lens density variation to 0 
-if p.Results.dlens0
-    lb(1) = p.Results.initialConeParams(1);
-    ub(1) = p.Results.initialConeParams(1);
-end
-
-% Constrain macular pigment density variation to 0 
-if p.Results.dmac0
-    lb(2) = p.Results.initialConeParams(2);
-    ub(2) = p.Results.initialConeParams(2);
-end
-
-% Constrain optical density variation to 0 
-if p.Results.OD0
-    lb(3) = p.Results.initialConeParams(3);
-    ub(3) = p.Results.initialConeParams(3);
-    lb(4) = p.Results.initialConeParams(4);
-    ub(4) = p.Results.initialConeParams(4);
-    lb(5) = p.Results.initialConeParams(5);
-    ub(5) = p.Results.initialConeParams(5);
-end
-
-% Constrain lambda max variation to 0 
-if p.Results.lambdaMax0
-    lb(6) = p.Results.initialConeParams(6);
-    ub(6) = p.Results.initialConeParams(6);
-    lb(7) = p.Results.initialConeParams(7);
-    ub(7) = p.Results.initialConeParams(7);   
-    lb(8) = p.Results.initialConeParams(8);
-    ub(8) = p.Results.initialConeParams(8);
-end
-
-% Constrain S cone parameters to 0 
-if p.Results.S0
-    lb(5) = p.Results.initialConeParams(5);
-    ub(5) = p.Results.initialConeParams(5);
-    lb(8) = p.Results.initialConeParams(8);
-    ub(8) = p.Results.initialConeParams(8);
-end
-
-% Constrain L and M OD to be equal
-if p.Results.LMEqualOD
+% Set equality constraints, either through explicit input or through
+% key-value pairs
+if ~isempty(p.Results.AEq) 
+    Aeq = p.Results.AEq;
+    Beq = p.Results.BEq;
+elseif p.Results.LMEqualOD
     Aeq = [0 0 1 -1 0 0 0 0];
-    Beq = 0;
+    Beq = 0; 
 end
 
 %% Optimization procedure
