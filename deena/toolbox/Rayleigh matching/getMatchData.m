@@ -52,23 +52,17 @@ testSpds = zeros(spdLength,nMatches,nInterleaved);    % Output test spds
 primarySpds = zeros(spdLength,nMatches,nInterleaved); % Output primary spds
 primaryRatios = zeros(nMatches,nInterleaved);         % Primary ratio settings
 testIntensities = zeros(nMatches,nInterleaved);       % Reference intensity settings
+        
+% Define the spd arrays we're searching in
+testArr = trialData.testSpds;
+primaryArr = trialData.primarySpds;
 
 % Find match position indices
 for kk = 1:nInterleaved
      if ~isempty(trialData.dataArr{kk}.matchPositions)
+        % Define the match indices of interest 
         tMatchInds = trialData.dataArr{kk}.matchPositions(:,1);
         pMatchInds = trialData.dataArr{kk}.matchPositions(:,2);
-        
-        % Define the spd arrays we're searching in
-        testArr = trialData.testSpds;
-        primaryArr = trialData.primarySpds;
-    if ~isempty(trialData.dataArr{kk}.matchPositions)
-        tMatchInds = trialData.dataArr{kk}.matchPositions(:,1);
-        pMatchInds = trialData.dataArr{kk}.matchPositions(:,2);
-        
-        % Define the spd arrays we're searching in
-        testArr = trialData.testSpds;
-        primaryArr = trialData.primarySpds;
         
         for i = 1:length(tMatchInds)
             % Find spds corresponding to the match position indices. If an index is

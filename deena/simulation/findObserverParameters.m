@@ -218,7 +218,7 @@ end
 
 % Set equality constraints, either through explicit input or through
 % key-value pairs
-if ~isempty(p.Results.AEq) 
+if ~isempty(p.Results.lowerBounds) % Explicit input has been provided
     Aeq = p.Results.AEq;
     Beq = p.Results.BEq;
 elseif p.Results.LMEqualOD
