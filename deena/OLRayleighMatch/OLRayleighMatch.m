@@ -680,7 +680,7 @@ while(stillLooping)
             % If doing an FC match, collect the light/dark decision
             if ~adjustment
                 innerLoopCounter = 0;
-                Speak('Lighter or darker?');
+                Speak('Brighter or dimmer?');
                 waitingForResponse = true;
                 while(waitingForResponse)
                     nowTime = mglGetSecs;

@@ -55,13 +55,13 @@ testIntensities = zeros(nMatches,nInterleaved);       % Reference intensity sett
 
 % Find match position indices
 for kk = 1:nInterleaved
-     if ~isempty(trialData.matchPositions)
-        tMatchInds = trialData.matchPositions(:,1);
-        pMatchInds = trialData.matchPositions(:,2);
+     if ~isempty(trialData.dataArr{kk}.matchPositions)
+        tMatchInds = trialData.dataArr{kk}.matchPositions(:,1);
+        pMatchInds = trialData.dataArr{kk}.matchPositions(:,2);
         
         % Define the spd arrays we're searching in
-        testArr = trialData.testSpdsPredicted;
-        primaryArr = trialData.primarySpdsPredicted;
+        testArr = trialData.testSpds;
+        primaryArr = trialData.primarySpds;
     if ~isempty(trialData.dataArr{kk}.matchPositions)
         tMatchInds = trialData.dataArr{kk}.matchPositions(:,1);
         pMatchInds = trialData.dataArr{kk}.matchPositions(:,2);

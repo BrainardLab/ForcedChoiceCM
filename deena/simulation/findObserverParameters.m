@@ -56,8 +56,8 @@ function [params,error,observer] = findObserverParameters(testSpds,primarySpds,v
 %    'S0'            -Logical. If true, constrains S lambda max and optical
 %                     density (params 5 and 8) to be 0. Default is true.
 %    'restrictBySD'  -Logical. If true, adds lower and upper bounds on all
-%                     paramters to keep them within three standard
-%                     deviations of their means. Default is true. 
+%                     paramters to keep them within a specified number of 
+%                     standard deviations of their means. Default is true. 
 %    'S'             -Wavelength sampling for cone calculations, in the
 %                     form [start delta nTerms]. Default is [380 2 201];
 %    'errScalar'     -Integer for scaling the match error, to improve search.
@@ -77,6 +77,10 @@ function [params,error,observer] = findObserverParameters(testSpds,primarySpds,v
 %                     Overwrites key-value preferences. Default is [].
 %    'BEq'           -1x8 vector with linear equality sum. Overwrites 
 %                     key-value preferences. Default is [].
+%    'sdDensity'     -Number of allowed standard deviations for density 
+%                     parameters (1:5) in fit. Default is 3.
+%    'sdLambdaMax'   -Number of allowed standard deviations for lambda max
+%                     parameters (6:8) in fit. Default is 3.
 
 % History:
 %   06/12/20  dce       Wrote it.
@@ -97,6 +101,7 @@ function [params,error,observer] = findObserverParameters(testSpds,primarySpds,v
 %                       bounds and equality constraints - useful for cross 
 %                       validation. Note that these settings overwrite
 %                       key-value pair results.
+%   07/05/21  dce       Added number of sds as key-value pairs
 
 %% Initial Setup
 % Parse input
@@ -119,6 +124,8 @@ p.addParameter('lowerBounds',[],@(x)(isnumeric(x)));
 p.addParameter('upperBounds',[],@(x)(isnumeric(x)));
 p.addParameter('AEq',[],@(x)(isnumeric(x)));
 p.addParameter('BEq',[],@(x)(isnumeric(x)));
+p.addParameter('sdDensity',3,@(x)(isnumeric(x)));
+p.addParameter('sdLambdaMax',3,@(x)(isnumeric(x)));
 p.parse(varargin{:});
 
 % Input checks
@@ -159,10 +166,13 @@ else       % Key-value pairs with specified constraints
     % percent deviations from the mean, except for last three parameters
     % (lambda max shifts) which are expressed as deviations in nm.
     sds = [18.7 36.5 9.0 9.0 7.4 2.0 1.5 1.3]; % Standard deviations
-    scaleFactor = 3;    % Set limits at 3 standard deviations from the mean
+    
+    % Set limits at the specified number of standard deviations from the mean
+    scaleFactors = [repmat(p.Results.sdDensity,1,5)...
+        repmat(p.Results.sdLambdaMax,1,3)];  
     if p.Results.restrictBySd
-        lb = -1*scaleFactor*sds;
-        ub = scaleFactor*sds;
+        lb = -1.*scaleFactors.*sds;
+        ub = scaleFactors.*sds;
     end
     
     % Constrain lens density variation to 0

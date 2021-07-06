@@ -40,9 +40,9 @@ function OLAnalyzeRayleighMatch_Old(subjID,sessionNums,varargin)
 %    'S0'            -Logical. If true, constrains S lambda max and optical
 %                     density (params 5 and 8) to be 0. Default is true.
 %    'restrictBySD'   -Logical. If true, adds lower and upper bounds on all
-%                      paramters to keep them within three standard
-%                      deviations of their means during optimization.
-%                      Default is true.
+%                      paramters to keep them within a specified number of 
+%                      standard deviations of their means during 
+%                      optimization. Default is true.
 %    'avgSpds'        -Logical. If true, fits cone parameters based on
 %                      averaged spds for each reference wavelength. Default
 %                      is false.
@@ -70,6 +70,10 @@ function OLAnalyzeRayleighMatch_Old(subjID,sessionNums,varargin)
 %                       highlights which trials were run with the primary
 %                       mixture first, and which with the reference first.
 %                       Default is false.
+%    'sdDensity'     -Number of allowed standard deviations for density 
+%                     parameters (1:5) in fit. Default is 3.
+%    'sdLambdaMax'   -Number of allowed standard deviations for lambda max
+%                     parameters (6:8) in fit. Default is 3.
 
 % History:
 %   2/19/21  dce       Wrote it.
@@ -89,6 +93,8 @@ function OLAnalyzeRayleighMatch_Old(subjID,sessionNums,varargin)
 %                      removed some summary stats 
 %   06/21/21  dce      Fixed positioning of reversals, and changed which
 %                      spectra are used to calculate match
+%   07/05/21  dce      Added option to set number of sds in parameter fit.
+
 close all; 
 % Parse input
 p = inputParser;
@@ -107,6 +113,8 @@ p.addParameter('plotPredictedMatches',false,@(x)(islogical(x)));
 p.addParameter('checkOrderEffect',false,@(x)(islogical(x)));
 p.addParameter('makePittDiagram',false,@(x)(islogical(x)));
 p.addParameter('multipleParamFits',true,@(x)(islogical(x)));
+p.addParameter('sdDensity',3,@(x)(isnumeric(x)));
+p.addParameter('sdLambdaMax',3,@(x)(isnumeric(x)));
 p.parse(varargin{:});
 
 % Error checking 
@@ -173,7 +181,7 @@ for i = 1:length(sessionNums)
         fName = fullfile(outputDir,[subjID '_' num2str(sessionNums(i))...
             '_' num2str(j) '.mat']);
         trialData = load(fName);
-        [rSpds,pSpds,~,~] = getMatchData(fName,'averageSpds',false);
+        [rSpds,pSpds,~,~] = getMatchData_old(fName,'averageSpds',false);
         spdLength = size(rSpds,1);
         predRefSpds = [predRefSpds,reshape(rSpds,[spdLength numel(rSpds)/spdLength])];
         predPrimarySpds = [predPrimarySpds,reshape(pSpds,[spdLength numel(pSpds)/spdLength])];
@@ -236,7 +244,8 @@ if p.Results.multipleParamFits
         'dmac0',p.Results.dmac0,'LMEqualOD',false,...
         'restrictBySd',p.Results.restrictBySd,'OD0',false,...
         'S0',p.Results.S0,'lambdaMax0',false,'minimizeConeErr',...
-        p.Results.minimizeConeErr);
+        p.Results.minimizeConeErr,'sdDensity',p.Results.sdDensity,...
+        'sdLambdaMax',p.Results.sdLambdaMax);
     [estConeParamsLockOD,~,~] =...
         findObserverParameters(refSpdsFit,primarySpdsFit,...
         'age',sessionData.age,'fieldSize',sessionData.fieldSize,...
@@ -244,7 +253,8 @@ if p.Results.multipleParamFits
         'dmac0',p.Results.dmac0,'LMEqualOD',false,...
         'restrictBySd',p.Results.restrictBySd,'OD0',true,...
         'S0',p.Results.S0,'lambdaMax0',false,'minimizeConeErr',...
-        p.Results.minimizeConeErr);
+        p.Results.minimizeConeErr,'sdDensity',p.Results.sdDensity,...
+        'sdLambdaMax',p.Results.sdLambdaMax);
     [estConeParamsLockLambdaMax,~,~] = ...
         findObserverParameters(refSpdsFit,primarySpdsFit,...
         'age',sessionData.age,'fieldSize',sessionData.fieldSize,...
@@ -252,7 +262,8 @@ if p.Results.multipleParamFits
         'dmac0',p.Results.dmac0,'LMEqualOD',false,...
         'restrictBySd',p.Results.restrictBySd,'OD0',false,...
         'S0',p.Results.S0,'lambdaMax0',true,'minimizeConeErr',...
-        p.Results.minimizeConeErr);
+        p.Results.minimizeConeErr,'sdDensity',p.Results.sdDensity,...
+        'sdLambdaMax',p.Results.sdLambdaMax);
     [estConeParamsLMEqualOD,~,~] = ...
         findObserverParameters(refSpdsFit,primarySpdsFit,...
         'age',sessionData.age,'fieldSize',sessionData.fieldSize,...
@@ -260,7 +271,8 @@ if p.Results.multipleParamFits
         'dmac0',p.Results.dmac0,'LMEqualOD',true,...
         'restrictBySd',p.Results.restrictBySd,'OD0',false,...
         'S0',p.Results.S0,'lambdaMax0',false,'minimizeConeErr',...
-        p.Results.minimizeConeErr);
+        p.Results.minimizeConeErr,'sdDensity',p.Results.sdDensity,...
+        'sdLambdaMax',p.Results.sdLambdaMax);
     estConeParams = [estConeParamsUnconstrained;estConeParamsLockOD;...
         estConeParamsLockLambdaMax;estConeParamsLMEqualOD];
 else
@@ -291,45 +303,58 @@ if p.Results.multipleParamFits
     % Define bounds. The limits are entered in matrix rows in the following 
     % order: standard, unconstrained, lock OD, lock lambda max, LM equal OD.
     sds = [18.7 36.5 9.0 9.0 7.4 2.0 1.5 1.3]; % Parameter standard deviations
-    scaleFactor = 3;    % Set limits at 3 standard deviations from the mean
+    scaleFactors = [repmat(p.Results.sdDensity,1,5) repmat(p.Results.sdLambdaMax,1,3)];
    
     % Manually enter variable parameters and limits for each model
-    lowerBounds = zeros(5,8);
-    lowerBounds(2,:) = [0 0 1 1 0 1 1 0].*sds*scaleFactor*-1;
-    lowerBounds(3,:) = [0 0 0 0 0 1 1 0].*sds*scaleFactor*-1;
-    lowerBounds(4,:) = [0 0 1 1 0 0 0 0].*sds*scaleFactor*-1;
-    lowerBounds(5,:) = [0 0 1 1 0 1 1 0].*sds*scaleFactor*-1;
+    lowerBounds = zeros(9,8);
+    lowerBounds(2,:) = [0 0 1 1 0 1 1 0].*sds.*scaleFactors*-1;
+    lowerBounds(3,:) = [0 0 0 0 0 1 1 0].*sds.*scaleFactors*-1;
+    lowerBounds(4,:) = [0 0 1 1 0 0 0 0].*sds.*scaleFactors*-1;
+    lowerBounds(5,:) = [0 0 1 1 0 1 1 0].*sds.*scaleFactors*-1;  
+    lowerBounds(6,:) = [1 0 1 1 0 1 1 0].*sds.*scaleFactors*-1;
+    lowerBounds(7,:) = [1 0 0 0 0 1 1 0].*sds.*scaleFactors*-1;
+    lowerBounds(8,:) = [1 0 1 1 0 0 0 0].*sds.*scaleFactors*-1;
+    lowerBounds(9,:) = [1 0 1 1 0 1 1 0].*sds.*scaleFactors*-1;
     
-    upperBounds = zeros(5,8);
-    upperBounds(2,:) = [0 0 1 1 0 1 1 0].*sds*scaleFactor;
-    upperBounds(3,:) = [0 0 0 0 0 1 1 0].*sds*scaleFactor;
-    upperBounds(4,:) = [0 0 1 1 0 0 0 0].*sds*scaleFactor;
-    upperBounds(5,:) = [0 0 1 1 0 1 1 0].*sds*scaleFactor;
+    
+    upperBounds = zeros(9,8);
+    upperBounds(2,:) = [0 0 1 1 0 1 1 0].*sds.*scaleFactors;
+    upperBounds(3,:) = [0 0 0 0 0 1 1 0].*sds.*scaleFactors;
+    upperBounds(4,:) = [0 0 1 1 0 0 0 0].*sds.*scaleFactors;
+    upperBounds(5,:) = [0 0 1 1 0 1 1 0].*sds.*scaleFactors;   
+    upperBounds(6,:) = [1 0 1 1 0 1 1 0].*sds.*scaleFactors;
+    upperBounds(7,:) = [1 0 0 0 0 1 1 0].*sds.*scaleFactors;
+    upperBounds(8,:) = [1 0 1 1 0 0 0 0].*sds.*scaleFactors;
+    upperBounds(9,:) = [1 0 1 1 0 1 1 0].*sds.*scaleFactors;
     
     % Equality constraint for LM equal OD
-    AEq = cell(1,5);
-    BEq = cell(1,5);
+    AEq = cell(1,9);
+    BEq = cell(1,9);
     AEq{5} = [0 0 1 -1 0 0 0 0];
+    AEq{9} = [0 0 1 -1 0 0 0 0];
     BEq{5} = 0; 
+    BEq{9} = 0; 
     
     % Run cross-validation program 
     errScalar = 100;
+    nOverallRuns = 10;
     modelCrossValError = ...
     crossValidateRayleighMatch(measPrimarySpdsByWl,measRefSpdsByWl,...
-    lowerBounds,upperBounds,AEq,BEq,'errScalar',errScalar','age',...
+    lowerBounds,upperBounds,AEq,BEq,nOverallRuns,'errScalar',errScalar','age',...
     sessionData.age,'fieldSize',sessionData.fieldSize,'initialConeParams',...
     zeros(1,8),'opponentParams',sessionData.opponentParams);
 
     % Make bar plot of error  
     crossValErrPlot = figure();
     bar(modelCrossValError);
-    crossValPlotNames = {'Standard','Unconstrained','Lock Optical Density',...
-        'Lock Lambda Max','Equal LM OD'};
+    crossValPlotNames = {'Standard','Unconstrained','Lock OD',...
+        'Lock Lambda Max','Equal LM OD','Unconstrained+1','Lock OD+1',...
+        'Lock Lambda Max+l','Equal LM OD+l'};
     set(gca,'xticklabel',crossValPlotNames);
-    text(1:5,modelCrossValError,num2str(modelCrossValError','%0.2f'),...
+    text(1:9,modelCrossValError,num2str(modelCrossValError','%0.2f'),...
         'HorizontalAlignment','center','VerticalAlignment','bottom');
     title([subjID ' Cross Validated Fit Error'],'interpreter','none');
-    crossValErrPlot.Position = [100 100 1000 400];
+    crossValErrPlot.Position = [100 100 1200 300];
     NicePlot.exportFigToPDF([resFile '_crossValErr.pdf'],...
         crossValErrPlot,300);
 end 

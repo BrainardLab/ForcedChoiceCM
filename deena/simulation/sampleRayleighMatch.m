@@ -180,6 +180,10 @@ function [coneAvgErr,matchAvgErr,coneAvgStdErr,matchAvgStdErr,...
 %                          OLRayleighMatch (immediately before subject 
 %                          ID). If empty, the extra level of hierarchy is
 %                          not included. Default is [].
+%    'sdDensity'     -Number of allowed standard deviations for density 
+%                     parameters (1:5) in parameter fit. Default is 3.
+%    'sdLambdaMax'   -Number of allowed standard deviations for lambda max
+%                     parameters (6:8) in parameter fit. Default is 3.
 
 % History:
 %   07/06/20  dce       Wrote it.
@@ -204,6 +208,7 @@ function [coneAvgErr,matchAvgErr,coneAvgStdErr,matchAvgStdErr,...
 %                       instead of opponent contrast.
 %   06/06/21  dce       Removed nominal matching; edited to be in line with
 %                       OLRayleighMatch and findObserverParameters
+%   07/05/21  dce       Added parameter fit sd restriction options
 
 % Close stray figures
 close all;
@@ -240,6 +245,8 @@ p.addParameter('stimLimits',[],@(x)(isnumeric(x)));
 p.addParameter('lambdaRef',[],@(x)(isnumeric(x)));
 p.addParameter('minimizeConeErr',false,@(x)(islogical(x)));
 p.addParameter('outerFileName',[]);
+p.addParameter('sdDensity',3,@(x)(isnumeric(x)));
+p.addParameter('sdLambdaMax',3,@(x)(isnumeric(x)));
 p.parse(varargin{:});
 
 % Check that scale factors have been entered correctly
@@ -331,7 +338,8 @@ for i = 1:nObservers
         'S0',p.Results.S0,'lambdaMax0',p.Results.lambdaMax0,'OD0',...
         p.Results.OD0,'initialConeParams',baseParams,'errScalar',matchErrScalar,...
         'opponentParams',opponentParams,'S',p.Results.S,'minimizeConeErr',...
-        p.Results.minimizeConeErr);
+        p.Results.minimizeConeErr,'sdDensity',p.Results.sdDensity,...
+        'sdLambdaMax',p.Results.sdLambdaMax);
     recoveredParams = [recoveredParams;calcParams];
     
     % Find match error for the recovered, standard, and sampled observers
