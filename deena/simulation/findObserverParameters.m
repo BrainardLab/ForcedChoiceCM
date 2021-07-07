@@ -11,8 +11,8 @@ function [params,error,observer] = findObserverParameters(testSpds,primarySpds,v
 %    difference parameters which cause these light pairs to have the most
 %    similar cone responses. Does this by using fmincon to minimize the
 %    opponent contrast of the test and match lights. Various optimization
-%    constraints can be entered as key-value pairs (see below). Also has an
-%    option to plot the optimal cone response to the test and match lights.
+%    constraints can be entered as key-value pairs (see below), or limits
+%    can be entered directly.
 %
 %    The individual difference paramters are as follows:
 %       observer.coneParams.indDiffParams.dlens = x(1);
@@ -248,24 +248,4 @@ observer.T_cones = ComputeObserverFundamentals(observer.coneParams,...
 error = findMatchError(params,observer,testSpds,primarySpds,'S',...
     p.Results.S,'errScalar',p.Results.errScalar,'findConeErr',...
     p.Results.minimizeConeErr)/p.Results.errScalar;
-
-%% Optional - plot LMS response
-plotLMS = false;
-if plotLMS
-    for i = 1:nMatches
-        testCones = observer.T_cones*testSpds(:,i);
-        primaryCones = observer.T_cones*primarySpds(:,i);
-        cones = [testCones(1), primaryCones(1); testCones(2),...
-            primaryCones(2); testCones(3), primaryCones(3)];
-        figure();
-        bar(cones);
-        hold on;
-        names ={'L'; 'M'; 'S'};
-        set(gca,'xticklabel', names)
-        ylabel('Relative Response Intensity');
-        legend('Test Response', 'Primary Response');
-        theTitle = sprintf('Cone Responses for Optimal Parameters, Match %g', i);
-        title(theTitle);
-    end
-end
 end

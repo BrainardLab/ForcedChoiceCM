@@ -268,7 +268,7 @@ else % Perform several versions of the fit, and cross-validation
     nConeParams = 9;
     estObs = cell(1,nConeParams);
     sds = [18.7 36.5 9.0 9.0 7.4 2.0 1.5 1.3]; % Parameter standard deviations
-    scaleFactors = [repmat(p.Results.sdDensity,1,5) repmat(p.Results.sdLambdaMax,1,3)];
+    scaleFactors = [repmat(p.Results.sdDensity,1,5), repmat(p.Results.sdLambdaMax,1,3)];
    
     % Manually enter variable parameters and limits for each model
     lowerBounds = zeros(9,8);
@@ -302,8 +302,8 @@ else % Perform several versions of the fit, and cross-validation
     % Perform fits
     estConeParams = zeros(nConeParams,8);
     for mm = 1:nConeParams
-        [estConeParams(mm,:),~,estObs{i}] = ...
-            findObserverParameters(refSpdsFit,pSpdsFit,...
+        [estConeParams(mm,:),~,estObs{mm}] = ...
+            findObserverParameters(refSpdsFit,primarySpdsFit,...
             'age',sessionData.age,'fieldSize',sessionData.fieldSize,...
             'opponentParams',sessionData.opponentParams,'initialConeParams',...
             zeros(1,8),'minimizeConeErr',p.Results.minimizeConeErr,...
@@ -323,7 +323,7 @@ else % Perform several versions of the fit, and cross-validation
     bar(modelCrossValError);
     crossValPlotNames = {'Standard','Unconstrained','Lock OD',...
         'Lock Lambda Max','Equal LM OD','Unconstrained+1','Lock OD+1',...
-        'Lock Lambda Max+1','Equal LM OD+1',};
+        'Lock Lambda Max+1','Equal LM OD+1'};
     set(gca,'xticklabel',crossValPlotNames);
     text(1:9,modelCrossValError,num2str(modelCrossValError','%0.2f'),...
         'HorizontalAlignment','center','VerticalAlignment','bottom');
@@ -333,17 +333,17 @@ else % Perform several versions of the fit, and cross-validation
         crossValErrPlot,300); 
 end 
 
-
 %% Make cone response figure for each set of fit params
 plotColors = 'rkbgcmrkbgcm';
 refWls = unique(lightCombos(:,3));
 
 if p.Results.multipleParamFits
-    plotNames = {'Unconstrained','Lock Lambda Max','Lock Optical Density',...
-        'Equal LM Optical Density','Unconstrained + l','Lock Lambda Max + l',...
-        'Lock Optical Density + l','Equal LM Optical Density + l'};
-    plotFNames = {'_unconstrained','_lockLambdaMax','_lockOD',...
-        '_LMEqualOD','_unconstrainedLens','_lockLambdaMaxLens','_lockODLens',...
+    plotNames = {'Standard', 'Unconstrained','Lock Optical Density','Lock Lambda Max',...
+        'Equal LM Optical Density','Unconstrained + l',...
+        'Lock Optical Density + l','Lock Lambda Max + l',...
+        'Equal LM Optical Density + l'};
+    plotFNames = {'_standard','_unconstrained','_lockOD','_lockLambdaMax',...
+        '_LMEqualOD','_unconstrainedLens','_lockODLens','_lockLambdaMaxLens',...
         '_LMEqualODLens'};
 else 
     plotNames = {''};
@@ -351,7 +351,7 @@ else
 end 
 
 % Data arrays to store cone responses
-primaryConeRes = cell(theData.nReversals,nMatchWls);
+primaryConeRes = cell(nConeParams,nMatchWls);
 refConeRes = cell(nConeParams,nMatchWls);
 primaryLMinusM = cell(nConeParams,nMatchWls);
 refLMinusM = cell(nConeParams,nMatchWls);
@@ -366,23 +366,13 @@ for kk = 1:nConeParams
     legendHandles2 = [];
     legendEntries = {};
     
-    if kk==1  % Make standard cones figure on the first loop through
-        stdConeDiffPlot = figure();
-        hold on;
-        xlim([0 0.35]);
-        ylim([0.015 0.035]);
-        xlabel('(L - M)/(L+M)');
-        ylabel('L + M');
-        title([subjID ' Cone Response Difference - Standard Cones'],'interpreter','none');
-    end
-    
     fitConeDiffPlot = figure();
     hold on;
     xlim([0 0.35]);
     ylim([0.015 0.035]);
     xlabel('(L - M)/(L+M)');
     ylabel('L + M');
-    title([subjID ' Cone Response Difference - Fit Cones ' plotNames{kk}],'interpreter','none');
+    title([subjID ' Cone Response Difference ' plotNames{kk}],'interpreter','none');
         
     for i = 1:nMatchWls
         % Extract relevant spds
@@ -401,54 +391,8 @@ for kk = 1:nConeParams
         primaryLPlusM{kk,i} = primaryConeRes{kk,i}(1,:)+primaryConeRes{kk,i}(2,:);
         refLMinusM{kk,i} = refConeRes{kk,i}(1,:)-refConeRes{kk,i}(2,:);
         refLPlusM{kk,i} = refConeRes{kk,i}(1,:)+refConeRes{kk,i}(2,:);
-        
-        if kk==1
-            % Standard excitations
-            primaryConeResStd{i} = stdObs.T_cones*measPrimarySpdsTrial;
-            refConeResStd{i} = stdObs.T_cones*measRefSpdsTrial;
-            primaryLMinusMStd = primaryConeResStd{i}(1,:)-primaryConeResStd{i}(2,:);
-            primaryLPlusMStd = primaryConeResStd{i}(1,:)+primaryConeResStd{i}(2,:);
-            refLMinusMStd = refConeResStd{i}(1,:)-refConeResStd{i}(2,:);
-            refLPlusMStd = refConeResStd{i}(1,:)+refConeResStd{i}(2,:);
-            
-            % Add points to standard plot           
-            figure(stdConeDiffPlot);
-            hold on;
-            a  = plot(primaryLMinusMStd./primaryLPlusMStd,...
-                primaryLPlusMStd,[plotColors(i) '* ']);
-            if p.Results.checkOrderEffect
-                plot(refLMinusMStd(trialRefFirst)./refLPlusMStd(trialRefFirst),...
-                    refLPlusMStd(trialRefFirst),[plotColors(i) 'o ']);
-                plot(refLMinusMStd(~trialRefFirst)./refLPlusMStd(~trialRefFirst),...
-                    refLPlusMStd(~trialRefFirst),[plotColors(i) 's ']);
-            else
-                plot(refLMinusMStd./refLPlusMStd,refLPlusMStd,[plotColors(i) 'o ']);
-            end
-            % Highlight second session matches
-            if length(refLMinusMStd) >=4
-                if p.Results.checkOrderEffect
-                    selectionArr = logical([0 0 refFirst(3:4)]);
-                    selectionArr2 = logical([0 0 ~refFirst(3:4)]);
-                    plot(refLMinusMStd(selectionArr)./refLPlusMStd(selectionArr),refLPlusMStd(selectionArr),...
-                        'yo','MarkerFaceColor','Yellow','MarkerSize',5);
-                    plot(refLMinusMStd(selectionArr2)./refLPlusMStd(selectionArr2),refLPlusMStd(selectionArr2),...
-                        'ys','MarkerFaceColor','Yellow','MarkerSize',5);
-                else
-                    plot(refLMinusMStd(3:4)./refLPlusMStd(3:4),refLPlusMStd(3:4),...
-                        'yo','MarkerFaceColor','Yellow','MarkerSize',5);
-                end
-            end
-            legendHandles1 = [legendHandles1,a];
-            
-            % Add lines connecting each pair of primary/reference points
-            for j = 1:length(primaryConeRes{kk,i}(1,:))
-                plot([primaryLMinusMStd(j)/primaryLPlusMStd(j)...
-                    refLMinusMStd(j)/refLPlusMStd(j)],...
-                    [primaryLPlusMStd(j) refLPlusMStd(j)],'k-');
-            end
-        end
-        
-        % Add fit points to plot
+     
+        % Add points to plot
         figure(fitConeDiffPlot);
         hold on;
         a = plot(primaryLMinusM{kk,i}./primaryLPlusM{kk,i},primaryLPlusM{kk,i},...
@@ -493,15 +437,6 @@ for kk = 1:nConeParams
     else
         txtLabel = 'Yellow = second session';
     end
-    
-    if kk==1
-        figure(stdConeDiffPlot);
-        legend(legendHandles1,legendEntries);
-        text(0.05,0.03,txtLabel);
-        NicePlot.exportFigToPDF([resFile '_stdConeDiffs.pdf'],...
-            stdConeDiffPlot,300);
-    end
-    
     figure(fitConeDiffPlot);
     legend(legendHandles2,legendEntries);
     text(0.05,0.03,txtLabel);
