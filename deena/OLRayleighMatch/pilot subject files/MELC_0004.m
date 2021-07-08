@@ -1,22 +1,7 @@
-%% Rayleigh matching pilot data collection session template (recreate for each subject)
-% Description
-%    Template script to organize runs for pilot OneLight Rayleigh match 
-%    data collection. Includes code for conducting Rayleigh matches at each 
-%    of six reference wavelengths in two sessions. For each reference
-%    wavelength, runs two matches simultaneously - one with the primary
-%    mixture displayed first, one with the reference light displayed first.
-%    
-
-% History
-%    dce    xx/xx/21  - Wrote it
-%    dce    06/01/21   - Changed default number of reversals
-%    dce    06/02/21   - Added interleaving
-%    dce    07/06/21   - Specified adjustment length and opponent params
-
 %% To run once
 % Subject information 
-subjID = 'testFullProcedure3';  % Correct as needed (MELA ID)
-age = 32;         % Correct as needed
+subjID = 'MELC_0004';  % Correct as needed (MELA ID)
+age = 24;         % Correct as needed
 
 % Experimental parameters
 nMatchesPerSession = 1;
@@ -64,7 +49,7 @@ save(outputFile,'refWls','p2Scalars','refScalars','shuffledWls1','shuffledWls2',
 %% To run each time you come in (before testing)
 clear; 
 close all;
-subjID = 'testFullProcedure3';  % Correct as needed (MELA ID)
+subjID = 'MELC_0004';  
 
 % Load settings data 
 outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...
@@ -86,7 +71,7 @@ ol = OneLight();
 ol.shutdown;
 
 %% Session 1 
-% First ref wavelength 
+% First ref wavelength - done 7/8
 trialSessionNum = 11;  
 [trialFNames, ~, ~] = getMatchSeriesLive(subjID,trialSessionNum,settings.p1,...
     settings.p2,settings.shuffledWls1(1),'nObserverMatches',...
@@ -101,7 +86,7 @@ trialSessionNum = 11;
 fNames{end+1} = trialFNames;
 trialSessionNums(end+1) = trialSessionNum;
 
-% Second ref wavelength 
+% Second ref wavelength - done 7/8
 trialSessionNum = 12;  
 [trialFNames, ~, ~] = getMatchSeriesLive(subjID,trialSessionNum,settings.p1,...
     settings.p2,settings.shuffledWls1(2),'nObserverMatches',...
@@ -116,7 +101,7 @@ trialSessionNum = 12;
 fNames{end+1} = trialFNames;
 trialSessionNums(end+1) = trialSessionNum;
 
-% Third ref wavelength 
+% Third ref wavelength - done 7/8
 trialSessionNum = 13;  
 [trialFNames, ~, ~] = getMatchSeriesLive(subjID,trialSessionNum,settings.p1,...
     settings.p2,settings.shuffledWls1(3),'nObserverMatches',...
@@ -131,7 +116,7 @@ trialSessionNum = 13;
 fNames{end+1} = trialFNames;
 trialSessionNums(end+1) = trialSessionNum;
 
-% Fourth ref wavelength 
+% Fourth ref wavelength - done 7/8
 trialSessionNum = 14;  
 [trialFNames, ~, ~] = getMatchSeriesLive(subjID,trialSessionNum,settings.p1,...
     settings.p2,settings.shuffledWls1(4),'nObserverMatches',...
@@ -146,7 +131,7 @@ trialSessionNum = 14;
 fNames{end+1} = trialFNames;
 trialSessionNums(end+1) = trialSessionNum;
 
-% Fifth ref wavelenth 
+% Fifth ref wavelenth - done 7/8
 trialSessionNum = 15;  
 [trialFNames, ~, ~] = getMatchSeriesLive(subjID,trialSessionNum,settings.p1,...
     settings.p2,settings.shuffledWls1(5),'nObserverMatches',...
@@ -161,7 +146,7 @@ trialSessionNum = 15;
 fNames{end+1} = trialFNames;
 trialSessionNums(end+1) = trialSessionNum;
 
-% Sixth ref wavelength 
+% Sixth ref wavelength - done 7/8
 trialSessionNum = 16;  
 [trialFNames, ~, ~] = getMatchSeriesLive(subjID,trialSessionNum,settings.p1,...
     settings.p2,settings.shuffledWls1(6),'nObserverMatches',...
