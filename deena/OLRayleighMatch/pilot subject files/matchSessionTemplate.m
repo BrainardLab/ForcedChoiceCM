@@ -12,6 +12,7 @@
 %    dce    06/01/21   - Changed default number of reversals
 %    dce    06/02/21   - Added interleaving
 %    dce    07/06/21   - Specified adjustment length and opponent params
+%    dce    07/09/21   - Added temp file to save file names
 
 %% To run once
 % Subject information 
@@ -55,11 +56,13 @@ if ~exist(outputDir,'dir')
     mkdir(outputDir);
 end 
 outputFile = fullfile(outputDir,[subjID '_expSettings.mat']);
+outputFileTemp = fullfile(outputDir,[subjID '_trialFNames.mat']);
 save(outputFile,'refWls','p2Scalars','refScalars','shuffledWls1','shuffledWls2',...
    'shuffledP2Scalars1','shuffledP2Scalars2','shuffledRefScalars1',...
    'shuffledRefScalars2','age','fieldSize','nMatchesPerSession','nReversals',...
    'p1','p2','isInterval','itInterval','stimInterval','whiteScaleFactor',...
-   'pairStepSizes','interleaveStaircases','adjustmentLength','opponentParams');
+   'pairStepSizes','interleaveStaircases','adjustmentLength','opponentParams',...
+   'outputFileTemp');
 
 %% To run each time you come in (before testing)
 clear; 
@@ -74,6 +77,7 @@ settings = load(outputFile);
 
 fNames = {};           % Data filenames
 trialSessionNums = []; % Session numbers of individual trials tested in this session
+save(settings.outputFileTemp, 'fNames','trialSessionNums');
 
 %% To run each time you come in (after testing) 
 % Radiometer measurements 
@@ -100,6 +104,7 @@ trialSessionNum = 11;
     settings.adjustmentLength,'opponentParams',settings.opponentParams);
 fNames{end+1} = trialFNames;
 trialSessionNums(end+1) = trialSessionNum;
+save(settings.outputFileTemp, 'fNames','trialSessionNums');
 
 % Second ref wavelength 
 trialSessionNum = 12;  
@@ -115,6 +120,7 @@ trialSessionNum = 12;
     settings.adjustmentLength,'opponentParams',settings.opponentParams);
 fNames{end+1} = trialFNames;
 trialSessionNums(end+1) = trialSessionNum;
+save(settings.outputFileTemp, 'fNames','trialSessionNums');
 
 % Third ref wavelength 
 trialSessionNum = 13;  
@@ -130,6 +136,7 @@ trialSessionNum = 13;
     settings.adjustmentLength,'opponentParams',settings.opponentParams);
 fNames{end+1} = trialFNames;
 trialSessionNums(end+1) = trialSessionNum;
+save(settings.outputFileTemp, 'fNames','trialSessionNums');
 
 % Fourth ref wavelength 
 trialSessionNum = 14;  
@@ -145,6 +152,7 @@ trialSessionNum = 14;
     settings.adjustmentLength,'opponentParams',settings.opponentParams);
 fNames{end+1} = trialFNames;
 trialSessionNums(end+1) = trialSessionNum;
+save(settings.outputFileTemp, 'fNames','trialSessionNums');
 
 % Fifth ref wavelenth 
 trialSessionNum = 15;  
@@ -160,6 +168,7 @@ trialSessionNum = 15;
     settings.adjustmentLength,'opponentParams',settings.opponentParams);
 fNames{end+1} = trialFNames;
 trialSessionNums(end+1) = trialSessionNum;
+save(settings.outputFileTemp, 'fNames','trialSessionNums');
 
 % Sixth ref wavelength 
 trialSessionNum = 16;  
@@ -175,6 +184,7 @@ trialSessionNum = 16;
     settings.adjustmentLength,'opponentParams',settings.opponentParams);
 fNames{end+1} = trialFNames;
 trialSessionNums(end+1) = trialSessionNum;
+save(settings.outputFileTemp, 'fNames','trialSessionNums');
 
 %% Session 2
 % First ref wavelength 
@@ -191,6 +201,7 @@ trialSessionNum = 21;
     settings.adjustmentLength,'opponentParams',settings.opponentParams);
 fNames{end+1} = trialFNames;
 trialSessionNums(end+1) = trialSessionNum;
+save(settings.outputFileTemp, 'fNames','trialSessionNums');
 
 % Second ref wavelength 
 trialSessionNum = 22;  
@@ -206,6 +217,7 @@ trialSessionNum = 22;
     settings.adjustmentLength,'opponentParams',settings.opponentParams);
 fNames{end+1} = trialFNames;
 trialSessionNums(end+1) = trialSessionNum;
+save(settings.outputFileTemp, 'fNames','trialSessionNums');
 
 % Third ref wavelength 
 trialSessionNum = 23;  
@@ -221,6 +233,7 @@ trialSessionNum = 23;
     settings.adjustmentLength,'opponentParams',settings.opponentParams);
 fNames{end+1} = trialFNames;
 trialSessionNums(end+1) = trialSessionNum;
+save(settings.outputFileTemp, 'fNames','trialSessionNums');
 
 % Fourth ref wavelength 
 trialSessionNum = 24;  
@@ -236,6 +249,7 @@ trialSessionNum = 24;
     settings.adjustmentLength,'opponentParams',settings.opponentParams);
 fNames{end+1} = trialFNames;
 trialSessionNums(end+1) = trialSessionNum;
+save(settings.outputFileTemp, 'fNames','trialSessionNums');
 
 % Fifth ref wavelenth 
 trialSessionNum = 25;  
@@ -251,6 +265,7 @@ trialSessionNum = 25;
     settings.adjustmentLength,'opponentParams',settings.opponentParams);
 fNames{end+1} = trialFNames;
 trialSessionNums(end+1) = trialSessionNum;
+save(settings.outputFileTemp, 'fNames','trialSessionNums');
 
 % Sixth ref wavelength 
 trialSessionNum = 26;  
@@ -266,4 +281,5 @@ trialSessionNum = 26;
     settings.adjustmentLength,'opponentParams',settings.opponentParams);
 fNames{end+1} = trialFNames;
 trialSessionNums(end+1) = trialSessionNum;
+save(settings.outputFileTemp, 'fNames','trialSessionNums');
 
