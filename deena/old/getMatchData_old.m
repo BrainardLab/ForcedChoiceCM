@@ -1,10 +1,8 @@
 function [testSpds,primarySpds,testIntensities,primaryRatios] =...
     getMatchData_old(fName,varargin)
-% Helper function that takes in a data file produced by OLRayleighMatch and
-% returns the predicted primary and test spds associated with its matches.
-% Returns all of the matches by default, but you can also specify to return
-% the average spds of all available matches. Also returns the primary ratio
-% and test intensity, relative to the scaled OneLight spectra.
+% This is an old version of the function getMatchData, for use with older
+% OLRayleighMatch files which were saved in a different format. Called by 
+% OLAnalyzeRayleighMatch_old. See getMatchData for full description. 
 %
 % Syntax:
 %   getMatchData(fName)
@@ -45,9 +43,6 @@ p.parse(varargin{:});
 % Assume an equal number of matches for each interleaved staircase
 trialData = load(fName);   % OLRayleighMatch dataset
 spdLength = size(trialData.primarySpdsPredicted,1);
-% spdLength = size(trialData.primarySpds,1);
-% nMatches = length(trialData.dataArr{1}.matchPositions(:,1));
-% nInterleaved = length(trialData.dataArr);
 nMatches = length(trialData.matchPositions(:,1));
 nInterleaved = 1;
 
@@ -65,13 +60,6 @@ for kk = 1:nInterleaved
         % Define the spd arrays we're searching in
         testArr = trialData.testSpdsPredicted;
         primaryArr = trialData.primarySpdsPredicted;
-%     if ~isempty(trialData.dataArr{kk}.matchPositions)
-%         tMatchInds = trialData.dataArr{kk}.matchPositions(:,1);
-%         pMatchInds = trialData.dataArr{kk}.matchPositions(:,2);
-%         
-%         % Define the spd arrays we're searching in
-%         testArr = trialData.testSpds;
-%         primaryArr = trialData.primarySpds;
         
         for i = 1:length(tMatchInds)
             % Find spds corresponding to the match position indices. If an index is
@@ -91,9 +79,9 @@ for kk = 1:nInterleaved
             
             % Find primary ratio and test intensity for each spd. If an index is
             % not an integer, take the weighted average of the indices
-%             % above and below it.
-%             primaryRatios(i,kk) = trialData.dataArr{kk}.matches(i,2);            
-%             testIntensities(i,kk) = trialData.dataArr{kk}.matches(i,1);
+            % above and below it.
+            primaryRatios(i,kk) = trialData.matches(i,2);            
+            testIntensities(i,kk) = trialData.matches(i,1);
         end
     end
 end

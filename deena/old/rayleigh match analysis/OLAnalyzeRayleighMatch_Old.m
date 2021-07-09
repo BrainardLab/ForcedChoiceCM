@@ -1,21 +1,16 @@
 function OLAnalyzeRayleighMatch_Old(subjID,sessionNums,varargin)
 % Function for analyzing Rayleigh matching data from live subjects.
 % Syntax:
-%   OLAnalyzeRayleighMatch(subjID, sessionNums)
+%   OLAnalyzeRayleighMatch_old(subjID, sessionNums)
 %
 % Description:
-%    Analyzes data from human OneLight Rayleigh matching experiments, and
-%    uses results to estimate cone individudal difference parameters. Takes
-%    in a subject ID and a list of session numbers to analyze. Collects the
-%    data from the various sessions, produces a Pitt diagram, and computes
-%    the mean and standard deviation of matches for each set of wavelengths.
-%    Then, averages the radiometer-measured match spds for each set of
-%    wavelengths, and uses these averaged spds to estimate cone individual
-%    difference parameters. There is also optional code to recreate matches
-%    with a simulated observer as an estimate of observer noise.
+%    This is an old version of the function OLAnalyzeRayleighMatch - see
+%    that file for description and information. OLAnalyzeRayleighMatch_old
+%    can be used to analyze old data (such as initial MELA_3004 and
+%    MELA_3005 sessions) which were saved in a different format. It also
+%    contains some Pitt diagram analyses which were removed from
+%    OLRayleighMatch.
 %
-%    We assume that all sessions share the same adjustment length and that
-%    the same number of matches were made for each reference wavelength 
 %
 % Inputs:
 %    subjID              - Character vector of subject ID

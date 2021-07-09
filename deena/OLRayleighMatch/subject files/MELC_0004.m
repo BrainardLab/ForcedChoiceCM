@@ -162,7 +162,7 @@ fNames{end+1} = trialFNames;
 trialSessionNums(end+1) = trialSessionNum;
 
 %% Session 2
-% First ref wavelength 
+% First ref wavelength - done 7/9
 trialSessionNum = 21;  
 [trialFNames, ~, ~] = getMatchSeriesLive(subjID,trialSessionNum,settings.p1,...
     settings.p2,settings.shuffledWls2(1),'nObserverMatches',...
@@ -177,7 +177,7 @@ trialSessionNum = 21;
 fNames{end+1} = trialFNames;
 trialSessionNums(end+1) = trialSessionNum;
 
-% Second ref wavelength 
+% Second ref wavelength - 7/9
 trialSessionNum = 22;  
 [trialFNames, ~, ~] = getMatchSeriesLive(subjID,trialSessionNum,settings.p1,...
     settings.p2,settings.shuffledWls2(2),'nObserverMatches',...
@@ -192,7 +192,7 @@ trialSessionNum = 22;
 fNames{end+1} = trialFNames;
 trialSessionNums(end+1) = trialSessionNum;
 
-% Third ref wavelength 
+% Third ref wavelength - 7/9
 trialSessionNum = 23;  
 [trialFNames, ~, ~] = getMatchSeriesLive(subjID,trialSessionNum,settings.p1,...
     settings.p2,settings.shuffledWls2(3),'nObserverMatches',...
@@ -207,7 +207,7 @@ trialSessionNum = 23;
 fNames{end+1} = trialFNames;
 trialSessionNums(end+1) = trialSessionNum;
 
-% Fourth ref wavelength 
+% Fourth ref wavelength - 7/9
 trialSessionNum = 24;  
 [trialFNames, ~, ~] = getMatchSeriesLive(subjID,trialSessionNum,settings.p1,...
     settings.p2,settings.shuffledWls2(4),'nObserverMatches',...
@@ -222,7 +222,7 @@ trialSessionNum = 24;
 fNames{end+1} = trialFNames;
 trialSessionNums(end+1) = trialSessionNum;
 
-% Fifth ref wavelenth 
+% Fifth ref wavelenth - done 7/9
 trialSessionNum = 25;  
 [trialFNames, ~, ~] = getMatchSeriesLive(subjID,trialSessionNum,settings.p1,...
     settings.p2,settings.shuffledWls2(5),'nObserverMatches',...
@@ -237,7 +237,7 @@ trialSessionNum = 25;
 fNames{end+1} = trialFNames;
 trialSessionNums(end+1) = trialSessionNum;
 
-% Sixth ref wavelength 
+% Sixth ref wavelength - done 7/9
 trialSessionNum = 26;  
 [trialFNames, ~, ~] = getMatchSeriesLive(subjID,trialSessionNum,settings.p1,...
     settings.p2,settings.shuffledWls2(6),'nObserverMatches',...
