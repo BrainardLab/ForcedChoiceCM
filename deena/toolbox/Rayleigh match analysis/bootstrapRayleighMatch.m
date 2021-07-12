@@ -1,4 +1,4 @@
-function [confidenceIntervals,fitParams,bootstrapFitParams] = ...
+function [confidenceIntervals,bootstrapFitParams] = ...
     bootstrapRayleighMatch(primaryMatchSpds,refMatchSpds,...
     lowerBounds,upperBounds,AEq,BEq,nIterations,varargin)
 % Bootstraps the parameter fit of a specified model to observers' Rayleigh
@@ -20,10 +20,10 @@ function [confidenceIntervals,fitParams,bootstrapFitParams] = ...
 %    confidence intervals based on the bootstrapped parameter fits. 
 %
 % Inputs:
-%    primaryMatchSpds -[spdLength x nCrossValIters x nReferenceLights]
+%    primaryMatchSpds -[spdLength x nMatchesPerRef x nReferenceLights]
 %                      array of (radiometer-measured) primary mixture spds
 %                      which an observer identified as Rayleigh matches
-%    refMatchSpds     -[spdLength x nCrossValIters x nReferenceLights]
+%    refMatchSpds     -[spdLength x nMatchesPerRef x nReferenceLights]
 %                      array of (radiometer-measured) reference spds
 %                      which an observer identified as Rayleigh matches
 %    lowerBounds      -8-element vector with lower parameter limits for 
@@ -52,6 +52,7 @@ function [confidenceIntervals,fitParams,bootstrapFitParams] = ...
 
 % History:
 %   07/02/21  dce      Wrote it.
+%   07/09/21  dce      Added confidence interval computation
 
 % Parse input
 p = inputParser;
@@ -61,14 +62,6 @@ p.addParameter('initialConeParams',zeros(1,8),@(x)(isnumeric(x)));
 p.addParameter('opponentParams',[40.3908 205.7353 62.9590 1.0000],@(x)(isvector(x)));
 p.addParameter('errScalar',100,@(x)(isnumeric(x)));
 p.parse(varargin{:});
-
-% Perform an initial parameter fit on the complete dataset
-[fitParams,~,~] = findObserverParameters(refMatchSpds,primaryMatchSpds,...
-        'age',p.Results.age,'fieldSize',p.Results.fieldSize,...
-        'opponentParams',p.Results.opponentParams,'initialConeParams',...
-        p.Results.initialConeParams,'minimizeConeErr',false,...
-        'lowerBounds',lowerBounds,'upperBounds',upperBounds,...
-        'AEq',AEq,'BEq',BEq,'errScalar',p.Results.errScalar);
 
 % Check the size of our input array. The first dimension is the spd length,
 % the second is the number of matches for each reference wavelength, and
@@ -91,13 +84,14 @@ for kk = 1:nIterations
     trialPrimarySpds = [];
     for rr = 1:nRefWls
         for mm = 1:nMatchesPerRef
-            trialRefSpds = [trialRefSpds,refMatchSpds(:,trialInds(mm,rr),rr)];
-            trialPrimarySpds = [trialPrimarySpds,primaryMatchSpds(:,trialInds(mm,rr),rr)];
+            trialRefSpds = [trialRefSpds,refMatchSpds(:,trialInds(rr,mm),rr)];
+            trialPrimarySpds = [trialPrimarySpds,primaryMatchSpds(:,trialInds(rr,mm),rr)];
         end 
     end 
    
     % Fit parameters using the specified matches and the provided bounds 
-    [bootstrapFitParams(kk,:),~,~] = findObserverParameters(trialRefSpds,trialPrimarySpds,...
+    [bootstrapFitParams(kk,:),~,~] = ...
+        findObserverParameters(trialRefSpds,trialPrimarySpds,...
         'age',p.Results.age,'fieldSize',p.Results.fieldSize,...
         'opponentParams',p.Results.opponentParams,'initialConeParams',...
         p.Results.initialConeParams,'minimizeConeErr',false,...
@@ -105,5 +99,10 @@ for kk = 1:nIterations
         'AEq',AEq,'BEq',BEq,'errScalar',p.Results.errScalar);
 end
     
-% Compute confidence intervals based on fit parameters -- to do 
+% Compute confidence intervals based on fit parameters - central 65% of
+% bootstrapped distribution. Lower bounds are in the first row, and upper
+% bounds are in the second row.
+confidenceIntervals = zeros(2,8);
+confidenceIntervals(1,:) = prctile(bootstrapFitParams,17.5,2)';
+confidenceIntervals(2,:) = prctile(bootstrapFitParams,82.5,2)';
 end

@@ -7,9 +7,13 @@ function OLAnalyzeRayleighMatch(subjID,sessionNums,varargin)
 %    Analyzes data from human OneLight Rayleigh matching experiments, and
 %    uses results to estimate cone individudal difference parameters. Takes
 %    in a subject ID and a list of session numbers to analyze. Collects the
-%    data from the various sessions, produces various figures, and performs
-%    various analyses, including cross-validation of different models for
-%    fitting the data. 
+%    data from the various sessions, produces a Pitt diagram, and
+%    computes
+%    the mean and standard deviation of matches for each set of wavelengths.
+%    Then, averages the radiometer-measured match spds for each set of
+%    wavelengths, and uses these averaged spds to estimate cone individual
+%    difference parameters. There is also optional code to recreate matches
+%    with a simulated observer as an estimate of observer noise.
 %
 %    We assume that all sessions share the same adjustment length and that
 %    the same number of matches were made for each reference wavelength 
@@ -89,8 +93,6 @@ function OLAnalyzeRayleighMatch(subjID,sessionNums,varargin)
 %                      spectra are used to calculate match
 %   07/05/21  dce      Added option to set number of sds in parameter fit, 
 %                      added fits with varying lens density.
-%   07/09/21  dce      Moved Pitt diagram analyses to
-%                      OLAnalyzeRayleighMatch_old
 
 close all; 
 % Parse input
@@ -101,9 +103,9 @@ p.addParameter('dmac0',true,@(x)(islogical(x)));
 p.addParameter('OD0',false,@(x)(islogical(x)));
 p.addParameter('lambdaMax0',false,@(x)(islogical(x)));
 p.addParameter('S0',true,@(x)(islogical(x)));
-p.addParameter('restrictBySd',true,@(x)(islogical(x)));
 p.addParameter('sdDensity',3,@(x)(isnumeric(x)));
 p.addParameter('sdLambdaMax',3,@(x)(isnumeric(x)));
+p.addParameter('restrictBySd',true,@(x)(islogical(x)));
 p.addParameter('avgSpds',false,@(x)(islogical(x)));
 p.addParameter('minimizeConeErr',false,@(x)(islogical(x)));
 p.addParameter('makeBarPlots',false,@(x)(islogical(x)));
@@ -113,6 +115,11 @@ p.addParameter('multipleParamFits',true,@(x)(islogical(x)));
 p.addParameter('errScalar',100,@(x)(isnumeric(x)));
 p.addParameter('nCrossValRuns',10,@(x)(isnumeric(x)));
 p.parse(varargin{:});
+
+% Error checking 
+if p.Results.estNoise && ~p.Results.makePittDiagram
+    error('Set "make Pitt diagram" to true to estimate noise');
+end 
 
 % Define results directory
 resDir = fullfile(getpref('ForcedChoiceCM','rayleighAnalysisDir'),subjID);
@@ -154,7 +161,6 @@ for i = 1:length(sessionNums)
     sessionData = load(outputFile);
     lightCombos = [lightCombos;sessionData.lightCombosFull];
     
-    % Debugging - should remove 
     if size(sessionData.primaryRatios)==[2 1]
         primaryRatios = [primaryRatios;sessionData.primaryRatios];
         refIntensities = [refIntensities;sessionData.testIntensities];
@@ -162,7 +168,6 @@ for i = 1:length(sessionNums)
         primaryRatios = [primaryRatios;sessionData.primaryRatios'];
         refIntensities = [refIntensities;sessionData.testIntensities'];
     end 
-    
     % Find scale factors for spds
     p1Scales = [p1Scales;sessionData.p1Scale(sessionData.testWls==lightCombos(i,3))];
     p2Scales = [p2Scales;sessionData.p2Scale(sessionData.testWls==lightCombos(i,3))];
@@ -178,6 +183,7 @@ for i = 1:length(sessionNums)
         spdLength = size(rSpds,1);
         predRefSpds = [predRefSpds,reshape(rSpds,[spdLength numel(rSpds)/spdLength])];
         predPrimarySpds = [predPrimarySpds,reshape(pSpds,[spdLength numel(pSpds)/spdLength])];
+        trialData.staircaseTestFirst = [true false]; % Debugging - remove
         refFirst = [refFirst,trialData.staircaseTestFirst];
     end
     
@@ -234,9 +240,9 @@ stdObs = genRayleighObserver('age',sessionData.age,'fieldSize',...
 % Fit cone fundamentals
 if ~p.Results.multipleParamFits
     % Perform one version of the fit, as specified by key-value pairs
-    nConeParams = 2;
-    estConeParams = zeros(nConeParams,8);
+    estConeParams = zeros(2,8);
     estObs = {stdObs,[]};
+    nConeParams = 1;
     [estConeParams(2,:),~,estObs{2}] = findObserverParameters(refSpdsFit,primarySpdsFit,...
         'age',sessionData.age,'fieldSize',sessionData.fieldSize,...
         'opponentParams',sessionData.opponentParams,'dlens0',p.Results.dlens0,...
@@ -253,7 +259,6 @@ else % Perform several versions of the fit, and cross-validation
     % vary lens, LM equal OD + vary lens. 
     nConeParams = 9;
     estObs = cell(1,nConeParams);
-    estConeParams = zeros(nConeParams,8);
     sds = [18.7 36.5 9.0 9.0 7.4 2.0 1.5 1.3]; % Parameter standard deviations
     scaleFactors = [repmat(p.Results.sdDensity,1,5), repmat(p.Results.sdLambdaMax,1,3)];
    
@@ -287,6 +292,7 @@ else % Perform several versions of the fit, and cross-validation
     BEq{9} = 0; 
     
     % Perform fits
+    estConeParams = zeros(nConeParams,8);
     for mm = 1:nConeParams
         [estConeParams(mm,:),~,estObs{mm}] = ...
             findObserverParameters(refSpdsFit,primarySpdsFit,...
@@ -318,8 +324,6 @@ else % Perform several versions of the fit, and cross-validation
     NicePlot.exportFigToPDF([resFile '_crossValErr.pdf'],...
         crossValErrPlot,300); 
 end 
-
-%% Bootstrap params for the best model
 
 %% Make cone response figure for each set of fit params
 plotColors = 'rkbgcmrkbgcm';
