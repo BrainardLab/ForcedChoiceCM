@@ -16,7 +16,7 @@
 
 %% To run once
 % Subject information 
-subjID = 'testFullProcedure3';  % Correct as needed (MELA ID)
+subjID = 'test';  % Correct as needed (MELA ID)
 age = 32;         % Correct as needed
 
 % Experimental parameters
@@ -67,7 +67,7 @@ save(outputFile,'refWls','p2Scalars','refScalars','shuffledWls1','shuffledWls2',
 %% To run each time you come in (before testing)
 clear; 
 close all;
-subjID = 'testFullProcedure3';  % Correct as needed (MELA ID)
+subjID = 'test';  % Correct as needed (MELA ID)
 
 % Load settings data 
 outputDir = fullfile(getpref('ForcedChoiceCM','rayleighDataDir'),...

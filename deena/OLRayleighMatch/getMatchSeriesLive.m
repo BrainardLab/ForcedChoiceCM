@@ -91,6 +91,7 @@ function [fNames,testIntensities,primaryRatios] = ...
 %                            staircases in each call of OLRayleighMatch - 
 %                            one with primary first and one with reference 
 %                            first. Default is true.
+%    'testFirst'           
 
 % History:
 %   02/10/21   dce   - Wrote it, adapted from getMatchSeries and
@@ -130,6 +131,7 @@ p.addParameter('adjustment',false,@(x)(islogical(x)));
 p.addParameter('pairStepSizes',false,@(x)(islogical(x)));
 p.addParameter('whiteScaleFactor',0.001,@(x)(isnumeric(x)));
 p.addParameter('interleaveStaircases',true,@(x)(islogical(x)));
+p.addParameter('refFirst',true,@(x)(islogical(x)));
 p.parse(varargin{:});
 
 age = p.Results.age;
@@ -191,10 +193,12 @@ else
 end
 
 % Calculate Rayleigh matches for each of the light combinations
-refFirst = round(rand(1)); % Choose randomly which light we present first on the first match
+refFirst = p.Results.refFirst; % Choose which light we present first on the first match
 for i = 1:nCombos
     % Light order alternates on each trial
-    refFirst = ~refFirst;   
+    if i > 1
+        refFirst = ~refFirst;
+    end
     
     % Store OneLight data filename
     fNames{i} = fullfile(outputDir,[subjID,'_',num2str(sessionNum),...
