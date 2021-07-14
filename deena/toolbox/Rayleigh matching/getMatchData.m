@@ -43,9 +43,11 @@ p.parse(varargin{:});
 
 % Data arrays
 % Assume an equal number of matches for each interleaved staircase
+% Note that nMatches is the planned number of matches, but subjects may
+% have failed to make matches in some of the sessions
 trialData = load(fName);   % OLRayleighMatch dataset
 spdLength = size(trialData.primarySpds,1);
-nMatches = length(trialData.dataArr{1}.matchPositions(:,1));
+nMatches = trialData.nObserverMatches; 
 nInterleaved = length(trialData.dataArr);
 
 testSpds = zeros(spdLength,nMatches,nInterleaved);    % Output test spds
@@ -89,7 +91,7 @@ for kk = 1:nInterleaved
     end
 end
 % Average spds if desired 
-if p.Results.averageSpds
+if p.Results.averageSpds 
     testSpds = mean(testSpds,[2 3]);
     primarySpds = mean(primarySpds,[2 3]);
 end

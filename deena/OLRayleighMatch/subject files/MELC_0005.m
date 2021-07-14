@@ -162,7 +162,7 @@ fNames{end+1} = trialFNames;
 trialSessionNums(end+1) = trialSessionNum;
 
 %% Session 2
-% First ref wavelength - done 7/12
+% First ref wavelength - done 7/14
 trialSessionNum = 21;  
 [trialFNames, ~, ~] = getMatchSeriesLive(subjID,trialSessionNum,settings.p1,...
     settings.p2,settings.shuffledWls2(1),'nObserverMatches',...
