@@ -91,7 +91,11 @@ function [fNames,testIntensities,primaryRatios] = ...
 %                            staircases in each call of OLRayleighMatch - 
 %                            one with primary first and one with reference 
 %                            first. Default is true.
-%    'testFirst'           
+%    'refFirst'             -Logical. If true, the first match in the 
+%                            series is with the reference light first, and
+%                            future matches alternate from there. If false,
+%                            the first match is with the primary mixture
+%                            first. Default is true. 
 
 % History:
 %   02/10/21   dce   - Wrote it, adapted from getMatchSeries and
@@ -104,6 +108,7 @@ function [fNames,testIntensities,primaryRatios] = ...
 %                      pair step size adjustments
 %   03/25/21   dce   - Added interval key-value pairs
 %   06/02/21   dce   - Edited to include new OLRayleighMatch key value pairs
+%   07/14/21   dce   - Made refFirst an option
 
 %{
 Examples:
@@ -193,12 +198,10 @@ else
 end
 
 % Calculate Rayleigh matches for each of the light combinations
-refFirst = p.Results.refFirst; % Choose which light we present first on the first match
+refFirst = ~p.Results.refFirst; % Choose which light we present first on the first match
 for i = 1:nCombos
     % Light order alternates on each trial
-    if i > 1
-        refFirst = ~refFirst;
-    end
+    refFirst = ~refFirst;
     
     % Store OneLight data filename
     fNames{i} = fullfile(outputDir,[subjID,'_',num2str(sessionNum),...
