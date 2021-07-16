@@ -7,16 +7,20 @@ function OLAnalyzeRayleighMatch(subjID,sessionNums,varargin)
 %    Analyzes data from human OneLight Rayleigh matching experiments, and
 %    uses results to estimate cone individudal difference parameters. Takes
 %    in a subject ID and a list of session numbers to analyze. Collects the
-%    data from the various sessions, produces a Pitt diagram, and
-%    computes
-%    the mean and standard deviation of matches for each set of wavelengths.
-%    Then, averages the radiometer-measured match spds for each set of
-%    wavelengths, and uses these averaged spds to estimate cone individual
-%    difference parameters. There is also optional code to recreate matches
-%    with a simulated observer as an estimate of observer noise.
+%    data from the various sessions, including radiometer-measured match
+%    spds. Performs several fits of cone individual difference
+%    parameters, conducts cross-validation to determine which model fits
+%    best, and bootstraps the fit parameters of the best-fitting model.
+%    Finally, produces plots of cone excitations for standard and fit
+%    observers. 
 %
-%    We assume that all sessions share the same adjustment length and that
-%    the same number of matches were made for each reference wavelength 
+%    Current tested models include: standard, unconstrained, lock OD, lock 
+%    lambda max, LM equal OD, unconstrained+vary lens,lock OD + vary lens, 
+%    lock lambda max + vary lens, LM equal OD + vary lens. 
+%
+%    We assume that all sessions share the same adjustment length. The 
+%    program also requires that the same number of matches are provided
+%    for each reference wavelength 
 %
 % Inputs:
 %    subjID              - Character vector of subject ID
@@ -26,52 +30,33 @@ function OLAnalyzeRayleighMatch(subjID,sessionNums,varargin)
 %    None (saves a file and figures)
 %
 % Optional key-value pairs:
-%    'LMEqualOD'      -Logical. If true, constrains the L and M cone optical
-%                      densities to be equal during cone parameter search.
-%                      Default is false.
-%    'dlens0'         -Logical. If true, constrains the lens pigment density
-%                      to be 0 during cone parameter search. Default is true.
-%    'dmac0'          -Logical. If true, constrains the macular pigment
-%                      density to be 0 during cone parameter search.
-%                      Default is true.
-%    'OD0'            -Logical. If true, constrains the optical densities to 
-%                      be 0 during cone parameter search. Default is false.
-%    'lambdaMax0'     -Logical. If true, constrains lambda max parameters to 
-%                      be 0. Default is false.
-%    'S0'             -Logical. If true, constrains S lambda max and optical
-%                      density (params 5 and 8) to be 0. Default is true.
 %    'errScalar'      -Integer for scaling the match error in parameter
 %                      fits, to improve search. Default is 100.
 %    'restrictBySD'   -Logical. If true, adds lower and upper bounds on all
 %                      paramters to keep them within a specified number of 
 %                      standard deviations of their means during 
 %                      optimization. Default is true.
-%    'avgSpds'        -Logical. If true, fits cone parameters based on
-%                      averaged spds for each reference wavelength. Default
-%                      is false.
-%    'multipleParamFits' -Logical. If true, fits parameters using several
-%                         different procedures, and makes a cone contrast
-%                         plot for each. Note that this overrides 
-%                         constraint settings for the lambda max and OD 
-%                         params that are entered as key-value pairs. 
-%                         Default is true.
-%    'makeBarPlots'   -Logical. If true, makes bar plots of cone
-%                      excitations for averaged spds. Default is false.
-%    'plotPredictedMatches' -Logical. If true, plots predicted and observed
-%                            matches for the fit observer. Default is false.
-%    'minimizeConeErr'-Logical. If true, minimizes cone exictation error
-%                      instead of opponent contrast difference. Default 
-%                      is false.
-%    'checkOrderEffect'-Logical. If true, the cone excitation plot
-%                       highlights which trials were run with the primary
-%                       mixture first, and which with the reference first.
-%                       Default is false.
 %    'sdDensity'     -Number of allowed standard deviations for density 
 %                     parameters (1:5) in fit. Default is 3.
 %    'sdLambdaMax'   -Number of allowed standard deviations for lambda max
 %                     parameters (6:8) in fit. Default is 3.
+%    'avgSpds'        -Logical. If true, fits cone parameters based on
+%                      averaged spds for each reference wavelength. Default
+%                      is false.
+%    'makeBarPlots'   -Logical. If true, makes bar plots of cone
+%                      excitations for averaged spds. Default is false.
+%    'plotPredictedMatches' -Logical. If true, plots predicted and observed
+%                            matches for the fit observer. Default is false.
+%    'checkOrderEffect'-Logical. If true, the cone excitation plot
+%                       highlights which trials were run with the primary
+%                       mixture first, and which with the reference first.
+%                       Default is false.
+%    'minimizeConeErr'-Logical. If true, minimizes cone exictation error
+%                      instead of opponent contrast difference. Default 
+%                      is false.
 %    'nCrossValRuns' -Number of times to run the overall cross-validation
 %                     procedure. Default is 10.
+%    'nBootstrapIters' -Number of bootstrap iterations. Default is 100.
 
 % History:
 %   2/19/21  dce       Wrote it.
@@ -92,17 +77,16 @@ function OLAnalyzeRayleighMatch(subjID,sessionNums,varargin)
 %   06/21/21  dce      Fixed positioning of reversals, and changed which
 %                      spectra are used to calculate match
 %   07/05/21  dce      Added option to set number of sds in parameter fit, 
-%                      added fits with varying lens density.
+%                      added fits with varying lens density, removed Pitt 
+%                      diagrams.
+%   07/15/21  dce      Added bootstrapping, removed option to fit just one
+%                      model
+%   07/16/21  dce      Edited to allow unequal distribution of matches in
+%                      files
 
 close all; 
 % Parse input
 p = inputParser;
-p.addParameter('LMEqualOD',false,@(x)(islogical(x)));
-p.addParameter('dlens0',true,@(x)(islogical(x)));
-p.addParameter('dmac0',true,@(x)(islogical(x)));
-p.addParameter('OD0',false,@(x)(islogical(x)));
-p.addParameter('lambdaMax0',false,@(x)(islogical(x)));
-p.addParameter('S0',true,@(x)(islogical(x)));
 p.addParameter('sdDensity',3,@(x)(isnumeric(x)));
 p.addParameter('sdLambdaMax',3,@(x)(isnumeric(x)));
 p.addParameter('restrictBySd',true,@(x)(islogical(x)));
@@ -111,15 +95,10 @@ p.addParameter('minimizeConeErr',false,@(x)(islogical(x)));
 p.addParameter('makeBarPlots',false,@(x)(islogical(x)));
 p.addParameter('plotPredictedMatches',false,@(x)(islogical(x)));
 p.addParameter('checkOrderEffect',false,@(x)(islogical(x)));
-p.addParameter('multipleParamFits',true,@(x)(islogical(x)));
 p.addParameter('errScalar',100,@(x)(isnumeric(x)));
 p.addParameter('nCrossValRuns',10,@(x)(isnumeric(x)));
+p.addParameter('nBootstrapIters',100,@(x)(isnumeric(x)));
 p.parse(varargin{:});
-
-% Error checking 
-if p.Results.estNoise && ~p.Results.makePittDiagram
-    error('Set "make Pitt diagram" to true to estimate noise');
-end 
 
 % Define results directory
 resDir = fullfile(getpref('ForcedChoiceCM','rayleighAnalysisDir'),subjID);
@@ -137,7 +116,6 @@ measPrimarySpds = [];  % Primary spds identified as matches, as measured by the 
 measRefSpds = [];      % Reference spds identified as matches, as measured by the radiometer
 predPrimarySpds = [];  % Primary spds identified as matches (predicted)
 predRefSpds = [];      % Reference spds identified as matches (predicted)
-darkSpds = [];         % Dark spds
 p1Scales = [];         % Scale factors for first primary spd
 p2Scales = [];         % Scale factors for second primary spd
 refScales = [];        % Scale factors for reference light
@@ -152,26 +130,35 @@ for i = 1:length(sessionNums)
     measFile = fullfile(outputDir,[subjID '_' num2str(sessionNums(i)) '_meas.mat']);
     
     % Check if files exists
-    if ~exist(outputFile,'file') || ~exist(outputFile,'file')
-        error('Specified results file does not exist');
+    if ~exist(outputFile,'file') || ~exist(measFile,'file')
+        error('Specified results files do not exist');
     end
     
-    % Add session data to collected data - light wavelength information
-    % and primary ratios/ref intensities
+    % Load session data 
     sessionData = load(outputFile);
-    lightCombos = [lightCombos;sessionData.lightCombosFull];
     
-    if size(sessionData.primaryRatios)==[2 1]
-        primaryRatios = [primaryRatios;sessionData.primaryRatios];
-        refIntensities = [refIntensities;sessionData.testIntensities];
-    else
-        primaryRatios = [primaryRatios;sessionData.primaryRatios'];
-        refIntensities = [refIntensities;sessionData.testIntensities'];
-    end 
-    % Find scale factors for spds
-    p1Scales = [p1Scales;sessionData.p1Scale(sessionData.testWls==lightCombos(i,3))];
-    p2Scales = [p2Scales;sessionData.p2Scale(sessionData.testWls==lightCombos(i,3))];
-    refScales = [refScales;sessionData.testScale(sessionData.testWls==lightCombos(i,3))];
+    % Collect parameters of interest
+    lightCombosSession = sessionData.lightCombosFull;
+    p1ScalesSession = sessionData.p1Scale(sessionData.testWls==lightCombosSession(:,3));
+    p2ScalesSession = sessionData.p2Scale(sessionData.testWls==lightCombosSession(:,3));
+    refScalesSession = sessionData.testScale(sessionData.testWls==lightCombosSession(:,3));
+    
+    % Duplicate arrays in case of interleaved staircase, based on the
+    % number of matches which were actually made
+    if sessionData.interleaveStaircases
+       lightCombosSession = repelem(lightCombosSession,length(sessionData.primaryRatios(sessionData.primaryRatios~=0)),1);
+        p1ScalesSession = repelem(p1ScalesSession,length(sessionData.primaryRatios(sessionData.primaryRatios~=0)));
+        p2ScalesSession = repelem(p2ScalesSession,length(sessionData.primaryRatios(sessionData.primaryRatios~=0)));
+        refScalesSession = repelem(refScalesSession,length(sessionData.primaryRatios(sessionData.primaryRatios~=0)));
+    end
+    
+    % Add data from this session to overall data
+    primaryRatios = [primaryRatios;sessionData.primaryRatios'];
+    refIntensities = [refIntensities;sessionData.testIntensities'];
+    lightCombos = [lightCombos;lightCombosSession];
+    p1Scales = [p1Scales,p1ScalesSession];
+    p2Scales = [p2Scales,p2ScalesSession];
+    refScales = [refScales,refScalesSession];
     
     % Collect data for individual matches 
     for j = 1:sessionData.nObserverMatches
@@ -183,7 +170,6 @@ for i = 1:length(sessionNums)
         spdLength = size(rSpds,1);
         predRefSpds = [predRefSpds,reshape(rSpds,[spdLength numel(rSpds)/spdLength])];
         predPrimarySpds = [predPrimarySpds,reshape(pSpds,[spdLength numel(pSpds)/spdLength])];
-        trialData.staircaseTestFirst = [true false]; % Debugging - remove
         refFirst = [refFirst,trialData.staircaseTestFirst];
     end
     
@@ -191,22 +177,19 @@ for i = 1:length(sessionNums)
     radiometerData = load(measFile);
     measPrimarySpds = [measPrimarySpds,radiometerData.measuredPrimarySpds'];
     measRefSpds = [measRefSpds,radiometerData.measuredRefSpds'];
-    darkSpds = [darkSpds, repmat(radiometerData.measuredDarkSpd',1,length(sessionData.testIntensities))];
 end
-% Duplicate light combos array if interleaved
-if sessionData.interleaveStaircases
-    lightCombos = repelem(lightCombos,2,1);
-    p1Scales = repelem(p1Scales,2);
-    p2Scales = repelem(p2Scales,2);
-    refScales = repelem(refScales,2);
-end 
 
 %% Sort collected data by unique wavelength combo, and find average spds
 % Identify the different sets of wavelengths used
 [matchWls,uniqueWlIndices] = unique(lightCombos,'rows'); % Unique wavelengths tested
 [nMatchWls,~] = size(matchWls);                          % Number of unique wls tested
 [spdLength,~] = size(measRefSpds);                       % Spd length
-nRepeats = size(measRefSpds,2)/nMatchWls;                % Number of times each match was repeated
+
+% Number of times each match was repeated - round up if not an integer
+nRepeats = size(measRefSpds,2)/nMatchWls;                
+if ceil(nRepeats)~=nRepeats
+    error('Unequal number of wavelengths for each match')
+end 
 
 % Extract data for each set of wavelengths, and average spds.
 meanPrimarySpds= zeros(spdLength,nMatchWls);
@@ -214,15 +197,17 @@ meanRefSpds = zeros(spdLength,nMatchWls);
 measPrimarySpdsByWl = zeros(spdLength,nRepeats,nMatchWls);
 measRefSpdsByWl = zeros(spdLength,nRepeats,nMatchWls);
 for i = 1:nMatchWls
+    if matchWls(i,3)==640
+        fprintf('Here!');
+    end 
     measPrimarySpdsByWl(:,:,i) = measPrimarySpds(:,all(lightCombos==matchWls(i,:),2));
     meanPrimarySpds(:,i) = mean(measPrimarySpdsByWl(:,:,i),2);
-    
+   
     measRefSpdsByWl(:,:,i) = measRefSpds(:,all(lightCombos==matchWls(i,:),2));
     meanRefSpds(:,i) = mean(measRefSpdsByWl(:,:,i),2);
 end
 
-%% Estimate cone fundamentals, and perform cross-validation if we are 
-% performing multiple versions of the fit.
+%% Estimate cone fundamentals
 % Are we using averaged spds or not?
 if p.Results.avgSpds
     primarySpdsFit = meanPrimarySpds;
@@ -232,111 +217,103 @@ else
     refSpdsFit = measRefSpds;
 end
 
-% Generate standard observer
-stdObs = genRayleighObserver('age',sessionData.age,'fieldSize',...
-    sessionData.fieldSize,'opponentParams',sessionData.opponentParams,...
-    'coneVec',zeros(1,8));
+% Define bounds. The limits are entered in matrix rows in the following
+% order: standard, unconstrained, lock OD, lock lambda max, LM equal
+% OD, unconstrained+vary lens,lock OD + vary lens, lock lambda max +
+% vary lens, LM equal OD + vary lens.
+nConeParams = 9;
+estObs = cell(1,nConeParams);
+estConeParams = zeros(nConeParams,8);
 
-% Fit cone fundamentals
-if ~p.Results.multipleParamFits
-    % Perform one version of the fit, as specified by key-value pairs
-    estConeParams = zeros(2,8);
-    estObs = {stdObs,[]};
-    nConeParams = 1;
-    [estConeParams(2,:),~,estObs{2}] = findObserverParameters(refSpdsFit,primarySpdsFit,...
+% Manually enter variable parameters and limits for each model
+sds = [18.7 36.5 9.0 9.0 7.4 2.0 1.5 1.3]; % Parameter standard deviations
+scaleFactors = [repmat(p.Results.sdDensity,1,5), repmat(p.Results.sdLambdaMax,1,3)];
+
+lowerBounds = zeros(nConeParams,8);
+lowerBounds(2,:) = [0 0 1 1 0 1 1 0].*sds.*scaleFactors*-1;
+lowerBounds(3,:) = [0 0 0 0 0 1 1 0].*sds.*scaleFactors*-1;
+lowerBounds(4,:) = [0 0 1 1 0 0 0 0].*sds.*scaleFactors*-1;
+lowerBounds(5,:) = [0 0 1 1 0 1 1 0].*sds.*scaleFactors*-1;
+lowerBounds(6,:) = [1 0 1 1 0 1 1 0].*sds.*scaleFactors*-1;
+lowerBounds(7,:) = [1 0 0 0 0 1 1 0].*sds.*scaleFactors*-1;
+lowerBounds(8,:) = [1 0 1 1 0 0 0 0].*sds.*scaleFactors*-1;
+lowerBounds(9,:) = [1 0 1 1 0 1 1 0].*sds.*scaleFactors*-1;
+
+upperBounds = zeros(9,8);
+upperBounds(2,:) = [0 0 1 1 0 1 1 0].*sds.*scaleFactors;
+upperBounds(3,:) = [0 0 0 0 0 1 1 0].*sds.*scaleFactors;
+upperBounds(4,:) = [0 0 1 1 0 0 0 0].*sds.*scaleFactors;
+upperBounds(5,:) = [0 0 1 1 0 1 1 0].*sds.*scaleFactors;
+upperBounds(6,:) = [1 0 1 1 0 1 1 0].*sds.*scaleFactors;
+upperBounds(7,:) = [1 0 0 0 0 1 1 0].*sds.*scaleFactors;
+upperBounds(8,:) = [1 0 1 1 0 0 0 0].*sds.*scaleFactors;
+upperBounds(9,:) = [1 0 1 1 0 1 1 0].*sds.*scaleFactors;
+
+% Equality constraint for LM equal OD
+AEq = cell(1,nConeParams);
+BEq = cell(1,nConeParams);
+AEq{5} = [0 0 1 -1 0 0 0 0];
+AEq{9} = [0 0 1 -1 0 0 0 0];
+BEq{5} = 0;
+BEq{9} = 0;
+
+% Perform fits
+for mm = 1:nConeParams
+    [estConeParams(mm,:),~,estObs{mm}] = ...
+        findObserverParameters(refSpdsFit,primarySpdsFit,...
         'age',sessionData.age,'fieldSize',sessionData.fieldSize,...
-        'opponentParams',sessionData.opponentParams,'dlens0',p.Results.dlens0,...
-        'dmac0',p.Results.dmac0,'LMEqualOD',p.Results.LMEqualOD,...
-        'restrictBySd',p.Results.restrictBySd,'OD0',p.Results.OD0,...
-        'S0',p.Results.S0,'lambdaMax0',p.Results.lambdaMax0,'minimizeConeErr',...
-        p.Results.minimizeConeErr,'sdDensity',p.Results.sdDensity,...
-        'sdLambdaMax',p.Results.sdLambdaMax,'errScalar',p.Results.errScalar);
-else % Perform several versions of the fit, and cross-validation
-    
-    % Define bounds. The limits are entered in matrix rows in the following 
-    % order: standard, unconstrained, lock OD, lock lambda max, LM equal
-    % OD, unconstrained+vary lens,lock OD + vary lens, lock lambda max + 
-    % vary lens, LM equal OD + vary lens. 
-    nConeParams = 9;
-    estObs = cell(1,nConeParams);
-    sds = [18.7 36.5 9.0 9.0 7.4 2.0 1.5 1.3]; % Parameter standard deviations
-    scaleFactors = [repmat(p.Results.sdDensity,1,5), repmat(p.Results.sdLambdaMax,1,3)];
-   
-    % Manually enter variable parameters and limits for each model
-    lowerBounds = zeros(9,8);
-    lowerBounds(2,:) = [0 0 1 1 0 1 1 0].*sds.*scaleFactors*-1;
-    lowerBounds(3,:) = [0 0 0 0 0 1 1 0].*sds.*scaleFactors*-1;
-    lowerBounds(4,:) = [0 0 1 1 0 0 0 0].*sds.*scaleFactors*-1;
-    lowerBounds(5,:) = [0 0 1 1 0 1 1 0].*sds.*scaleFactors*-1;   
-    lowerBounds(6,:) = [1 0 1 1 0 1 1 0].*sds.*scaleFactors*-1;
-    lowerBounds(7,:) = [1 0 0 0 0 1 1 0].*sds.*scaleFactors*-1;
-    lowerBounds(8,:) = [1 0 1 1 0 0 0 0].*sds.*scaleFactors*-1;
-    lowerBounds(9,:) = [1 0 1 1 0 1 1 0].*sds.*scaleFactors*-1;
-    
-    upperBounds = zeros(9,8);
-    upperBounds(2,:) = [0 0 1 1 0 1 1 0].*sds.*scaleFactors;
-    upperBounds(3,:) = [0 0 0 0 0 1 1 0].*sds.*scaleFactors;
-    upperBounds(4,:) = [0 0 1 1 0 0 0 0].*sds.*scaleFactors;
-    upperBounds(5,:) = [0 0 1 1 0 1 1 0].*sds.*scaleFactors;
-    upperBounds(6,:) = [1 0 1 1 0 1 1 0].*sds.*scaleFactors;
-    upperBounds(7,:) = [1 0 0 0 0 1 1 0].*sds.*scaleFactors;
-    upperBounds(8,:) = [1 0 1 1 0 0 0 0].*sds.*scaleFactors;
-    upperBounds(9,:) = [1 0 1 1 0 1 1 0].*sds.*scaleFactors;
-    
-    % Equality constraint for LM equal OD
-    AEq = cell(1,nConeParams);
-    BEq = cell(1,nConeParams);
-    AEq{5} = [0 0 1 -1 0 0 0 0];
-    AEq{9} = [0 0 1 -1 0 0 0 0];
-    BEq{5} = 0; 
-    BEq{9} = 0; 
-    
-    % Perform fits
-    estConeParams = zeros(nConeParams,8);
-    for mm = 1:nConeParams
-        [estConeParams(mm,:),~,estObs{mm}] = ...
-            findObserverParameters(refSpdsFit,primarySpdsFit,...
-            'age',sessionData.age,'fieldSize',sessionData.fieldSize,...
-            'opponentParams',sessionData.opponentParams,'initialConeParams',...
-            zeros(1,8),'minimizeConeErr',p.Results.minimizeConeErr,...
-            'lowerBounds',lowerBounds(mm,:),'upperBounds',upperBounds(mm,:),...
-            'AEq',AEq{mm},'BEq',BEq{mm},'errScalar',p.Results.errScalar);
-    end
-    
-    % Run cross-validation program 
-    modelCrossValError = ...
+        'opponentParams',sessionData.opponentParams,'initialConeParams',...
+        zeros(1,8),'minimizeConeErr',p.Results.minimizeConeErr,...
+        'lowerBounds',lowerBounds(mm,:),'upperBounds',upperBounds(mm,:),...
+        'AEq',AEq{mm},'BEq',BEq{mm},'errScalar',p.Results.errScalar);
+end
+
+%% Run cross-validation program
+modelCrossValError = ...
     crossValidateRayleighMatch(measPrimarySpdsByWl,measRefSpdsByWl,...
     lowerBounds,upperBounds,AEq,BEq,p.Results.nCrossValRuns,'errScalar',...
     p.Results.errScalar,'age',sessionData.age,'fieldSize',sessionData.fieldSize,...
     'initialConeParams',zeros(1,8),'opponentParams',sessionData.opponentParams);
 
-    % Make bar plot of error  
-    crossValErrPlot = figure();
-    bar(modelCrossValError);
-    plotNames = {'Standard','Unconstrained','Lock OD',...
-        'Lock Lambda Max','Equal LM OD','Unconstrained+1','Lock OD+1',...
-        'Lock Lambda Max+1','Equal LM OD+1'};
-    set(gca,'xticklabel',plotNames);
-    text(1:9,modelCrossValError,num2str(modelCrossValError','%0.2f'),...
-        'HorizontalAlignment','center','VerticalAlignment','bottom');
-    title([subjID ' Cross Validated Fit Error'],'interpreter','none');
-    crossValErrPlot.Position = [100 100 1000 400];
-    NicePlot.exportFigToPDF([resFile '_crossValErr.pdf'],...
-        crossValErrPlot,300); 
-end 
+% Make bar plot of error
+crossValErrPlot = figure();
+bar(modelCrossValError);
+plotNames = {'Standard','Unconstrained','Lock OD',...
+    'Lock Lambda Max','Equal LM OD','Unconstrained+1','Lock OD+1',...
+    'Lock Lambda Max+1','Equal LM OD+1'};
+plotFNames = {'_standard','_unconstrained','_lockOD','_lockLambdaMax',...
+    '_LMEqualOD','_unconstrainedLens','_lockODLens','_lockLambdaMaxLens',...
+    '_LMEqualODLens'};
+set(gca,'xticklabel',plotNames);
+text(1:9,modelCrossValError,num2str(modelCrossValError','%0.2f'),...
+    'HorizontalAlignment','center','VerticalAlignment','bottom');
+title([subjID ' Cross Validated Fit Error'],'interpreter','none');
+crossValErrPlot.Position = [100 100 1000 400];
+NicePlot.exportFigToPDF([resFile '_crossValErr.pdf'],...
+    crossValErrPlot,300);
+
+%% Bootstrap parameters from best fitting model 
+[~,bestModelInd] = min(modelCrossValError);
+[confidenceIntervals,~] = ...
+    bootstrapRayleighMatch(measPrimarySpdsByWl,measRefSpdsByWl,...
+    lowerBounds(bestModelInd,:),upperBounds(bestModelInd,:),...
+    AEq{bestModelInd},BEq{bestModelInd},p.Results.nBootstrapIters,...
+    'errScalar',p.Results.errScalar,'age',sessionData.age,'fieldSize',...
+    sessionData.fieldSize,'initialConeParams',zeros(1,8),'opponentParams',...
+    sessionData.opponentParams);
+
+%% Save interim data
+save([resFile '_analysis.mat'],'p','lightCombos','primaryRatios','refIntensities',...
+    'measPrimarySpds','measRefSpds','predPrimarySpds','predRefSpds',...
+    'p1Scales','p2Scales','refScales','meanPrimarySpds','meanRefSpds',...
+    'measPrimarySpdsByWl','measRefSpdsByWl','estConeParams','estObs',...
+    'refFirst','nConeParams','lowerBounds','upperBounds','AEq','BEq',...
+    'modelCrossValError','bestModelInd','confidenceIntervals','matchWls',...
+    'uniqueWlIndices');
 
 %% Make cone response figure for each set of fit params
 plotColors = 'rkbgcmrkbgcm';
 refWls = unique(lightCombos(:,3));
-
-if p.Results.multipleParamFits
-    plotFNames = {'_standard','_unconstrained','_lockOD','_lockLambdaMax',...
-        '_LMEqualOD','_unconstrainedLens','_lockODLens','_lockLambdaMaxLens',...
-        '_LMEqualODLens'};
-else 
-    plotNames = {''};
-    plotFNames = {''};
-end 
 
 % Data arrays to store cone responses
 primaryConeRes = cell(nConeParams,nMatchWls);
@@ -353,8 +330,8 @@ for kk = 1:nConeParams
     
     fitConeDiffPlot = figure();
     hold on;
-    xlim([0 0.35]);
-    ylim([0.015 0.035]);
+    xlim([0 0.4]);
+    ylim([0.005 0.035]);
     xlabel('(L - M)/(L+M)');
     ylabel('L + M');
     title([subjID ' Cone Response Difference ' plotNames{kk}],'interpreter','none');
@@ -481,6 +458,8 @@ if p.Results.plotPredictedMatches
     end
     for kk = 1:nConeParams
         coneDeviationFig = figure();
+        xlim([0 0.4]);
+        ylim([0.005 0.035]);
         hold on;
         legendHandles = [];
         legendEntries = {};
@@ -528,8 +507,8 @@ if p.Results.makeBarPlots
     for i = 1:nMatchWls
         primaryRes = estObs{2}.T_cones*meanPrimarySpds(:,i);
         refRes = estObs{2}.T_cones*meanRefSpds(:,i);
-        primaryResStd = stdObs.T_cones*meanPrimarySpds(:,i);
-        refResStd = stdObs.T_cones*meanRefSpds(:,i);
+        primaryResStd = estObs{1}.T_cones*meanPrimarySpds(:,i);
+        refResStd = estObs{1}.T_cones*meanRefSpds(:,i);
         
         avgBarPlot = figure();
         hold on;
@@ -561,12 +540,14 @@ end
 
 %% Save data
 save([resFile '_analysis.mat'],'p','lightCombos','primaryRatios','refIntensities',...
-    'measPrimarySpds','measRefSpds','predPrimarySpds','predRefSpds','darkSpds',...
+    'measPrimarySpds','measRefSpds','predPrimarySpds','predRefSpds',...
     'p1Scales','p2Scales','refScales','meanPrimarySpds','meanRefSpds',...
-    'estConeParams','estObs','stdObs','radiometerPrimaryRatios','radiometerRefIntensities',...
-    'nominalPrimaryRatios','nominalRefIntensities','nominalPrimaryRatiosStd',...
-    'nominalRefIntensitiesStd','matchWls','uniqueWlIndices','primaryConeRes','refConeRes',...
-    'primaryConeResStd','refConeResStd','primarySpdsPredictedMatch',...
-    'refSpdsPredictedMatch','primaryConeResPredictedMatch','refConeResPredictedMatch',...
-    'primaryLMinusM','refLMinusM','primaryLPlusM','refLPlusM');
+    'measPrimarySpdsByWl','measRefSpdsByWl','estConeParams','estObs',...
+    'refFirst','nConeParams','lowerBounds','upperBounds','AEq','BEq',...
+    'modelCrossValError','bestModelInd','confidenceIntervals','matchWls',...
+    'uniqueWlIndices','primaryConeRes','refConeRes','primaryLMinusM',...
+    'primaryLPlusM','refLMinusM','refLPlusM','primarySpdsPredictedMatch',...
+    'refSpdsPredictedMatch','primaryConeResPredictedMatch',...
+    'refConeResPredictedMatch','primaryLMinusMPredicted',...
+    'refLMinusMPredicted','primaryLPlusMPredicted','refLPlusMPredicted');
 end

@@ -253,7 +253,7 @@ fNames{end+1} = trialFNames;
 trialSessionNums(end+1) = trialSessionNum;
 
 %% Redo of missed match from Session 1, ref wl 3
-% Third ref wavelength - done 7/8, quit early
+% Third ref wavelength - done 7/12, quit early
 trialSessionNum = 31;  
 [trialFNames, ~, ~] = getMatchSeriesLive(subjID,trialSessionNum,settings.p1,...
     settings.p2,settings.shuffledWls1(3),'nObserverMatches',...
@@ -268,7 +268,7 @@ trialSessionNum = 31;
 fNames{end+1} = trialFNames;
 trialSessionNums(end+1) = trialSessionNum;
 
-
+% Third ref wavelength - done 7/12
 trialSessionNum = 32;  
 [trialFNames, ~, ~] = getMatchSeriesLive(subjID,trialSessionNum,settings.p1,...
     settings.p2,settings.shuffledWls1(3),'nObserverMatches',...

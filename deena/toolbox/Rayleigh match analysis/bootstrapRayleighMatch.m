@@ -103,6 +103,6 @@ end
 % bootstrapped distribution. Lower bounds are in the first row, and upper
 % bounds are in the second row.
 confidenceIntervals = zeros(2,8);
-confidenceIntervals(1,:) = prctile(bootstrapFitParams,17.5,2)';
-confidenceIntervals(2,:) = prctile(bootstrapFitParams,82.5,2)';
+confidenceIntervals(1,:) = prctile(bootstrapFitParams,17.5,1);
+confidenceIntervals(2,:) = prctile(bootstrapFitParams,82.5,1);
 end
