@@ -24,4 +24,4 @@ primarySpds = reshape(theData.measPrimarySpdsByWl,S(3),nReps*nRefs);
 
 %% Call Deena fit routine
 % findObserverParameters(testSpds,primarySpds,varargin)
-findObserverParameters(refSpds,primarySpds);
+params = findObserverParameters(refSpds,primarySpds,'S0',true,'dmac0',true);
