@@ -83,6 +83,7 @@ function OLAnalyzeRayleighMatch(subjID,sessionNums,varargin)
 %                      model
 %   07/16/21  dce      Edited to allow unequal distribution of matches in
 %                      files
+%   07/22/21  dce      Added bootstrap param plots
 
 close all; 
 % Parse input
@@ -279,8 +280,8 @@ modelCrossValError = ...
 crossValErrPlot = figure();
 bar(modelCrossValError);
 plotNames = {'Standard','Unconstrained','Lock OD',...
-    'Lock Lambda Max','Equal LM OD','Unconstrained+1','Lock OD+1',...
-    'Lock Lambda Max+1','Equal LM OD+1'};
+    'Lock LM','Equal OD','Unconstrained+1','Lock OD+1',...
+    'Lock LM+1','Equal OD+1'};
 plotFNames = {'_standard','_unconstrained','_lockOD','_lockLambdaMax',...
     '_LMEqualOD','_unconstrainedLens','_lockODLens','_lockLambdaMaxLens',...
     '_LMEqualODLens'};
@@ -288,13 +289,13 @@ set(gca,'xticklabel',plotNames);
 text(1:9,modelCrossValError,num2str(modelCrossValError','%0.2f'),...
     'HorizontalAlignment','center','VerticalAlignment','bottom');
 title([subjID ' Cross Validated Fit Error'],'interpreter','none');
-crossValErrPlot.Position = [100 100 1000 400];
+crossValErrPlot.Position = [100 100 1200 300];
 NicePlot.exportFigToPDF([resFile '_crossValErr.pdf'],...
     crossValErrPlot,300);
 
 %% Bootstrap parameters from best fitting model 
 [~,bestModelInd] = min(modelCrossValError);
-[confidenceIntervals,~] = ...
+[confidenceIntervals,bootstrapParams] = ...
     bootstrapRayleighMatch(measPrimarySpdsByWl,measRefSpdsByWl,...
     lowerBounds(bestModelInd,:),upperBounds(bestModelInd,:),...
     AEq{bestModelInd},BEq{bestModelInd},p.Results.nBootstrapIters,...
@@ -309,7 +310,7 @@ save([resFile '_analysis.mat'],'p','lightCombos','primaryRatios','refIntensities
     'measPrimarySpdsByWl','measRefSpdsByWl','estConeParams','estObs',...
     'refFirst','nConeParams','lowerBounds','upperBounds','AEq','BEq',...
     'modelCrossValError','bestModelInd','confidenceIntervals','matchWls',...
-    'uniqueWlIndices');
+    'uniqueWlIndices','bootstrapParams','sessionData');
 
 %% Make cone response figure for each set of fit params
 plotColors = 'rkbgcmrkbgcm';
@@ -395,9 +396,9 @@ for kk = 1:nConeParams
     
     % Add legends and explanatory text labels, and save figures
     if p.Results.checkOrderEffect
-        txtLabel = {'Yellow = second session','Square = primary first'};
+        txtLabel = {'* = primary mixture, o = reference light','Clear = first session, Yellow = second session','Circle = ref first, Square = primary first'};
     else
-        txtLabel = 'Yellow = second session';
+        txtLabel = {'* = primary mixture, o = reference light','Clear = first session, Yellow = second session'};
     end
     figure(fitConeDiffPlot);
     legend(legendHandles,legendEntries);
@@ -406,6 +407,103 @@ for kk = 1:nConeParams
         fitConeDiffPlot,300);
 end
 
+%% Make plots of bootstrapped params 
+% Cone fundamental plot
+bootstrapConePlot = figure();
+hold on;
+lmsTitles = {'L', 'M'};
+lmsColors = 'rg';
+wls = SToWls([380 2 201]);
+bootstrapObservers = cell(1,p.Results.nBootstrapIters);
+
+for i = 1:p.Results.nBootstrapIters
+    % Compute cone fundamentals for a set of bootstrapped parameters
+    bootstrapObservers{i} = genRayleighObserver('age',sessionData.age,...
+        'fieldSize', sessionData.fieldSize,'opponentParams',...
+        sessionData.opponentParams,'coneVec',bootstrapParams(i,:),'calcCones',true);
+    % Add cone fundamentals to plot
+    a = cell(1,2);
+    d = cell(1,2);
+    for j = 1:2
+        subplot(2,2,j);
+        hold on;
+        a{j} = plot(wls,bootstrapObservers{i}.T_cones(j,:),lmsColors(j),'LineWidth',1);
+        
+        subplot(2,2,j+2);
+        hold on;
+        d{j} = plot(wls,bootstrapObservers{i}.T_cones(j,:)-estObs{1}.T_cones(j,:),lmsColors(j),'LineWidth',1);
+    end
+end
+
+% Add best fit cones and clean up plots
+for j = 1:2
+    subplot(2,2,j);
+    b = plot(wls,estObs{bestModelInd}.T_cones(j,:),'k--','LineWidth',1.5);
+    c = plot(wls,estObs{1}.T_cones(j,:),'b--','LineWidth',1);
+    ylim([0 1]);
+    xlim([350 800]);
+    xlabel('Wavelength (nm)');
+    ylabel('Sensitivity');
+    title(lmsTitles{j});
+    legend([a{j} b c],'Bootstrapped Cones','Best Fit Cones','Standard Cones','Location','northeastoutside')
+    
+    subplot(2,2,j+2);
+    e = plot(wls,estObs{bestModelInd}.T_cones(j,:)-estObs{1}.T_cones(j,:),'k--','LineWidth',1.5);
+    refline(0,0);
+    xlabel('Wavelength (nm)');
+    ylabel('Fit - Standard Sensitivity');
+    legend([d{j} e],'Bootstrapped Cones','Best Fit Cones','Location','northeastoutside');
+
+end
+sgtitle([subjID ' Bootstrapped Cone Fundamentals'],'interpreter','none');
+NicePlot.exportFigToPDF([resFile '_bootstrapLMS.pdf'],...
+        bootstrapConePlot,300);
+    
+%% Parameter plot
+bootstrapParamPlot = figure();
+hold on;
+subplot(2,1,1);
+hold on;
+axis square;
+c = xline(prctile(bootstrapParams(:,6),25),'b-'); % Lines for 25 and 75 percentile
+xline(prctile(bootstrapParams(:,6),75),'b-'); % Lines for 25 and 75 percentile
+yline(prctile(bootstrapParams(:,7),25),'b-'); % Lines for 25 and 75 percentile
+yline(prctile(bootstrapParams(:,7),75),'b-'); % Lines for 25 and 75 percentile
+a = plot(bootstrapParams(:,6),bootstrapParams(:,7),'r. ', 'MarkerSize',5);
+b = plot(estConeParams(bestModelInd,6),estConeParams(bestModelInd,7),'ko','MarkerSize',3,'MarkerFaceColor','Black');
+title('Lambda Max Shifts');
+xlabel('L Cone Fit Params');
+ylabel('M Cone Fit Params');
+xlim([lowerBounds(bestModelInd,6)-1, upperBounds(bestModelInd,6)+1]);
+ylim([lowerBounds(bestModelInd,7)-1, upperBounds(bestModelInd,7)+1]);
+xline(0,'k--');  % Gridlines at 0 
+yline(0,'k--');
+legend([a b c],'Bootstrapped Parameters','Best Fit Parameters','Central 50%',...
+    'Location','northeastoutside');
+
+subplot(2,1,2);
+hold on;
+axis square;
+c = xline(prctile(bootstrapParams(:,3),25),'b-'); % Lines for 25 and 75 percentile
+xline(prctile(bootstrapParams(:,3),75),'b-'); % Lines for 25 and 75 percentile
+yline(prctile(bootstrapParams(:,4),25),'b-'); % Lines for 25 and 75 percentile
+yline(prctile(bootstrapParams(:,4),75),'b-'); % Lines for 25 and 75 percentile
+a = plot(bootstrapParams(:,3),bootstrapParams(:,4),'g. ', 'MarkerSize',5);
+b = plot(estConeParams(bestModelInd,3),estConeParams(bestModelInd,4),'ko','MarkerSize',3,'MarkerFaceColor','Black');
+title('Optical Density Shifts');
+xlabel('L Cone Fit Params');
+ylabel('M Cone Fit Params');
+xlim([lowerBounds(bestModelInd,3)-5, upperBounds(bestModelInd,3)+5]);
+ylim([lowerBounds(bestModelInd,4)-5, upperBounds(bestModelInd,4)+5]);
+xline(0,'k--');
+yline(0,'k--');
+legend([a b c],'Bootstrapped Parameters','Best Fit Parameters','Central 50%',...
+    'Location','northeastoutside');
+
+sgtitle([subjID ' Bootstrapped Parameter Fits'],'interpreter','none');
+NicePlot.exportFigToPDF([resFile '_bootstrapParams.pdf'],...
+        bootstrapParamPlot,300);
+    
 %% Make plots of deviation from nominal match (optional)
 % Loop through each set of fit parameters, and make a separate figure 
 primarySpdsPredictedMatch = cell(1,nConeParams);
@@ -549,5 +647,6 @@ save([resFile '_analysis.mat'],'p','lightCombos','primaryRatios','refIntensities
     'primaryLPlusM','refLMinusM','refLPlusM','primarySpdsPredictedMatch',...
     'refSpdsPredictedMatch','primaryConeResPredictedMatch',...
     'refConeResPredictedMatch','primaryLMinusMPredicted',...
-    'refLMinusMPredicted','primaryLPlusMPredicted','refLPlusMPredicted');
+    'refLMinusMPredicted','primaryLPlusMPredicted','refLPlusMPredicted',...
+    'bootstrapParams','bootstrapObservers','bestModelInd');
 end

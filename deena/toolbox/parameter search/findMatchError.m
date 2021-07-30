@@ -74,7 +74,7 @@ observer = genRayleighObserver('age', initialObs.coneParams.ageYears,...
 
 % Calculate error metric for each match 
 for i = 1:nMatches
-    % Calculate cone responses for the given spectra
+    % Calculate cone responses for the given spectra     
     test_LMS = observer.T_cones * testSpds(:,i);
     primary_LMS = observer.T_cones * primarySpds(:,i);
     
@@ -84,7 +84,7 @@ for i = 1:nMatches
     else
         % Calculate opponent contrast
         opponentContrast = LMSToOpponentContrast(observer.colorDiffParams,...
-            test_LMS, primary_LMS);
+           test_LMS, primary_LMS);
         error = opponentContrast;
     end
     % Find vector length of error (excluding S components)

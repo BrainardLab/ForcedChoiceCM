@@ -38,6 +38,7 @@ function OLRadiometerMatchesPlayback(subjID,sessionNum,matchFiles,varargin)
 %    dce    6/28/21   - Added option to measure only the last setting, not
 %                       the last few settings. This should be used in cases 
 %                       of adjustment matching, but not forced choice.
+%    dce    7/22/21   - Added saving of unaveraged measured spectra
 
 %% Parse input
 p = inputParser;
@@ -87,6 +88,17 @@ for kk = 1:length(matchFiles)
     % Load data file
     theData = load(matchFiles{kk});   
     
+    % Check if we are interleaving matches. If so, change array size
+    % (We assume that either all data files contain interleaved matches, or
+    % none do)
+    if kk==1 && length(theData.dataArr)==2
+        measuredPrimarySpdsUnavg = cell(2,length(matchFiles));
+        measuredRefSpdsUnavg = cell(2,length(matchFiles));
+    else
+        measuredPrimarySpdsUnavg = cell(1,length(matchFiles));
+        measuredRefSpdsUnavg = cell(1,length(matchFiles));
+    end
+    
     % Display and measure white light, if desired
     if p.Results.measWhite
         fprintf('Measuring white light...\n');
@@ -102,6 +114,8 @@ for kk = 1:length(matchFiles)
     % Loop through matches within the file; display and measure each one
     for tt = 1:length(theData.dataArr) % Number of interleaved staircases
         [nMatches, ~] = size(theData.dataArr{tt}.matchPositions);
+        measuredPrimarySpdsUnavg{tt,kk} = cell(1,nMatches);
+        measuredRefSpdsUnavg{tt,kk} = cell(1,nMatches);
         for i = 1:nMatches % Number of matches within each staircase
             if p.Results.measLastOnly
                 if i==nMatches
@@ -169,9 +183,12 @@ for kk = 1:length(matchFiles)
                 refMeas = [refMeas; spectroRadiometerOBJ.measure];
             end
             
+            measuredPrimarySpdsUnavg{tt,kk}{i} = primaryMeas;
+            measuredRefSpdsUnavg{tt,kk}{i} = refMeas;
             measuredPrimarySpds = [measuredPrimarySpds; mean(primaryMeas,1)];
             measuredRefSpds = [measuredRefSpds; mean(refMeas,1)];
-            save(outputFile, 'measuredRefSpds', 'measuredPrimarySpds', 'measuredWhite');
+            save(outputFile, 'measuredRefSpds', 'measuredPrimarySpds', 'measuredWhite',...
+                'measuredPrimarySpdsUnavg','measuredRefSpdsUnavg');
         end
     end    
     fprintf('File %g of %g complete\n',kk,length(matchFiles));
@@ -182,7 +199,7 @@ ol.setAll(false);
 pause(0.1);
 measuredDarkSpd = spectroRadiometerOBJ.measure;
 save(outputFile, 'measuredRefSpds', 'measuredPrimarySpds', 'measuredWhite',...
-    'measuredDarkSpd');
+    'measuredDarkSpd','measuredPrimarySpdsUnavg','measuredRefSpdsUnavg');
 
 %% Close devices
 spectroRadiometerOBJ.shutDown;
