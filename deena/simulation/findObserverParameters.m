@@ -81,6 +81,8 @@ function [params,error,observer] = findObserverParameters(testSpds,primarySpds,v
 %                     parameters (1:5) in fit. Default is 3.
 %    'sdLambdaMax'   -Number of allowed standard deviations for lambda max
 %                     parameters (6:8) in fit. Default is 3.
+%    'matchErrFun'   -Handle to function that is used to evaluate the fit
+%                     error in the minimization.
 
 % History:
 %   06/12/20  dce       Wrote it.
@@ -126,6 +128,7 @@ p.addParameter('AEq',[],@(x)(isnumeric(x)));
 p.addParameter('BEq',[],@(x)(isnumeric(x)));
 p.addParameter('sdDensity',3,@(x)(isnumeric(x)));
 p.addParameter('sdLambdaMax',3,@(x)(isnumeric(x)));
+p.addParameter('matchErrorFun',@findMatchError,@(x) isa(x,'function_handle'));
 p.parse(varargin{:});
 
 % Input checks
@@ -233,7 +236,7 @@ options = optimset(options,'Diagnostics','off','Display','iter',...
     'LargeScale','off','Algorithm','active-set');
 
 % Find optimal parameters
-params = fmincon(@(x)findMatchError(x,observer,testSpds,primarySpds,...
+params = fmincon(@(x)p.Results.matchErrorFun(x,observer,testSpds,primarySpds,...
     'S',p.Results.S,'errScalar',p.Results.errScalar,'findConeErr',...
     p.Results.minimizeConeErr),p.Results.initialConeParams(1:8),...
     [],[],Aeq,Beq,lb,ub,[],options);
@@ -245,7 +248,7 @@ observer.T_cones = ComputeObserverFundamentals(observer.coneParams,...
     p.Results.S);
 
 % What is the error?
-error = findMatchError(params,observer,testSpds,primarySpds,'S',...
+error = p.Results.matchErrorFun(params,observer,testSpds,primarySpds,'S',...
     p.Results.S,'errScalar',p.Results.errScalar,'findConeErr',...
     p.Results.minimizeConeErr)/p.Results.errScalar;
 end
