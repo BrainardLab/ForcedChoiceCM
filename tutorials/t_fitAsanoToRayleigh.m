@@ -11,25 +11,39 @@
 %% Clear
 clear; close all;
 
-%% Load in the sample data
+%% Load and homogenize data
+whichData = 'simulatedNoise';
 theDir = fileparts(mfilename('fullpath'));
-theData = load(fullfile(theDir,'sampleData','MELC_0004_spds.mat'));
-
-%% Structure data 
-S = [380 2 201];
-wls = SToWls(S);
-[nWls,nReps,nRefs] = size(theData.measPrimarySpdsByWl);
-refSpds = reshape(theData.measRefSpdsByWl,S(3),nReps*nRefs);
-primarySpds = reshape(theData.measPrimarySpdsByWl,S(3),nReps*nRefs);
-
-foo = @findMatchErrorNew;
-whos
+switch (whichData)
+    case 'simulatedNoise'
+        dataFilename = 'SimulatedWithNoise_spds.mat';
+        theData = load(fullfile(theDir,'sampleData',dataFilename));
+        S = [380 2 201]; wls = SToWls(S);
+        fieldSize = theData.fieldSize;
+        age = theData.age;
+        [nWls,nReps,nRefs] = size(theData.primarySpdsByWl);
+        refSpds = reshape(theData.refSpdsByWl,S(3),nReps*nRefs);
+        primarySpds = reshape(theData.primarySpdsByWl,S(3),nReps*nRefs);
+    case 'MELC_0004'
+        dataFilename = 'MELC_0004_spds.mat';
+        theData = load(fullfile(theDir,'sampleData',dataFilename));
+        S = [380 2 201]; wls = SToWls(S);
+        fieldSize = 10;
+        age = 32;
+        [nWls,nReps,nRefs] = size(theData.measPrimarySpdsByWl);
+        refSpds = reshape(theData.measRefSpdsByWl,S(3),nReps*nRefs);
+        primarySpds = reshape(theData.measPrimarySpdsByWl,S(3),nReps*nRefs);
+    otherwise
+        error('What is this data file of which you speak?')
+end
 
 %% Call Deena fit routine
 % findObserverParameters(testSpds,primarySpds,varargin)
 params = findObserverParameters(refSpds,primarySpds,'S0',true,'dmac0',true,'sdLambdaMax',4, ...
-    'age',32,'fieldSize',10, ...
-    'minimizeConeErr',true,'matchErrorFun',@findMatchErrorNew);
+    'age',age,'fieldSize',fieldSize, ...
+    'minimizeConeErr',false,'matchErrorFun',@findMatchErrorNew);
+
+params
 
 
 function error = findMatchErrorNew(coneParamsVec,initialObs,testSpds,...
