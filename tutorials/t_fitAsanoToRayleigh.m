@@ -12,7 +12,7 @@
 clear; close all;
 
 %% Load and homogenize data
-whichData = 'MELC_0004';
+whichData = 'simulatedNoise';
 theDir = fileparts(mfilename('fullpath'));
 switch (whichData)
     case 'simulatedNoise'
