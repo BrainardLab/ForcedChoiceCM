@@ -12,7 +12,7 @@
 clear; close all;
 
 %% Load and homogenize data
-whichData = 'simulatedNoise';
+whichData = 'MELC_0004';
 theDir = fileparts(mfilename('fullpath'));
 switch (whichData)
     case 'simulatedNoise'
@@ -24,6 +24,8 @@ switch (whichData)
         [nWls,nReps,nRefs] = size(theData.primarySpdsByWl);
         refSpds = reshape(theData.refSpdsByWl,S(3),nReps*nRefs);
         primarySpds = reshape(theData.primarySpdsByWl,S(3),nReps*nRefs);
+        standardParams = zeros(1,8);
+        simulatedParams = theData.sampledParams;
     case 'MELC_0004'
         dataFilename = 'MELC_0004_spds.mat';
         theData = load(fullfile(theDir,'sampleData',dataFilename));
@@ -33,25 +35,115 @@ switch (whichData)
         [nWls,nReps,nRefs] = size(theData.measPrimarySpdsByWl);
         refSpds = reshape(theData.measRefSpdsByWl,S(3),nReps*nRefs);
         primarySpds = reshape(theData.measPrimarySpdsByWl,S(3),nReps*nRefs);
+        standardParams = zeros(1,8);
+        simulatedParams = zeros(1,8);
     otherwise
         error('What is this data file of which you speak?')
 end
 
+%% Standard and simulated observer I
+standardObserver = genRayleighObserver('fieldSize',fieldSize,'age',...
+    age,'calcCones',true,'coneVec', standardParams,...
+    'S',S,'opponentParams',[40.3908 205.7353 62.9590 1.0000]);
+simulatedObserver = genRayleighObserver('fieldSize',fieldSize,'age',...
+    age,'calcCones',true,'coneVec', simulatedParams,...
+    'S',S,'opponentParams',[40.3908 205.7353 62.9590 1.0000]);
+
 %% Call Deena fit routine
-% findObserverParameters(testSpds,primarySpds,varargin)
-params = findObserverParameters(refSpds,primarySpds,'S0',true,'dmac0',true,'sdLambdaMax',4, ...
+minimizeConeError = false;
+fitParams = findObserverParameters(refSpds,primarySpds,'S0',true,'dmac0',true,'sdLambdaMax',4, ...
     'age',age,'fieldSize',fieldSize, ...
     'minimizeConeErr',false,'matchErrorFun',@findMatchErrorNew);
 
-params
+% Get observer with the final parameters
+fitObserver = ObserverVecToParams('basic', ...
+    [fitParams standardObserver.colorDiffParams.noiseSd],standardObserver);
+fitObserver.T_cones = ComputeObserverFundamentals(fitObserver.coneParams,...
+    S);
 
+%% Calculate and plot differences
+%standardObserverErrors = 0.5*(standardObserver.T_cones*(refSpds - primarySpds)) ./ (standardObserver.T_cones*(refSpds + primarySpds));
+[standardObjective,standardObserverErrors] = findMatchErrorNew(standardParams,standardObserver,refSpds,primarySpds, ...
+    'findConeErr',minimizeConeError);
 
-function error = findMatchErrorNew(coneParamsVec,initialObs,testSpds,...
-    primarySpds,varargin)
+%simulatedObserverErrors = 0.5*(simulatedObserver.T_cones*(refSpds - primarySpds)) ./ (simulatedObserver.T_cones*(refSpds + primarySpds));
+[simulatedObjective,simulatedObserverErrors] = findMatchErrorNew(simulatedParams,simulatedObserver,refSpds,primarySpds, ...
+    'findConeErr',minimizeConeError);
+%fitObserverErrors = 0.5*(fitObserver.T_cones*(refSpds - primarySpds)) ./ (fitObserver.T_cones*(refSpds + primarySpds));
+[fitObjective,fitObserverErrors] = findMatchErrorNew(fitParams,standardObserver,refSpds,primarySpds, ...
+    'findConeErr',minimizeConeError);
+
+figure; clf;
+if (minimizeConeError)
+    axisLim = 0.05;
+else
+    axisLim = 15;
+end
+subplot(1,3,1); hold on
+index = 1;
+colorIndex = 1;
+theColors = ['r' 'g' 'b' 'k' 'c' 'm' 'y' ];
+for ii = 1:nRefs
+    for jj = 1:nReps
+        plot(standardObserverErrors(1,index),standardObserverErrors(2,index),[theColors(colorIndex) 'o'],'MarkerFaceColor',theColors(colorIndex),'MarkerSize',10);
+        index = index+1;
+        colorIndex = colorIndex + 1;
+        if (colorIndex > length(theColors))
+            colorIndex = 1;
+        end
+    end
+end
+axis('square');
+plot([-axisLim axisLim],[0 0],'k:','LineWidth',0.5);
+plot([0 0],[-axisLim axisLim],'k:','LineWidth',0.5);
+xlim([-axisLim axisLim]); ylim([-axisLim axisLim]);
+title('Standard')
+
+subplot(1,3,2); hold on
+index = 1;
+colorIndex = 1;
+theColors = ['r' 'g' 'b' 'k' 'c' 'm' 'y' ];
+for ii = 1:nRefs
+    for jj = 1:nReps
+        plot(simulatedObserverErrors(1,index),simulatedObserverErrors(2,index),[theColors(colorIndex) 'o'],'MarkerFaceColor',theColors(colorIndex),'MarkerSize',10);
+        index = index+1;
+        colorIndex = colorIndex + 1;
+        if (colorIndex > length(theColors))
+            colorIndex = 1;
+        end
+    end
+end
+axis('square');
+plot([-axisLim axisLim],[0 0],'k:','LineWidth',0.5);
+plot([0 0],[-axisLim axisLim],'k:','LineWidth',0.5);
+xlim([-axisLim axisLim]); ylim([-axisLim axisLim]);
+title('Simulated')
+
+subplot(1,3,3); hold on
+index = 1;
+colorIndex = 1;
+theColors = ['r' 'g' 'b' 'k' 'c' 'm' 'y' ];
+for ii = 1:nRefs
+    for jj = 1:nReps
+        plot(fitObserverErrors(1,index),fitObserverErrors(2,index),[theColors(colorIndex) 'o'],'MarkerFaceColor',theColors(colorIndex),'MarkerSize',10);
+        index = index+1;
+        colorIndex = colorIndex + 1;
+        if (colorIndex > length(theColors))
+            colorIndex = 1;
+        end
+    end
+end
+axis('square');
+plot([-axisLim axisLim],[0 0],'k:','LineWidth',0.5);
+plot([0 0],[-axisLim axisLim],'k:','LineWidth',0.5);
+xlim([-axisLim axisLim]); ylim([-axisLim axisLim]);
+title('Fit')
+
+function [errorToMinimize,errors] = findMatchErrorNew(coneParamsVec,initialObs,testSpds,primarySpds,varargin)
 % Computes the error associated with a set of Rayleigh matches
 %
 % Syntax:
-%   findMatchErrorNew(paramsVec,initialObs,testSpds,primarySpds)
+%   [errorToMinimize,errors] = findMatchErrorNew(coneParamsVec,initialObs,testSpds,primarySpds);
 %
 % Description:
 %    Given observer cone parameters, computes the error associated with
@@ -66,7 +158,7 @@ function error = findMatchErrorNew(coneParamsVec,initialObs,testSpds,...
 %    search functions.
 %
 % Inputs:
-%    paramsVec   -Vector of eight individual difference parameters. See
+%    coneParamsVec -Vector of eight individual difference parameters. See
 %                 ObserverVecToParams for a full description
 %    initialObs  -Struct containing the initial settings for the observer.
 %                 Not modified by the program, but some fields are used
@@ -103,12 +195,15 @@ p.addParameter('errScalar',100,@(x)(isnumeric(x)));
 p.addParameter('findConeErr',false,@(x)(islogical(x)));
 p.parse(varargin{:});
 
-[spdLength,nMatches] = size(testSpds);   
 % Throw error if matrix sizes do not match 
+[spdLength,nMatches] = size(testSpds);   
 if length(SToWls(p.Results.S)) ~= spdLength
     error('Observer wavelength sampling and spd length do not match'); 
 end 
-pairError = zeros(1,nMatches);   % Array for storing error of each pair
+
+% Array for storing error of each pair
+errors = zeros(3,nMatches);
+pairError = zeros(1,nMatches);   
 
 % Find opponent parameters
 CDParams = initialObs.colorDiffParams;
@@ -128,18 +223,19 @@ for i = 1:nMatches
     
     if p.Results.findConeErr
         % Calculate cone contrast difference
-        error = 0.5*(test_LMS - primary_LMS) ./ (test_LMS + primary_LMS);
+        errors(:,i) = 0.5*(test_LMS - primary_LMS) ./ (test_LMS + primary_LMS);
     else
         % Calculate opponent contrast
         opponentContrast = LMSToOpponentContrast(observer.colorDiffParams,...
             test_LMS, primary_LMS);
-        error = opponentContrast;
+        errors(:,i) = opponentContrast;
     end
 
     % Find vector length of error (excluding S components)
-    pairError(i) = norm(error(1:2));
+    pairError(i) = norm(errors(1:2,i));
 end
 
 % Report the root mean square error (scaled up to improve searching)
-error = sqrt(mean(pairError.^2))*p.Results.errScalar; 
+errorToMinimize = sqrt(mean(pairError.^2))*p.Results.errScalar; 
+
 end

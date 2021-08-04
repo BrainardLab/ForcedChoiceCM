@@ -150,7 +150,7 @@ end
 % Generate a standard observer with the given initial values
 observer = genRayleighObserver('fieldSize',p.Results.fieldSize,'age',...
     p.Results.age,'calcCones',false,'coneVec', p.Results.initialConeParams,...
-    'S',p.Results.S,'opponentParams',p.Results.opponentParams);
+    'S',p.Results.S,'opponentParams',[40.3908 205.7353 62.9590 1.0000]);
 
 %% Restrictions on parameters
 Aeq = [];              % Equality constraint
