@@ -12,11 +12,22 @@
 clear; close all;
 
 %% Load and homogenize data
-whichData = 'simulatedNoise';
+whichData = 'simulatedNoNoise';
 theDir = fileparts(mfilename('fullpath'));
 switch (whichData)
     case 'simulatedNoise'
         dataFilename = 'SimulatedWithNoise_spds.mat';
+        theData = load(fullfile(theDir,'sampleData',dataFilename));
+        S = [380 2 201]; wls = SToWls(S);
+        fieldSize = theData.fieldSize;
+        age = theData.age;
+        [nWls,nReps,nRefs] = size(theData.primarySpdsByWl);
+        refSpds = reshape(theData.refSpdsByWl,S(3),nReps*nRefs);
+        primarySpds = reshape(theData.primarySpdsByWl,S(3),nReps*nRefs);
+        standardParams = zeros(1,8);
+        simulatedParams = theData.sampledParams;
+    case 'simulatedNoNoise'
+        dataFilename = 'SimulatedWithoutNoise_spds.mat';
         theData = load(fullfile(theDir,'sampleData',dataFilename));
         S = [380 2 201]; wls = SToWls(S);
         fieldSize = theData.fieldSize;
@@ -51,7 +62,7 @@ simulatedObserver = genRayleighObserver('fieldSize',fieldSize,'age',...
 
 %% Call Deena fit routine with robust fitting loop
 minimizeConeError = false;
-maxIterations = 10;
+maxIterations = 1;
 trimSd = 1;
 fitRefSpds{1} = refSpds;
 fitPrimarySpds{1} = primarySpds;
