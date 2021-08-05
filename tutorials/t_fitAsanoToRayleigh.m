@@ -49,11 +49,31 @@ simulatedObserver = genRayleighObserver('fieldSize',fieldSize,'age',...
     age,'calcCones',true,'coneVec', simulatedParams,...
     'S',S,'opponentParams',[40.3908 205.7353 62.9590 1.0000]);
 
-%% Call Deena fit routine
+%% Call Deena fit routine with robust fitting loop
 minimizeConeError = false;
-fitParams = findObserverParameters(refSpds,primarySpds,'S0',true,'dmac0',true,'sdLambdaMax',4, ...
-    'age',age,'fieldSize',fieldSize, ...
-    'minimizeConeErr',false,'matchErrorFun',@findMatchErrorNew);
+maxIterations = 10;
+trimSd = 1;
+fitRefSpds{1} = refSpds;
+fitPrimarySpds{1} = primarySpds;
+for jj = 1:maxIterations
+    nDataLeftToFit = size(fitRefSpds{jj},2);
+    fitParamsIter{jj} = findObserverParameters(fitRefSpds{jj},fitPrimarySpds{jj},'S0',true,'dmac0',true,'sdLambdaMax',4, ...
+        'age',age,'fieldSize',fieldSize, ...
+        'minimizeConeErr',false,'matchErrorFun',@findMatchErrorNew,'initialConeParams',simulatedParams);
+    [fitObjective{jj},fitObserverErrors{jj}] = findMatchErrorNew(fitParamsIter{jj},standardObserver,fitRefSpds{jj},fitPrimarySpds{jj}, ...
+        'findConeErr',minimizeConeError);
+    errorStdevs{jj} = std(fitObserverErrors{jj},0,2);
+    includeIndex = find(fitObserverErrors{jj}(1,:) <= trimSd*errorStdevs{jj}(1) & fitObserverErrors{jj}(2,:) <= trimSd*errorStdevs{jj}(2));
+    if (length(includeIndex) == nDataLeftToFit)
+        break;
+    end
+    if (isempty(includeIndex))
+        error('Oops, no data left to fit')
+    end
+    fitRefSpds{jj+1} = fitRefSpds{jj}(:,includeIndex);
+    fitPrimarySpds{jj+1} = fitPrimarySpds{jj}(:,includeIndex);
+end
+fitParams = fitParamsIter{end};
 
 % Get observer with the final parameters
 fitObserver = ObserverVecToParams('basic', ...
@@ -62,14 +82,10 @@ fitObserver.T_cones = ComputeObserverFundamentals(fitObserver.coneParams,...
     S);
 
 %% Calculate and plot differences
-%standardObserverErrors = 0.5*(standardObserver.T_cones*(refSpds - primarySpds)) ./ (standardObserver.T_cones*(refSpds + primarySpds));
 [standardObjective,standardObserverErrors] = findMatchErrorNew(standardParams,standardObserver,refSpds,primarySpds, ...
     'findConeErr',minimizeConeError);
-
-%simulatedObserverErrors = 0.5*(simulatedObserver.T_cones*(refSpds - primarySpds)) ./ (simulatedObserver.T_cones*(refSpds + primarySpds));
 [simulatedObjective,simulatedObserverErrors] = findMatchErrorNew(simulatedParams,simulatedObserver,refSpds,primarySpds, ...
     'findConeErr',minimizeConeError);
-%fitObserverErrors = 0.5*(fitObserver.T_cones*(refSpds - primarySpds)) ./ (fitObserver.T_cones*(refSpds + primarySpds));
 [fitObjective,fitObserverErrors] = findMatchErrorNew(fitParams,standardObserver,refSpds,primarySpds, ...
     'findConeErr',minimizeConeError);
 
