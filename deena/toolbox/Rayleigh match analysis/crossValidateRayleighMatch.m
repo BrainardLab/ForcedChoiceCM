@@ -83,7 +83,7 @@ baseObserver = genRayleighObserver('age',p.Results.age,'fieldSize',p.Results.fie
 nModelsToEval = length(BEq);
 
 % Number of reference wavelengths provided
-nRefWls = size(refMatchSpds);
+nRefWls = length(refMatchSpds);
 
 % Matrix for storing cross-validated fit error from each model in each run
 crossValErr = zeros(nOverallRuns,nModelsToEval);
@@ -93,6 +93,7 @@ nRepeats = zeros(1,nRefWls);
 for rr = 1:nRefWls
     nRepeats(rr) = size(refMatchSpds{rr},2);
 end 
+spdLength = size(refMatchSpds{rr},1);
 
 % Run cross-validation for the specified number of runs 
 for kk = 1:nOverallRuns
@@ -106,7 +107,7 @@ for kk = 1:nOverallRuns
     
     % Matrix to store error for each model and each iteration in the given
     % run
-    crossValErrRun = zeros(nModelsToEval,minRepeats);
+    crossValErrRun = zeros(nModelsToEval,min(nRepeats));
     
     % Perform cross validation. The number of iterations equals the minimum
     % number of repeats made for any reference wavelenth.

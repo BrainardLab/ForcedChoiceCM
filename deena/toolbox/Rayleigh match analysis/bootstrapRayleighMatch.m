@@ -71,7 +71,7 @@ p.parse(varargin{:});
 
 % Check how many reference wavelengths were tested, and how many matches 
 % were made for each one. 
-nRefWls = size(refMatchSpds);
+nRefWls = length(refMatchSpds);
 nMatchesPerRef = zeros(1,nRefWls);
 for rr = 1:nRefWls
     nMatchesPerRef(rr) = size(refMatchSpds{rr},2);
@@ -96,11 +96,9 @@ for kk = 1:nIterations
     trialRefSpds = [];
     trialPrimarySpds = [];
     for rr = 1:nRefWls
-        for mm = 1:nMatchesPerRef(rr)
-            trialRefSpds = [trialRefSpds,refMatchSpds{rr}(:,trialInds{rr})];
-            trialPrimarySpds = [trialPrimarySpds,primaryMatchSpds{rr}(:,trialInds{rr})];
-        end 
-    end 
+        trialRefSpds = [trialRefSpds,refMatchSpds{rr}(:,trialInds{rr})];
+        trialPrimarySpds = [trialPrimarySpds,primaryMatchSpds{rr}(:,trialInds{rr})];
+    end
    
     % Fit parameters using the specified matches and the provided bounds 
     [bootstrapFitParams(kk,:),~,~] = ...
@@ -115,7 +113,7 @@ end
 % Compute confidence intervals based on fit parameters - central 65% of
 % bootstrapped distribution. Lower bounds are in the first row, and upper
 % bounds are in the second row.
-confidenceIntervals = zeros(2,8);
+confidenceIntervals = zeros(2,nParams);
 confidenceIntervals(1,:) = prctile(bootstrapFitParams,17.5,1);
 confidenceIntervals(2,:) = prctile(bootstrapFitParams,82.5,1);
 end
