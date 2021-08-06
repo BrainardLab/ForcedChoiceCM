@@ -84,6 +84,9 @@ function OLAnalyzeRayleighMatch(subjID,sessionNums,varargin)
 %   07/16/21  dce      Edited to allow unequal distribution of matches in
 %                      files
 %   07/22/21  dce      Added bootstrap param plots
+%   08/05/21  dce      Edited to reflect changes to bootstrapping and cross
+%                      validation; no longer assume an equal number of
+%                      matches for all ref wls.
 
 close all; 
 % Parse input
@@ -186,26 +189,18 @@ end
 [nMatchWls,~] = size(matchWls);                          % Number of unique wls tested
 [spdLength,~] = size(measRefSpds);                       % Spd length
 
-% Number of times each match was repeated - round up if not an integer
-nRepeats = size(measRefSpds,2)/nMatchWls;                
-if ceil(nRepeats)~=nRepeats
-    error('Unequal number of wavelengths for each match')
-end 
 
 % Extract data for each set of wavelengths, and average spds.
 meanPrimarySpds= zeros(spdLength,nMatchWls);
 meanRefSpds = zeros(spdLength,nMatchWls);
-measPrimarySpdsByWl = zeros(spdLength,nRepeats,nMatchWls);
-measRefSpdsByWl = zeros(spdLength,nRepeats,nMatchWls);
+measPrimarySpdsByWl = cell(1,nMatchWls);
+measRefSpdsByWl = cell(1,nMatchWls);
 for i = 1:nMatchWls
-    if matchWls(i,3)==640
-        fprintf('Here!');
-    end 
-    measPrimarySpdsByWl(:,:,i) = measPrimarySpds(:,all(lightCombos==matchWls(i,:),2));
-    meanPrimarySpds(:,i) = mean(measPrimarySpdsByWl(:,:,i),2);
+    measPrimarySpdsByWl{i} = measPrimarySpds(:,all(lightCombos==matchWls(i,:),2));
+    meanPrimarySpds(:,i) = mean(measPrimarySpdsByWl{i},2);
    
-    measRefSpdsByWl(:,:,i) = measRefSpds(:,all(lightCombos==matchWls(i,:),2));
-    meanRefSpds(:,i) = mean(measRefSpdsByWl(:,:,i),2);
+    measRefSpdsByWl{i} = measRefSpds(:,all(lightCombos==matchWls(i,:),2));
+    meanRefSpds(:,i) = mean(measRefSpdsByWl{i},2);
 end
 
 %% Estimate cone fundamentals
@@ -369,17 +364,18 @@ for kk = 1:nConeParams
             plot(refLMinusM{kk,i}./refLPlusM{kk,i},refLPlusM{kk,i},[plotColors(i) 'o ']);
         end
         
-        % Highlight second session points
+        % Highlight last two matches for each ref wl (typically, these are
+        % the second session points)
         if length(refLMinusM{kk,i}) >=4
             if p.Results.checkOrderEffect
-                selectionArr = logical([0 0 refFirst(3:4)]);
-                selectionArr2 = logical([0 0 ~refFirst(3:4)]);
+                selectionArr = logical([0 0 refFirst(end-1:end)]);
+                selectionArr2 = logical([0 0 ~refFirst(end-1:end)]);
                 plot(refLMinusM{kk,i}(selectionArr)./refLPlusM{kk,i}(selectionArr),refLPlusM{kk,i}(selectionArr),...
                     'yo','MarkerFaceColor','Yellow','MarkerSize',5);
                 plot(refLMinusM{kk,i}(selectionArr2)./refLPlusM{kk,i}(selectionArr2),refLPlusM{kk,i}(selectionArr2),...
                     'ys','MarkerFaceColor','Yellow','MarkerSize',5);
             else
-                plot(refLMinusM{kk,i}(3:4)./refLPlusM{kk,i}(3:4),refLPlusM{kk,i}(3:4),...
+                plot(refLMinusM{kk,i}(end-1:end)./refLPlusM{kk,i}(end-1:end),refLPlusM{kk,i}(end-1:end),...
                     'yo','MarkerFaceColor','Yellow','MarkerSize',5);
             end
         end
