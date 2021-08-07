@@ -21,12 +21,16 @@ function meanCrossValErr = crossValidateRayleighMatch(primaryMatchSpds,refMatchS
 %    averages the cross-validated fit error for each model across all runs.
 %
 % Inputs:
-%    primaryMatchSpds -[spdLength x nCrossValIters x nReferenceLights]
-%                      array of (radiometer-measured) primary mixture spds
-%                      which an observer identified as Rayleigh matches
-%    refMatchSpds     -[spdLength x nCrossValIters x nReferenceLights]
-%                      array of (radiometer-measured) reference spds
-%                      which an observer identified as Rayleigh matches
+%    primaryMatchSpds - 1 x nReferenceLights cell array of (radiometer 
+%                       measured) primary mixture spds which an observer  
+%                       identified as Rayleigh matches. Each entry contains
+%                       spectra for a different reference wavelength,
+%                       entered as an spdLength x nMatches matrix.
+%    refMatchSpds     -1 x nReferenceLights cell array of (radiometer 
+%                      measured) primary mixture spds which an observer  
+%                      identified as Rayleigh matches. Each entry contains
+%                      spectra for a different reference wavelength,
+%                      entered as an spdLength x nMatches matrix.
 %    lowerBounds      -nModels x 8 matrix. Each row contains the lower
 %                      parameter bounds for a different fitting model. See
 %                      findObserverParameters for details on parameters.
@@ -59,6 +63,8 @@ function meanCrossValErr = crossValidateRayleighMatch(primaryMatchSpds,refMatchS
 
 % History:
 %   06/30/21  dce, dhb  Wrote it.
+%   08/05/21  dce       Edited to allow different numbers of matches for
+%                       each reference wavelength 
 
 % Parse input
 p = inputParser;
@@ -76,49 +82,59 @@ baseObserver = genRayleighObserver('age',p.Results.age,'fieldSize',p.Results.fie
 % Number of models we are evaluating
 nModelsToEval = length(BEq);
 
+% Number of reference wavelengths provided
+nRefWls = length(refMatchSpds);
+
 % Matrix for storing cross-validated fit error from each model in each run
 crossValErr = zeros(nOverallRuns,nModelsToEval);
+
+% We track how many times the match at each reference wl was repeated.
+nRepeats = zeros(1,nRefWls);
+for rr = 1:nRefWls
+    nRepeats(rr) = size(refMatchSpds{rr},2);
+end 
+spdLength = size(refMatchSpds{rr},1);
 
 % Run cross-validation for the specified number of runs 
 for kk = 1:nOverallRuns
     % Set up cross-validation indices for the run 
-    % Each row of the matrix set up here is the order to leave one
-    % measurement out, randomized separately for each reference light.
-    [spdLength,nCrossValIters,nRefWls] = size(refMatchSpds);
-    leaveOneOutOrder = zeros(nRefWls,nCrossValIters);
+    % Each entry of the cell array contains the order in which the matches
+    % for that reference wavelength should be left out of the analysis. 
+    leaveOneOutOrder = cell(1,nRefWls);
     for rr = 1:nRefWls
-        leaveOneOutOrder(rr,:) = Shuffle(1:nCrossValIters);
+        leaveOneOutOrder{rr} = Shuffle(1:nRepeats(rr));
     end
     
     % Matrix to store error for each model and each iteration in the given
     % run
-    crossValErrRun = zeros(nModelsToEval,nCrossValIters);
+    crossValErrRun = zeros(nModelsToEval,min(nRepeats));
     
-    % Perform cross validation for the specified number of iterations
-    for cc = 1:nCrossValIters
+    % Perform cross validation. The number of iterations equals the minimum
+    % number of repeats made for any reference wavelenth.
+    for cc = 1:min(nRepeats)
         % Collect up the matches to fit for this iteration
-        matchesToFit = zeros(nRefWls,nCrossValIters-1);
-        matchToEval = zeros(nRefWls,1);
+        matchesToFit = cell(1,nRefWls);
+        matchToEval = zeros(1,nRefWls);
         pSpdsToFit = [];
         refSpdsToFit = [];
         pSpdsToEval = zeros(spdLength,nRefWls);
         refSpdsToEval = zeros(spdLength,nRefWls);
         for rr = 1:nRefWls
-            % We fit nCrossValIters-1 matches for each reference wavelength.
+            % We fit nRepeats(rr)-1 matches for each reference wavelength.
             % This code defines the indices of the ones being fit.
-            matchesToFit(rr,:) = setdiff(1:nCrossValIters,leaveOneOutOrder(rr,cc));
+            matchesToFit{rr} = setdiff(1:nRepeats(rr),leaveOneOutOrder{rr}(cc));
             
             % We evaluate fit to one match for each reference wavelength.
             % This code defines the index of the one being fit.
-            matchToEval(rr) = leaveOneOutOrder(rr,cc);
+            matchToEval(rr) = leaveOneOutOrder{rr}(cc);
             
             % Select the matches to fit and evaluate for the given reference
             % wavelength on this round of cross-validation
-            pSpdsToFit = [pSpdsToFit,primaryMatchSpds(:,matchesToFit(rr,:),rr)];
-            refSpdsToFit = [refSpdsToFit,refMatchSpds(:,matchesToFit(rr,:),rr)];
+            pSpdsToFit = [pSpdsToFit,primaryMatchSpds{rr}(:,matchesToFit{rr})];
+            refSpdsToFit = [refSpdsToFit,refMatchSpds{rr}(:,matchesToFit{rr})];
             
-            pSpdsToEval(:,rr) = primaryMatchSpds(:,matchToEval(rr),rr);
-            refSpdsToEval(:,rr) = refMatchSpds(:,matchToEval(rr),rr);
+            pSpdsToEval(:,rr) = primaryMatchSpds{rr}(:,matchToEval(rr));
+            refSpdsToEval(:,rr) = refMatchSpds{rr}(:,matchToEval(rr));
         end
         
         % Fit parameters using the specified matches and the provided bounds

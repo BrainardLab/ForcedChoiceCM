@@ -47,6 +47,9 @@ function error = findMatchError(coneParamsVec,initialObs,testSpds,...
 %   06/15/20  dce       Modified to take in multiple spds
 %   05/09/21  dce       Added option to find error based on cone excitation
 %                       difference instead of opponent contrast.
+%   08/04/21  dce       Edited so that opponent contrast of reference is
+%                       calculated relative to primary mixture - in line 
+%                       with simulations
 
 % Parse input 
 p = inputParser;
@@ -84,7 +87,7 @@ for i = 1:nMatches
     else
         % Calculate opponent contrast
         opponentContrast = LMSToOpponentContrast(observer.colorDiffParams,...
-           test_LMS, primary_LMS);
+          primary_LMS, test_LMS);
         error = opponentContrast;
     end
     % Find vector length of error (excluding S components)

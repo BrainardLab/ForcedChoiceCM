@@ -20,12 +20,16 @@ function [confidenceIntervals,bootstrapFitParams] = ...
 %    confidence intervals based on the bootstrapped parameter fits. 
 %
 % Inputs:
-%    primaryMatchSpds -[spdLength x nMatchesPerRef x nReferenceLights]
-%                      array of (radiometer-measured) primary mixture spds
-%                      which an observer identified as Rayleigh matches
-%    refMatchSpds     -[spdLength x nMatchesPerRef x nReferenceLights]
-%                      array of (radiometer-measured) reference spds
-%                      which an observer identified as Rayleigh matches
+%    primaryMatchSpds - 1 x nReferenceLights cell array of (radiometer 
+%                       measured) primary mixture spds which an observer  
+%                       identified as Rayleigh matches. Each entry contains
+%                       spectra for a different reference wavelength,
+%                       entered as an spdLength x nMatches matrix.
+%    refMatchSpds     -1 x nReferenceLights cell array of (radiometer 
+%                      measured) primary mixture spds which an observer  
+%                      identified as Rayleigh matches. Each entry contains
+%                      spectra for a different reference wavelength,
+%                      entered as an spdLength x nMatches matrix.
 %    lowerBounds      -8-element vector with lower parameter limits for 
 %                      model fit. See findObserverParameters for details on
 %                      parameters.
@@ -53,6 +57,8 @@ function [confidenceIntervals,bootstrapFitParams] = ...
 % History:
 %   07/02/21  dce      Wrote it.
 %   07/09/21  dce      Added confidence interval computation
+%   08/05/21  dce      Edited to allow unequal numbers of matches for each
+%                      reference wavelength
 
 % Parse input
 p = inputParser;
@@ -63,10 +69,14 @@ p.addParameter('opponentParams',[40.3908 205.7353 62.9590 1.0000],@(x)(isvector(
 p.addParameter('errScalar',100,@(x)(isnumeric(x)));
 p.parse(varargin{:});
 
-% Check the size of our input array. The first dimension is the spd length,
-% the second is the number of matches for each reference wavelength, and
-% the third is the number of reference wavelengths tested
-[~,nMatchesPerRef,nRefWls] = size(refMatchSpds);
+% Check how many reference wavelengths were tested, and how many matches 
+% were made for each one. 
+nRefWls = length(refMatchSpds);
+nMatchesPerRef = zeros(1,nRefWls);
+for rr = 1:nRefWls
+    nMatchesPerRef(rr) = size(refMatchSpds{rr},2);
+end 
+spdLength = size(refMatchSpds{rr},1);
 
 % Matrix for storing parameters fit from each iteration
 nParams = 8; % The Asano model has 8 parameters
@@ -74,20 +84,21 @@ bootstrapFitParams = zeros(nIterations,nParams);
 
 % Bootstrapping for the specified number of iterations 
 for kk = 1:nIterations
-    % For each reference wavelength, we sample nMatchesPerRef matches for
+    % For each reference wavelength, we sample nMatchesPerRef(rr) matches for
     % analysis in this iteration, with replacement. Here, we determine  
     % which indices will be sampled for each wavelength in this iteration.
-    trialInds = randi(nMatchesPerRef,nRefWls,nMatchesPerRef);
+    trialInds = cell(1,nRefWls);
+    for rr = 1:nRefWls
+        trialInds{rr} = randi(nMatchesPerRef(rr),nMatchesPerRef(rr),1);
+    end 
     
     % Collect the spds which will be used for fitting here
     trialRefSpds = [];
     trialPrimarySpds = [];
     for rr = 1:nRefWls
-        for mm = 1:nMatchesPerRef
-            trialRefSpds = [trialRefSpds,refMatchSpds(:,trialInds(rr,mm),rr)];
-            trialPrimarySpds = [trialPrimarySpds,primaryMatchSpds(:,trialInds(rr,mm),rr)];
-        end 
-    end 
+        trialRefSpds = [trialRefSpds,refMatchSpds{rr}(:,trialInds{rr})];
+        trialPrimarySpds = [trialPrimarySpds,primaryMatchSpds{rr}(:,trialInds{rr})];
+    end
    
     % Fit parameters using the specified matches and the provided bounds 
     [bootstrapFitParams(kk,:),~,~] = ...
@@ -102,7 +113,7 @@ end
 % Compute confidence intervals based on fit parameters - central 65% of
 % bootstrapped distribution. Lower bounds are in the first row, and upper
 % bounds are in the second row.
-confidenceIntervals = zeros(2,8);
+confidenceIntervals = zeros(2,nParams);
 confidenceIntervals(1,:) = prctile(bootstrapFitParams,17.5,1);
 confidenceIntervals(2,:) = prctile(bootstrapFitParams,82.5,1);
 end
