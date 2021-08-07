@@ -27,6 +27,18 @@ switch (whichData)
         standardParams = zeros(1,8);
         simulatedParams = theData.sampledParams;
     case 'simulatedNoNoise'
+        dataFilename = 'SimulatedWithoutNoise_3201Levels.mat';
+        %dataFilename = 'SimulatedWithoutNoise_noiselessSearch.mat';
+        theData = load(fullfile(theDir,'sampleData',dataFilename));
+        S = [380 2 201]; wls = SToWls(S);
+        fieldSize = theData.fieldSize;
+        age = theData.age;
+        [nWls,nReps,nRefs] = size(theData.primarySpdsByWl);
+        refSpds = reshape(theData.refSpdsByWl,S(3),nReps*nRefs);
+        primarySpds = reshape(theData.primarySpdsByWl,S(3),nReps*nRefs);
+        standardParams = zeros(1,8);
+        simulatedParams = theData.sampledParams;
+    case 'exactMatches'
         dataFilename = 'SimulatedWithoutNoise_spds.mat';
         theData = load(fullfile(theDir,'sampleData',dataFilename));
         S = [380 2 201]; wls = SToWls(S);
@@ -37,6 +49,10 @@ switch (whichData)
         primarySpds = reshape(theData.primarySpdsByWl,S(3),nReps*nRefs);
         standardParams = zeros(1,8);
         simulatedParams = theData.sampledParams;
+
+        % Use the data we read in to generate some apparatus primaries
+
+
     case 'MELC_0004'
         dataFilename = 'MELC_0004_spds.mat';
         theData = load(fullfile(theDir,'sampleData',dataFilename));
