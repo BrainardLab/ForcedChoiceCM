@@ -50,9 +50,6 @@ switch (whichData)
         standardParams = zeros(1,8);
         simulatedParams = theData.sampledParams;
 
-        % Use the data we read in to generate some apparatus primaries
-
-
     case 'MELC_0004'
         dataFilename = 'MELC_0004_spds.mat';
         theData = load(fullfile(theDir,'sampleData',dataFilename));
@@ -68,13 +65,24 @@ switch (whichData)
         error('What is this data file of which you speak?')
 end
 
-%% Standard and simulated observer I
+%% Standard and simulated observer
 standardObserver = genRayleighObserver('fieldSize',fieldSize,'age',...
     age,'calcCones',true,'coneVec', standardParams,...
     'S',S,'opponentParams',[40.3908 205.7353 62.9590 1.0000]);
 simulatedObserver = genRayleighObserver('fieldSize',fieldSize,'age',...
     age,'calcCones',true,'coneVec', simulatedParams,...
     'S',S,'opponentParams',[40.3908 205.7353 62.9590 1.0000]);
+
+%% Generate matches corresponding to noisy matches
+%
+% Load approximate apparatus primaries
+thePrimaries = load(fullfile(theDir,'sampleData','maxSpds.mat'));
+
+% Compute LM cone coordinates of the matches
+nMatches = size(refSpds,2);
+for mm = 1:nMatches
+    %refLM(:,mm) = simulatedObserver.
+end
 
 %% Call Deena fit routine with robust fitting loop
 minimizeConeError = false;
